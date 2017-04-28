@@ -1,0 +1,7 @@
+{
+	"service.name": "Micro Service great grand father",
+	"service.configuration.address": "127.0.0.1;192.168.1.150;10.8.1.2",
+	"messageBroker.host": "192.168.1.4",
+	"messageBroker.reconnectTimeout": 3000,
+	"messageBroker.exchange": "first-infras"
+}
