@@ -158,7 +158,7 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 		}
 	}
 
-	public async subscribe(matchingPattern: string, onMessage: MessageHandleFunction, noAck?: boolean): Promise<string> {
+	public async subscribe(matchingPattern: string, onMessage: MessageHandleFunction, noAck: boolean = true): Promise<string> {
 		Guard.assertNotEmpty('matchingPattern', matchingPattern);
 		Guard.assertIsFunction('onMessage', onMessage);
 		try {
@@ -180,7 +180,7 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 
 					onMessage(this.parseMessage(msg), ack, nack);
 				}, 
-				{noAck: (noAck === undefined ? true : noAck)}
+				{ noAck }
 			);
 			this.moreSub(matchingPattern, conResult.consumerTag);
 			return conResult.consumerTag;
@@ -227,11 +227,11 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 			}
 
 		} catch (err) {
-			return this.handleError(err, 'Unsubscription error');
+			return this.handleError(err, `Failed to unsubscribe tag "${consumerTag}"`);
 		}
 	}
 
-	public onError(handler: Function): void {
+	public onError(handler: (err: string) => void): void {
 		this._emitter.on('error', handler);
 	}
 

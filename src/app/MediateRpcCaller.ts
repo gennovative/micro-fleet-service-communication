@@ -16,16 +16,26 @@ export class MessageBrokerRpcCaller
 			extends rpc.RpcCallerBase
 			implements IMediateRpcCaller {
 
+	private _emitter: EventEmitter;
+
 	constructor(
 		@inject(T.MSG_BROKER_CONNECTOR) private _msgBrokerConn: IMessageBrokerConnector
 	) {
 		super();
+
+		this._emitter = new EventEmitter();
 	}
 
-	public init(param: any): void {
+	/**
+	 * @see IRpcCaller.init
+	 */
+	public init(params?: any): void {
 	}
 
-	public call(moduleName: string, action: string, params: any): Promise<rpc.IRpcResponse> {
+	/**
+	 * @see IRpcCaller.call
+	 */
+	public call(moduleName: string, action: string, params?: any): Promise<rpc.IRpcResponse> {
 		Guard.assertDefined('moduleName', moduleName);
 		Guard.assertDefined('action', action);
 
@@ -35,27 +45,15 @@ export class MessageBrokerRpcCaller
 			const correlationId = uuid.v4(),
 				replyTo = `response.${moduleName}.${action}`;
 
-			let emitter = new EventEmitter();
-
 			this._msgBrokerConn.subscribe(replyTo, (msg: IMessage) => {
-				let intervalId = setInterval(() => {
-					// There are chances that the message comes before the below
-					// `emitter.once` runs. So let's make sure we only emit event
-					// when there is a listener.
-					if (emitter.listenerCount(msg.properties.correlationId)) {
-						clearInterval(intervalId);
-						intervalId = null;
-
-						// Announce that we've got a message with this correlationId.
-						emitter.emit(msg.properties.correlationId, msg);
-						emitter = null;
-					}
-				}, 100);
+				// Announce that we've got a response with this correlationId.
+				this._emitter.emit(msg.properties.correlationId, msg);
 			})
 			.then(consumerTag => {
-				emitter.once(correlationId, (msg: IMessage) => {
+				// TODO: Should have a timeout to remove this listener, in case this request never has response.
+				this._emitter.once(correlationId, async (msg: IMessage) => {
 					// We got what we want, stop consuming.
-					this._msgBrokerConn.unsubscribe(consumerTag);
+					await this._msgBrokerConn.unsubscribe(consumerTag);
 					resolve(<rpc.IRpcResponse>msg.data);
 				});
 

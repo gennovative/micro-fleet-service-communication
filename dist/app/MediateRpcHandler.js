@@ -20,8 +20,14 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
         super(depContainer);
         this._msgBrokerCnn = _msgBrokerCnn;
     }
-    init(param) {
+    /**
+     * @see IRpcHandler.init
+     */
+    init(params) {
     }
+    /**
+     * @see IRpcHandler.handle
+     */
     handle(action, dependencyIdentifier, actionFactory) {
         back_lib_common_util_1.Guard.assertDefined('action', action);
         back_lib_common_util_1.Guard.assertDefined('dependencyIdentifier', dependencyIdentifier);
@@ -47,6 +53,7 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
                 if (error instanceof back_lib_common_util_1.Exception) {
                     // TODO: Should log this unexpected error.
                     errMsg = error.message;
+                    // nack(); // Disable this, because we use auto-ack.
                 }
                 // If this is a custom error, which means the action method sends this error
                 // back to caller on purpose.

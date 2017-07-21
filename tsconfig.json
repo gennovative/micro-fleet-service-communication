@@ -1,6 +1,6 @@
 {
 	"compilerOptions": {
-		"target": "es6",
+		"target": "es2016",
 		"module": "commonjs",
 		"moduleResolution": "node",
 		"sourceMap": false,
@@ -10,10 +10,5 @@
 		"noImplicitAny": false,
 		"allowSyntheticDefaultImports": true,
 		"lib": ["es6", "dom"]
-	},
-	"exclude": [
-		"node_modules",
-		"typings/index",
-		"typings/index.d.ts"
-	]
+	}
 }

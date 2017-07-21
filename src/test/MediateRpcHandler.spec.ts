@@ -6,6 +6,8 @@ import { injectable, DependencyContainer, MinorException } from 'back-lib-common
 import { MessageBrokerRpcHandler, IMessage, IConnectionOptions,
 	TopicMessageBrokerConnector, IRpcRequest, IRpcResponse } from '../app';
 
+import rabbitOpts from './rabbit-options';
+
 
 const MODULE = 'TestHandler',
 	CONTROLLER_NORM = Symbol('NormalProductController'),
@@ -14,21 +16,6 @@ const MODULE = 'TestHandler',
 	SUCCESS_DEL_PRODUCT = 'removeOk',
 	ERROR_ADD_PRODUCT = 'addProductError',
 	ERROR_DEL_PRODUCT = 'removeError';
-
-const handlerOpts: IConnectionOptions = {
-		hostAddress: '192.168.1.4',
-		username: 'firstidea',
-		password: 'gennova',
-		queue: 'first-handler', // Queue for handler
-		exchange: 'first-infras'
-	},
-	callerOpts: IConnectionOptions = {
-		hostAddress: '192.168.1.4',
-		username: 'firstidea',
-		password: 'gennova',
-		queue: 'first-caller', // Queue for handler
-		exchange: 'first-infras'
-	};
 
 @injectable()
 class NormalProductController {
@@ -60,81 +47,10 @@ class ErrorProductController {
 	}
 }
 
-/*
-class HandlerConfigurationProvider implements IConfigurationProvider {
-	public enableRemote: boolean = false;
-
-	public init(): Promise<void> {
-		return Promise.resolve();
-	}
-	
-	public dispose(): Promise<void> {
-		return Promise.resolve();
-	}
-
-	public get(key: string): string {
-		switch (key) {
-			case S.MSG_BROKER_HOST:
-				return '192.168.1.4';
-			case S.MSG_BROKER_EXCHANGE:
-				return 'first-infras';
-			case S.MSG_BROKER_RECONN_TIMEOUT:
-				return '3000';
-			case S.MSG_BROKER_QUEUE:
-				return 'first-handler'; // Queue for handler
-			case S.MSG_BROKER_USERNAME:
-				return 'firstidea';
-			case S.MSG_BROKER_PASSWORD:
-				return 'gennova';
-			default:
-				return null;
-		}
-	}
-
-	public async fetch(): Promise<boolean> {
-		return Promise.resolve(true);
-	}
-} // END HandlerConfigurationProvider
-
-class CallerConfigurationProvider implements IConfigurationProvider {
-	public enableRemote: boolean = false;
-
-	public init(): Promise<void> {
-		return Promise.resolve();
-	}
-	
-	public dispose(): Promise<void> {
-		return Promise.resolve();
-	}
-
-	public get(key: string): string {
-		switch (key) {
-			case S.MSG_BROKER_HOST:
-				return '192.168.1.4';
-			case S.MSG_BROKER_EXCHANGE:
-				return 'first-infras';
-			case S.MSG_BROKER_RECONN_TIMEOUT:
-				return '3000';
-			case S.MSG_BROKER_QUEUE:
-				return 'first-caller'; // Queue for caller
-			case S.MSG_BROKER_USERNAME:
-				return 'firstidea';
-			case S.MSG_BROKER_PASSWORD:
-				return 'gennova';
-			default:
-				return null;
-		}
-	}
-
-	public async fetch(): Promise<boolean> {
-		return Promise.resolve(true);
-	}
-} // END CallerConfigurationProvider
-//*/
 
 let depContainer: DependencyContainer,
-	handlerMbAdt: TopicMessageBrokerConnector,
-	callerMbAdt: TopicMessageBrokerConnector,
+	handlerMbConn: TopicMessageBrokerConnector,
+	callerMbConn: TopicMessageBrokerConnector,
 	handler: MessageBrokerRpcHandler;
 
 describe('MediateRpcHandler', () => {
@@ -158,22 +74,22 @@ describe('MediateRpcHandler', () => {
 		
 		beforeEach(done => {
 			depContainer = new DependencyContainer();
-			callerMbAdt = new TopicMessageBrokerConnector();
-			handlerMbAdt = new TopicMessageBrokerConnector();
-			handler = new MessageBrokerRpcHandler(depContainer, handlerMbAdt);
+			callerMbConn = new TopicMessageBrokerConnector();
+			handlerMbConn = new TopicMessageBrokerConnector();
+			handler = new MessageBrokerRpcHandler(depContainer, handlerMbConn);
 			
-			handlerMbAdt.onError((err) => {
+			handlerMbConn.onError((err) => {
 				console.error('Handler error:\n' + JSON.stringify(err));
 			});
 			
-			callerMbAdt.onError((err) => {
+			callerMbConn.onError((err) => {
 				console.error('Caller error:\n' + JSON.stringify(err));
 			});
 
 			handler.name = MODULE;
 			Promise.all([
-				handlerMbAdt.connect(handlerOpts),
-				callerMbAdt.connect(callerOpts)
+				handlerMbConn.connect(rabbitOpts.handler),
+				callerMbConn.connect(rabbitOpts.caller)
 			])
 			.then(() => { done(); });
 		});
@@ -181,8 +97,8 @@ describe('MediateRpcHandler', () => {
 		afterEach(done => {
 			depContainer.dispose();
 			Promise.all([
-				handlerMbAdt.disconnect(),
-				callerMbAdt.disconnect()
+				handlerMbConn.disconnect(),
+				callerMbConn.disconnect()
 			])
 			.then(() => { done(); });
 		});
@@ -200,7 +116,7 @@ describe('MediateRpcHandler', () => {
 			// Assert
 			let replyTo = `response.${MODULE}.${ACTION}`;
 
-			callerMbAdt.subscribe(replyTo, (msg: IMessage) => {
+			callerMbConn.subscribe(replyTo, (msg: IMessage) => {
 				let response: IRpcResponse = msg.data;
 				expect(response).to.be.not.null;
 				expect(response.isSuccess).to.be.true;
@@ -217,7 +133,7 @@ describe('MediateRpcHandler', () => {
 				};
 				let topic = `request.${MODULE}.${ACTION}`;
 				// Manually publish request.
-				callerMbAdt.publish(topic, req, { correlationId: uuid.v4(), replyTo });
+				callerMbConn.publish(topic, req, { correlationId: uuid.v4(), replyTo });
 			});
 
 		});
@@ -234,7 +150,7 @@ describe('MediateRpcHandler', () => {
 			// Assert
 			let replyTo = `response.${MODULE}.${ACTION}`;
 
-			callerMbAdt.subscribe(replyTo, (msg: IMessage) => {
+			callerMbConn.subscribe(replyTo, (msg: IMessage) => {
 				let response: IRpcResponse = msg.data;
 				expect(response).to.be.not.null;
 				expect(response.isSuccess).to.be.false;
@@ -249,7 +165,7 @@ describe('MediateRpcHandler', () => {
 				};
 				let topic = `request.${MODULE}.${ACTION}`;
 				// Manually publish response.
-				callerMbAdt.publish(topic, req, { correlationId: uuid.v4(), replyTo });
+				callerMbConn.publish(topic, req, { correlationId: uuid.v4(), replyTo });
 			});
 		});
 
@@ -265,7 +181,7 @@ describe('MediateRpcHandler', () => {
 			// Assert
 			let replyTo = `response.${MODULE}.${ACTION}`;
 
-			callerMbAdt.subscribe(replyTo, (msg: IMessage) => {
+			callerMbConn.subscribe(replyTo, (msg: IMessage) => {
 				let response: IRpcResponse = msg.data;
 				expect(response).to.be.not.null;
 				expect(response.isSuccess).to.be.false;
@@ -280,7 +196,7 @@ describe('MediateRpcHandler', () => {
 				};
 				let topic = `request.${MODULE}.${ACTION}`;
 				// Manually publish response.
-				callerMbAdt.publish(topic, req, { correlationId: uuid.v4(), replyTo });
+				callerMbConn.publish(topic, req, { correlationId: uuid.v4(), replyTo });
 			});
 		});
 

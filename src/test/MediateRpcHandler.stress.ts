@@ -5,6 +5,8 @@ import { injectable, DependencyContainer } from 'back-lib-common-util';
 import { IMediateRpcHandler, MessageBrokerRpcHandler, IMessage, IConnectionOptions,
 	TopicMessageBrokerConnector, IRpcRequest, IRpcResponse } from '../app';
 
+import rabbitOpts from './rabbit-options';
+
 
 const MODULE = 'TestHandler',
 	CONTROLLER_NORM = Symbol('NormalProductController'),
@@ -14,20 +16,6 @@ const MODULE = 'TestHandler',
 	ERROR_ADD_PRODUCT = 'addProductError',
 	ERROR_DEL_PRODUCT = 'removeError';
 
-const handlerOpts: IConnectionOptions = {
-		hostAddress: '192.168.1.4',
-		username: 'firstidea',
-		password: 'gennova',
-		queue: 'first-handler', // Queue for handler
-		exchange: 'first-infras'
-	},
-	callerOpts: IConnectionOptions = {
-		hostAddress: '192.168.1.4',
-		username: 'firstidea',
-		password: 'gennova',
-		queue: 'first-caller', // Queue for handler
-		exchange: 'first-infras'
-	};
 
 @injectable()
 class NormalProductController {
@@ -46,77 +34,6 @@ class NormalProductController {
 	}
 }
 
-/*
-class HandlerConfigurationProvider implements IConfigurationProvider {
-	public enableRemote: boolean = false;
-
-	public init(): Promise<void> {
-		return Promise.resolve();
-	}
-	
-	public dispose(): Promise<void> {
-		return Promise.resolve();
-	}
-
-	public get(key: string): string {
-		switch (key) {
-			case S.MSG_BROKER_HOST:
-				return '192.168.1.4';
-			case S.MSG_BROKER_EXCHANGE:
-				return 'first-infras';
-			case S.MSG_BROKER_RECONN_TIMEOUT:
-				return '3000';
-			case S.MSG_BROKER_QUEUE:
-				return 'first-handler'; // Queue for handler
-			case S.MSG_BROKER_USERNAME:
-				return 'firstidea';
-			case S.MSG_BROKER_PASSWORD:
-				return 'gennova';
-			default:
-				return null;
-		}
-	}
-
-	public async fetch(): Promise<boolean> {
-		return Promise.resolve(true);
-	}
-} // END HandlerConfigurationProvider
-
-class CallerConfigurationProvider implements IConfigurationProvider {
-	public enableRemote: boolean = false;
-
-	public init(): Promise<void> {
-		return Promise.resolve();
-	}
-
-	public dispose(): Promise<void> {
-		return Promise.resolve();
-	}
-
-	public get(key: string): string {
-		switch (key) {
-			case S.MSG_BROKER_HOST:
-				return '192.168.1.4';
-			case S.MSG_BROKER_EXCHANGE:
-				return 'first-infras';
-			case S.MSG_BROKER_RECONN_TIMEOUT:
-				return '3000';
-			case S.MSG_BROKER_QUEUE:
-				return 'first-caller'; // Queue for caller
-			case S.MSG_BROKER_USERNAME:
-				return 'firstidea';
-			case S.MSG_BROKER_PASSWORD:
-				return 'gennova';
-			default:
-				return null;
-		}
-	}
-
-	public async fetch(): Promise<boolean> {
-		return Promise.resolve(true);
-	}
-} // END CallerConfigurationProvider
-//*/
 
 let depContainer: DependencyContainer,
 	handlerMbConn: TopicMessageBrokerConnector,
@@ -146,8 +63,8 @@ describe.skip('MediateRpcHandler', function() {
 
 			handler.name = MODULE;
 			Promise.all([
-				handlerMbConn.connect(handlerOpts),
-				callerMbConn.connect(callerOpts)
+				handlerMbConn.connect(rabbitOpts.handler),
+				callerMbConn.connect(rabbitOpts.caller)
 			])
 			.then(() => { done(); });
 	});

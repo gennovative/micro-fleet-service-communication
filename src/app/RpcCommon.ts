@@ -25,17 +25,18 @@ export interface IRpcCaller {
 	name: string;
 
 	/**
-	 * Listens to `route`, resolves an instance with `dependencyIdentifier`
-	 * when there is a request coming, calls instance's `action` method. If `actions`
-	 * is not specified, RPC Caller tries to figure out an action method from `route`.
-	 */
-	call(moduleName: string, action: string, params: any): Promise<IRpcResponse>;
-
-	/**
 	 * Sets up this RPC caller with specified `param`. Each implementation class requires
 	 * different kinds of `param`.
 	 */
-	init(param: any);
+	init(params?: any);
+
+	/**
+	 * Sends a request to `moduleName` to execute `action` with `params`.
+	 * @param moduleName The module to send request.
+	 * @param action The function name to call on `moduleName`.
+	 * @param params Parameters to pass to function `action`.
+	 */
+	call(moduleName: string, action: string, params?: any): Promise<IRpcResponse>;
 }
 
 
@@ -47,6 +48,12 @@ export interface IRpcHandler {
 	 * A name used in "from" and "to" request property.
 	 */
 	name: string;
+	
+	/**
+	 * Sets up this RPC handler with specified `param`. Each implementation class requires
+	 * different kinds of `param`.
+	 */
+	init(params?: any): void;
 
 	/**
 	 * Waits for incoming request, resolves an instance with `dependencyIdentifier`,
@@ -54,12 +61,6 @@ export interface IRpcHandler {
 	 * calls instance's `customAction` instead.
 	 */
 	handle(action: string, dependencyIdentifier: string | symbol, actionFactory?: RpcActionFactory);
-	
-	/**
-	 * Sets up this RPC handler with specified `param`. Each implementation class requires
-	 * different kinds of `param`.
-	 */
-	init(param?: any): void;
 }
 
 

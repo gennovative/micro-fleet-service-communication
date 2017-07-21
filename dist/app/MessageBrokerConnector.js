@@ -86,7 +86,7 @@ let TopicMessageBrokerConnector = class TopicMessageBrokerConnector {
             }
         });
     }
-    subscribe(matchingPattern, onMessage, noAck) {
+    subscribe(matchingPattern, onMessage, noAck = true) {
         return __awaiter(this, void 0, void 0, function* () {
             back_lib_common_util_1.Guard.assertNotEmpty('matchingPattern', matchingPattern);
             back_lib_common_util_1.Guard.assertIsFunction('onMessage', onMessage);
@@ -102,7 +102,7 @@ let TopicMessageBrokerConnector = class TopicMessageBrokerConnector {
                 let conResult = yield ch.consume(queueName, (msg) => {
                     let ack = () => ch.ack(msg), nack = () => ch.nack(msg);
                     onMessage(this.parseMessage(msg), ack, nack);
-                }, { noAck: (noAck === undefined ? true : noAck) });
+                }, { noAck });
                 this.moreSub(matchingPattern, conResult.consumerTag);
                 return conResult.consumerTag;
             }
@@ -145,7 +145,7 @@ let TopicMessageBrokerConnector = class TopicMessageBrokerConnector {
                 }
             }
             catch (err) {
-                return this.handleError(err, 'Unsubscription error');
+                return this.handleError(err, `Failed to unsubscribe tag "${consumerTag}"`);
             }
         });
     }

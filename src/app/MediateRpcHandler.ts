@@ -21,9 +21,15 @@ export class MessageBrokerRpcHandler
 	}
 
 
-	public init(param?: any): void {
+	/**
+	 * @see IRpcHandler.init
+	 */
+	public init(params?: any): void {
 	}
 
+	/**
+	 * @see IRpcHandler.handle
+	 */
 	public handle(action: string, dependencyIdentifier: string | symbol, actionFactory?: rpc.RpcActionFactory) {
 		Guard.assertDefined('action', action);
 		Guard.assertDefined('dependencyIdentifier', dependencyIdentifier);
@@ -55,6 +61,7 @@ export class MessageBrokerRpcHandler
 				if (error instanceof Exception) {
 					// TODO: Should log this unexpected error.
 					errMsg = error.message;
+					// nack(); // Disable this, because we use auto-ack.
 				}
 
 				// If this is a custom error, which means the action method sends this error

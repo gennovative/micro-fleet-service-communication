@@ -11,6 +11,14 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const events_1 = require("events");
 const uuid = require("uuid");
@@ -21,9 +29,16 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
     constructor(_msgBrokerConn) {
         super();
         this._msgBrokerConn = _msgBrokerConn;
+        this._emitter = new events_1.EventEmitter();
     }
-    init(param) {
+    /**
+     * @see IRpcCaller.init
+     */
+    init(params) {
     }
+    /**
+     * @see IRpcCaller.call
+     */
     call(moduleName, action, params) {
         back_lib_common_util_1.Guard.assertDefined('moduleName', moduleName);
         back_lib_common_util_1.Guard.assertDefined('action', action);
@@ -31,27 +46,17 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
             // There are many requests to same `requestTopic` and they listen to same `responseTopic`,
             // A request only carea for a response with same `correlationId`.
             const correlationId = uuid.v4(), replyTo = `response.${moduleName}.${action}`;
-            let emitter = new events_1.EventEmitter();
             this._msgBrokerConn.subscribe(replyTo, (msg) => {
-                let intervalId = setInterval(() => {
-                    // There are chances that the message comes before the below
-                    // `emitter.once` runs. So let's make sure we only emit event
-                    // when there is a listener.
-                    if (emitter.listenerCount(msg.properties.correlationId)) {
-                        clearInterval(intervalId);
-                        intervalId = null;
-                        // Announce that we've got a message with this correlationId.
-                        emitter.emit(msg.properties.correlationId, msg);
-                        emitter = null;
-                    }
-                }, 100);
+                // Announce that we've got a response with this correlationId.
+                this._emitter.emit(msg.properties.correlationId, msg);
             })
                 .then(consumerTag => {
-                emitter.once(correlationId, (msg) => {
+                // TODO: Should have a timeout to remove this listener, in case this request never has response.
+                this._emitter.once(correlationId, (msg) => __awaiter(this, void 0, void 0, function* () {
                     // We got what we want, stop consuming.
-                    this._msgBrokerConn.unsubscribe(consumerTag);
+                    yield this._msgBrokerConn.unsubscribe(consumerTag);
                     resolve(msg.data);
-                });
+                }));
                 let request = {
                     from: this._name,
                     to: moduleName,

@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { expect } from 'chai';
 import * as express from 'express';
-import * as requestMaker from 'request-promise';
+import * as requestMaker from 'request-promise-native';
 import { inject, injectable, DependencyContainer, MinorException, Exception } from 'back-lib-common-util';
 
 import { ExpressRpcHandler, IDirectRpcHandler, IRpcRequest, IRpcResponse } from '../app';
@@ -94,7 +94,7 @@ describe('ExpressDirectRpcHandler', () => {
 			expect(router.stack[0].route.path).to.equal(`/${ACTION}`);
 
 			let server = app.listen(3000, () => {
-				let options = {
+				let options: requestMaker.Options = {
 					method: 'POST',
 					uri: `http://localhost:3000/${MODULE}/${ACTION}`,
 					body: {},

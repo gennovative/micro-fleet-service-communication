@@ -19,6 +19,9 @@ let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rp
     constructor(depContainer) {
         super(depContainer);
     }
+    /**
+     * @see IRpcHandler.init
+     */
     init(param) {
         back_lib_common_util_1.Guard.assertIsFalsey(this._router, 'This RPC Caller is already initialized!');
         back_lib_common_util_1.Guard.assertIsTruthy(this._name, '`name` property must be set!');
@@ -31,6 +34,9 @@ let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rp
         app.use(bodyParser.json()); // Parse JSON in POST request
         app.use(`/${this._name}`, this._router);
     }
+    /**
+     * @see IRpcHandler.handle
+     */
     handle(action, dependencyIdentifier, actionFactory) {
         back_lib_common_util_1.Guard.assertIsMatch(null, ExpressRpcHandler_1.URL_TESTER, action, `Route "${action}" is not URL-safe!`);
         back_lib_common_util_1.Guard.assertIsTruthy(this._router, '`init` method must be called first!');

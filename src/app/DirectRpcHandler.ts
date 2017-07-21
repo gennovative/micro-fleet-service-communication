@@ -30,6 +30,9 @@ export class ExpressRpcHandler
 	}
 
 
+	/**
+	 * @see IRpcHandler.init
+	 */
 	public init(param?: any): void {
 		Guard.assertIsFalsey(this._router, 'This RPC Caller is already initialized!');
 		Guard.assertIsTruthy(this._name, '`name` property must be set!');
@@ -45,6 +48,9 @@ export class ExpressRpcHandler
 		app.use(`/${this._name}`, this._router);
 	}
 
+	/**
+	 * @see IRpcHandler.handle
+	 */
 	public handle(action: string, dependencyIdentifier: string | symbol, actionFactory?: rpc.RpcActionFactory) {
 		Guard.assertIsMatch(null, ExpressRpcHandler.URL_TESTER, action, `Route "${action}" is not URL-safe!`);
 		Guard.assertIsTruthy(this._router, '`init` method must be called first!');

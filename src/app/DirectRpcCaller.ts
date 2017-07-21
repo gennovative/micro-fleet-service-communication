@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 
 import * as uuid from 'uuid';
-import * as request from 'request-promise';
+import * as request from 'request-promise-native';
 
 import { injectable, inject, IDependencyContainer, Guard } from 'back-lib-common-util';
 
@@ -38,9 +38,16 @@ export class HttpRpcCaller
 		this._baseAddress = val;
 	}
 
+
+	/**
+	 * @see IRpcCaller.init
+	 */
 	public init(param: any): void {
 	}
 
+	/**
+	 * @see IRpcCaller.call
+	 */
 	public call(moduleName: string, action: string, params: any): Promise<rpc.IRpcResponse> {
 		Guard.assertDefined('moduleName', moduleName);
 		Guard.assertDefined('action', action);
@@ -48,16 +55,16 @@ export class HttpRpcCaller
 
 		return new Promise<rpc.IRpcResponse>((resolve, reject) => {
 			let request: rpc.IRpcRequest = {
-				from: this._name,
-				to: moduleName,
-				params
-			},
-				options = {
-				method: 'POST',
-				uri: `http://${this._baseAddress}/${moduleName}/${action}`,
-				body: request,
-				json: true // Automatically stringifies the body to JSON
-			};
+					from: this._name,
+					to: moduleName,
+					params
+				},
+				options: request.Options = {
+					method: 'POST',
+					uri: `http://${this._baseAddress}/${moduleName}/${action}`,
+					body: request,
+					json: true // Automatically stringifies the body to JSON
+				};
 
 			return this._requestMaker(options)
 				.catch(rawResponse => {

@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const request = require("request-promise");
+const request = require("request-promise-native");
 const back_lib_common_util_1 = require("back-lib-common-util");
 const rpc = require("./RpcCommon");
 let HttpRpcCaller = class HttpRpcCaller extends rpc.RpcCallerBase {
@@ -23,8 +23,14 @@ let HttpRpcCaller = class HttpRpcCaller extends rpc.RpcCallerBase {
     set baseAddress(val) {
         this._baseAddress = val;
     }
+    /**
+     * @see IRpcCaller.init
+     */
     init(param) {
     }
+    /**
+     * @see IRpcCaller.call
+     */
     call(moduleName, action, params) {
         back_lib_common_util_1.Guard.assertDefined('moduleName', moduleName);
         back_lib_common_util_1.Guard.assertDefined('action', action);
