@@ -21,7 +21,7 @@ describe('MessageBrokerRpcCaller', () => {
 	describe('init', () => {
 		it('Should do nothing', () => {
 			// Arrange
-			let caller = new MessageBrokerRpcCaller(null);
+			let caller = new MessageBrokerRpcCaller(new TopicMessageBrokerConnector());
 
 			// Act
 			caller.name = CALLER_MODULE;
@@ -31,7 +31,7 @@ describe('MessageBrokerRpcCaller', () => {
 			expect(caller.name).to.equal(CALLER_MODULE);
 		});
 	}); // END describe 'init'
-
+	
 	describe('call', function() {
 		// Uncomment this to have longer time to step debug.
 		//this.timeout(30000);
@@ -102,7 +102,6 @@ describe('MessageBrokerRpcCaller', () => {
 			});
 		});
 
-		// mediaterpccaller.spec.js
 		it('Should publish then wait for response.', (done) => {
 			// Arrange
 			const ACTION = 'echo',
@@ -141,5 +140,35 @@ describe('MessageBrokerRpcCaller', () => {
 				console.error(err);
 			});
 		});
-	}); // END describe 'handle'
+
+		it('Should reject if an error occurs', done => {
+			// Arrange
+			const ACTION = 'echo',
+				TEXT = 'eeeechooooo';
+
+			// This is the topic that caller should make
+			let topic = `request.${HANDLER_MODULE}.${ACTION}`;
+
+			handlerMbConn.subscribe(topic, (msg: IMessage) => {
+				expect(true, 'Should NOT get any request!').to.be.false;
+			})
+			.then(() => {
+				return callerMbConn.disconnect();
+			})
+			.then(() => {
+				// Act
+				return caller.call(HANDLER_MODULE, ACTION);
+			})
+			.then((res: IRpcResponse) => {
+				expect(true, 'Should NOT get any response!').to.be.false;
+			})
+			.catch(err => {
+				// Assert
+				expect(err).to.be.not.null;
+				expect(err).to.be.instanceOf(MinorException);
+				done();
+			});
+		});
+
+	}); // END describe 'call'
 });

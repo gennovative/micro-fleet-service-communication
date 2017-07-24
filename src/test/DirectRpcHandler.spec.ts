@@ -207,7 +207,7 @@ describe('ExpressDirectRpcHandler', () => {
 				})
 				.catch(rawResponse => {
 					console.error(rawResponse.error);
-					expect(true, 'Request should be successful!').to.be.not.false;
+					expect(true, 'Request should be successful!').to.be.false;
 					server.close();
 					server = null;
 				});
@@ -257,7 +257,7 @@ describe('ExpressDirectRpcHandler', () => {
 					// If status 500 or request error.
 
 					console.error(rawResponse.error);
-					expect(true, 'Request should be successful!').to.be.not.false;
+					expect(true, 'Request should be successful!').to.be.false;
 					server.close();
 					server = null;
 				});
@@ -296,7 +296,7 @@ describe('ExpressDirectRpcHandler', () => {
 				requestMaker(options).then((res: IRpcResponse) => {
 					// If status 200
 
-					expect(true, 'Request should NOT be successful!').to.be.not.false;
+					expect(true, 'Request should NOT be successful!').to.be.false;
 					server.close();
 					server = null;
 				})
@@ -349,7 +349,7 @@ describe('ExpressDirectRpcHandler', () => {
 				requestMaker(options).then((res: IRpcResponse) => {
 					// If status 200
 
-					expect(true, 'Request should NOT be successful!').to.be.not.false;
+					expect(true, 'Request should NOT be successful!').to.be.false;
 					server.close();
 					server = null;
 				})
@@ -401,7 +401,7 @@ describe('ExpressDirectRpcHandler', () => {
 				requestMaker(options).then((res: IRpcResponse) => {
 					// If status 200
 
-					expect(true, 'Request should NOT be successful!').to.be.not.false;
+					expect(true, 'Request should NOT be successful!').to.be.false;
 					server.close();
 					server = null;
 				})

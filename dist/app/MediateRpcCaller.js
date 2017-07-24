@@ -29,7 +29,9 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
     constructor(_msgBrokerConn) {
         super();
         this._msgBrokerConn = _msgBrokerConn;
+        back_lib_common_util_1.Guard.assertDefined('_msgBrokerConn', _msgBrokerConn);
         this._emitter = new events_1.EventEmitter();
+        this._msgBrokerConn.queue = ''; // Make sure we only use temporary unique queue.
     }
     /**
      * @see IRpcCaller.init

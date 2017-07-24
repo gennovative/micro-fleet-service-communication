@@ -22,8 +22,10 @@ export class MessageBrokerRpcCaller
 		@inject(T.MSG_BROKER_CONNECTOR) private _msgBrokerConn: IMessageBrokerConnector
 	) {
 		super();
+		Guard.assertDefined('_msgBrokerConn', _msgBrokerConn);
 
 		this._emitter = new EventEmitter();
+		this._msgBrokerConn.queue = ''; // Make sure we only use temporary unique queue.
 	}
 
 	/**

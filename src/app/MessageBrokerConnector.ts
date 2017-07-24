@@ -6,13 +6,8 @@ import * as _ from 'lodash';
 
 import { injectable, inject, CriticalException, Guard } from 'back-lib-common-util';
 
-export type MessageHandleFunction = (msg: IMessage, ack?: () => void, nack?: () => void) => void;
-export type RpcHandleFunction = (msg: IMessage, reply: (response: any) => void, deny?: () => void) => void;
 
-interface IQueueInfo {
-	name: string;
-	matchingPattern: string;
-}
+export type MessageHandleFunction = (msg: IMessage, ack?: () => void, nack?: () => void) => void;
 
 export interface IMessage {
 	data: any;
@@ -36,6 +31,15 @@ export interface IConnectionOptions {
 }
 
 export interface IMessageBrokerConnector {
+
+	/**
+	 * Gets or sets queue name.
+	 * Queue can only be changed before it is bound.
+	 * Queue is bound on the first call to `subscribe()` method.
+	 * @throws Error if changing queue after it is bound.
+	 */
+	queue: string;
+
 	/**
 	 * Creates a connection to message broker engine.
 	 * @param {IConnectionOptions} options
@@ -64,10 +68,13 @@ export interface IMessageBrokerConnector {
 	subscribe(matchingPattern: string, onMessage: MessageHandleFunction, noAck?: boolean): Promise<string>;
 
 	/**
-	 * Stop listening to a subscription that was made before.
+	 * Stops listening to a subscription that was made before.
 	 */
 	unsubscribe(consumerTag: string): Promise<void>;
 
+	/**
+	 * Registers a listener to handle errors.
+	 */
 	onError(handler: Function): void;
 }
 
@@ -82,15 +89,39 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 
 	private _exchange: string;
 	private _queue: string;
+	private _queueBound: boolean;
 	private _subscriptions: Map<string, Set<string>>;
 	private _emitter: EventEmitter;
 
 	constructor() {
 		this._subscriptions = new Map();
 		this._emitter = new EventEmitter();
+		this._queueBound = false;
 	}
 
-	connect(options: IConnectionOptions): Promise<void> {
+
+	/**
+	 * @see IMessageBrokerConnector.queue
+	 */
+	public get queue(): string {
+		return this._queue;
+	}
+
+	/**
+	 * @see IMessageBrokerConnector.queue
+	 */
+	public set queue(name: string) {
+		if (this._queueBound) {
+			throw new Error('Cannot change queue after binding!');
+		}
+		this._queue = name;
+	}
+
+
+	/**
+	 * @see IMessageBrokerConnector.connect
+	 */
+	public connect(options: IConnectionOptions): Promise<void> {
 		let credentials = '';
 		
 		this._exchange = options.exchange;
@@ -118,9 +149,12 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 			});
 	}
 
+	/**
+	 * @see IMessageBrokerConnector.disconnect
+	 */
 	public async disconnect(): Promise<void> {
 		try {
-			if (!this._connectionPrm || !this._consumeChanPrm) {
+			if (!this._connectionPrm && !this._consumeChanPrm) {
 				return;
 			}
 
@@ -158,9 +192,13 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 		}
 	}
 
+	/**
+	 * @see IMessageBrokerConnector.subscribe
+	 */
 	public async subscribe(matchingPattern: string, onMessage: MessageHandleFunction, noAck: boolean = true): Promise<string> {
 		Guard.assertNotEmpty('matchingPattern', matchingPattern);
 		Guard.assertIsFunction('onMessage', onMessage);
+		this.assertConnection();
 		try {
 			let channelPromise = this._consumeChanPrm;
 			if (!channelPromise) {
@@ -190,9 +228,13 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 		}
 	}
 
+	/**
+	 * @see IMessageBrokerConnector.publish
+	 */
 	public async publish(topic: string, payload: string | Json | JsonArray, options?: IPublishOptions): Promise<void> {
 		Guard.assertNotEmpty('topic', topic);
 		Guard.assertNotEmpty('message', payload);
+		this.assertConnection();
 		try {
 			if (!this._publishChanPrm) {
 				// Create a new publishing channel if there is not already, and from now on we publish to this only channel.
@@ -210,7 +252,11 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 		}
 	}
 
+	/**
+	 * @see IMessageBrokerConnector.unsubscribe
+	 */
 	public async unsubscribe(consumerTag: string): Promise<void> {
+		this.assertConnection();
 		try {
 			if (!this._consumeChanPrm) {
 				return;
@@ -231,10 +277,18 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 		}
 	}
 
+	/**
+	 * @see IMessageBrokerConnector.onError
+	 */
 	public onError(handler: (err: string) => void): void {
 		this._emitter.on('error', handler);
 	}
 
+
+	private assertConnection(): void {
+		Guard.assertDefined('connection', this._connectionPrm,
+			'Connection to message broker is not established or has been disconnected!');
+	}
 
 	private async createChannel(): Promise<amqp.Channel> {
 		const EXCHANGE_TYPE = 'topic';
@@ -248,7 +302,6 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 				// but all queues and waiting messages will be lost.
 				exResult = await ch.assertExchange(this._exchange, EXCHANGE_TYPE, {durable: true});
 
-			ch['queue'] = '';
 			ch.on('error', (err) => {
 				this._emitter.emit('error', err);
 			});
@@ -277,7 +330,7 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 
 			// Store queue name for later use.
 			// In our system, each channel is associated with only one queue.
-			return ch['queue'] = quResult.queue;
+			return this._queue = quResult.queue;
 
 		} catch (err) {
 			return this.handleError(err, 'Queue binding error');
@@ -286,10 +339,9 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 
 	private async unbindQueue(channelPromise: Promise<amqp.Channel>, matchingPattern: string): Promise<void> {
 		try {
-			let ch = await channelPromise,
-				queueName = ch['queue'];
+			let ch = await channelPromise;
 
-			await ch.unbindQueue(queueName, this._exchange, matchingPattern);
+			await ch.unbindQueue(this._queue, this._exchange, matchingPattern);
 
 		} catch (err) {
 			return this.handleError(err, 'Queue unbinding error');

@@ -25,7 +25,26 @@ let TopicMessageBrokerConnector = class TopicMessageBrokerConnector {
     constructor() {
         this._subscriptions = new Map();
         this._emitter = new events_1.EventEmitter();
+        this._queueBound = false;
     }
+    /**
+     * @see IMessageBrokerConnector.queue
+     */
+    get queue() {
+        return this._queue;
+    }
+    /**
+     * @see IMessageBrokerConnector.queue
+     */
+    set queue(name) {
+        if (this._queueBound) {
+            throw new Error('Cannot change queue after binding!');
+        }
+        this._queue = name;
+    }
+    /**
+     * @see IMessageBrokerConnector.connect
+     */
     connect(options) {
         let credentials = '';
         this._exchange = options.exchange;
@@ -50,10 +69,13 @@ let TopicMessageBrokerConnector = class TopicMessageBrokerConnector {
             return this.handleError(err, 'Connection creation error');
         });
     }
+    /**
+     * @see IMessageBrokerConnector.disconnect
+     */
     disconnect() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                if (!this._connectionPrm || !this._consumeChanPrm) {
+                if (!this._connectionPrm && !this._consumeChanPrm) {
                     return;
                 }
                 let ch, promises = [];
@@ -86,10 +108,14 @@ let TopicMessageBrokerConnector = class TopicMessageBrokerConnector {
             }
         });
     }
+    /**
+     * @see IMessageBrokerConnector.subscribe
+     */
     subscribe(matchingPattern, onMessage, noAck = true) {
         return __awaiter(this, void 0, void 0, function* () {
             back_lib_common_util_1.Guard.assertNotEmpty('matchingPattern', matchingPattern);
             back_lib_common_util_1.Guard.assertIsFunction('onMessage', onMessage);
+            this.assertConnection();
             try {
                 let channelPromise = this._consumeChanPrm;
                 if (!channelPromise) {
@@ -111,10 +137,14 @@ let TopicMessageBrokerConnector = class TopicMessageBrokerConnector {
             }
         });
     }
+    /**
+     * @see IMessageBrokerConnector.publish
+     */
     publish(topic, payload, options) {
         return __awaiter(this, void 0, void 0, function* () {
             back_lib_common_util_1.Guard.assertNotEmpty('topic', topic);
             back_lib_common_util_1.Guard.assertNotEmpty('message', payload);
+            this.assertConnection();
             try {
                 if (!this._publishChanPrm) {
                     // Create a new publishing channel if there is not already, and from now on we publish to this only channel.
@@ -130,8 +160,12 @@ let TopicMessageBrokerConnector = class TopicMessageBrokerConnector {
             }
         });
     }
+    /**
+     * @see IMessageBrokerConnector.unsubscribe
+     */
     unsubscribe(consumerTag) {
         return __awaiter(this, void 0, void 0, function* () {
+            this.assertConnection();
             try {
                 if (!this._consumeChanPrm) {
                     return;
@@ -149,8 +183,14 @@ let TopicMessageBrokerConnector = class TopicMessageBrokerConnector {
             }
         });
     }
+    /**
+     * @see IMessageBrokerConnector.onError
+     */
     onError(handler) {
         this._emitter.on('error', handler);
+    }
+    assertConnection() {
+        back_lib_common_util_1.Guard.assertDefined('connection', this._connectionPrm, 'Connection to message broker is not established or has been disconnected!');
     }
     createChannel() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -161,7 +201,6 @@ let TopicMessageBrokerConnector = class TopicMessageBrokerConnector {
                 // Setting exchange as "durable" means the exchange with same name will be re-created after the message broker restarts,
                 // but all queues and waiting messages will be lost.
                 exResult = yield ch.assertExchange(this._exchange, EXCHANGE_TYPE, { durable: true });
-                ch['queue'] = '';
                 ch.on('error', (err) => {
                     this._emitter.emit('error', err);
                 });
@@ -188,7 +227,7 @@ let TopicMessageBrokerConnector = class TopicMessageBrokerConnector {
                 yield ch.bindQueue(quResult.queue, this._exchange, matchingPattern);
                 // Store queue name for later use.
                 // In our system, each channel is associated with only one queue.
-                return ch['queue'] = quResult.queue;
+                return this._queue = quResult.queue;
             }
             catch (err) {
                 return this.handleError(err, 'Queue binding error');
@@ -198,8 +237,8 @@ let TopicMessageBrokerConnector = class TopicMessageBrokerConnector {
     unbindQueue(channelPromise, matchingPattern) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                let ch = yield channelPromise, queueName = ch['queue'];
-                yield ch.unbindQueue(queueName, this._exchange, matchingPattern);
+                let ch = yield channelPromise;
+                yield ch.unbindQueue(this._queue, this._exchange, matchingPattern);
             }
             catch (err) {
                 return this.handleError(err, 'Queue unbinding error');
