@@ -1,3 +1,5 @@
+import * as http from 'http';
+
 import * as express from 'express';
 import * as bodyParser from 'body-parser';
 
@@ -5,11 +7,28 @@ import { injectable, inject, IDependencyContainer, Guard, Exception, Types as Cm
 
 import * as rpc from './RpcCommon';
 
-export interface IDirectRpcHandler extends rpc.IRpcHandler {
-}
 
 export interface ExpressRpcHandlerInitOptions {
-	
+	expressApp: express.Express;
+	expressRouter: express.Router;
+}
+
+export interface IDirectRpcHandler extends rpc.IRpcHandler {
+	/**
+	 * @override
+	 * @see IRpcHandler.init
+	 */
+	init(params?: ExpressRpcHandlerInitOptions): void;
+
+	/**
+	 * Starts internal Http server and listening to requests.
+	 */
+	start(): Promise<void>;
+
+	/**
+	 * Stops internal Http server.
+	 */
+	dispose(): Promise<void>;
 }
 
 @injectable()
@@ -23,6 +42,7 @@ export class ExpressRpcHandler
 			return regexp;
 		})();
 
+	private _server: http.Server;
 	private _app: express.Express;
 	private _router: express.Router;
 
@@ -35,21 +55,44 @@ export class ExpressRpcHandler
 
 
 	/**
-	 * @see IRpcHandler.init
+	 * @see IDirectRpcHandler.init
 	 */
-	public init(param?: any): void {
+	public init(param?: ExpressRpcHandlerInitOptions): void {
 		Guard.assertIsFalsey(this._router, 'This RPC Caller is already initialized!');
 		Guard.assertIsTruthy(this._name, '`name` property must be set!');
-		Guard.assertDefined('param', param);
-		Guard.assertIsTruthy(param.expressApp, '`expressApp` with an instance of Express is required!');
-		Guard.assertIsTruthy(param.router, '`router` with an instance of Express Router is required!');
 
-		let app: express.Express = this._app = param.expressApp;
-		
-		this._router = param.router;
+		let app: express.Express;
+		app = this._app = (param && param.expressApp) 
+			? param.expressApp 
+			: express();
+
+		this._router = (param && param.expressRouter) ? param.expressRouter : express.Router();
 		//app.use(bodyParser.urlencoded({extended: true})); // Parse Form values in POST request, but I don't think we need it in this case.
 		app.use(bodyParser.json()); // Parse JSON in POST request
 		app.use(`/${this._name}`, this._router);
+		
+	}
+
+	/**
+	 * @see IDirectRpcHandler.start
+	 */
+	public start(): Promise<void> {
+		return new Promise<void>((resolve, reject) => {
+			this._server = this._app.listen(3000, resolve);
+			this._server.on('error', err => this.emitError(err));
+		});
+	}
+
+	/**
+	 * @see IDirectRpcHandler.dispose
+	 */
+	public dispose(): Promise<void> {
+		return new Promise<void>((resolve, reject) => {
+			this._server.close(() => {
+				this._server = null;
+				resolve();
+			});
+		});
 	}
 
 	/**

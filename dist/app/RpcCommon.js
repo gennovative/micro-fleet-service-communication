@@ -9,29 +9,48 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const events_1 = require("events");
 const back_lib_common_util_1 = require("back-lib-common-util");
 // RPC Base classes
 let RpcCallerBase = class RpcCallerBase {
+    constructor() {
+        this._emitter = new events_1.EventEmitter();
+    }
     get name() {
         return this._name;
     }
     set name(val) {
         this._name = val;
     }
+    onError(handler) {
+        this._emitter.on('error', handler);
+    }
+    emitError(err) {
+        this._emitter.emit('error', err);
+    }
 };
 RpcCallerBase = __decorate([
-    back_lib_common_util_1.injectable()
+    back_lib_common_util_1.injectable(),
+    __metadata("design:paramtypes", [])
 ], RpcCallerBase);
 exports.RpcCallerBase = RpcCallerBase;
 let RpcHandlerBase = class RpcHandlerBase {
     constructor(_depContainer) {
         this._depContainer = _depContainer;
+        back_lib_common_util_1.Guard.assertDefined('_depContainer', _depContainer);
+        this._emitter = new events_1.EventEmitter();
     }
     get name() {
         return this._name;
     }
     set name(val) {
         this._name = val;
+    }
+    onError(handler) {
+        this._emitter.on('error', handler);
+    }
+    emitError(err) {
+        this._emitter.emit('error', err);
     }
     resolveActionFunc(action, depId, actFactory) {
         // Attempt to resolve controller instance

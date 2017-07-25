@@ -57,7 +57,10 @@ describe('MediateRpcHandler', () => {
 	describe('init', () => {
 		it('Should do nothing', () => {
 			// Arrange
-			let handler = new MessageBrokerRpcHandler(null, null);
+			let handler = new MessageBrokerRpcHandler(
+				new DependencyContainer(),
+				new TopicMessageBrokerConnector()
+			);
 
 			// Act
 			handler.name = MODULE;
@@ -66,6 +69,32 @@ describe('MediateRpcHandler', () => {
 			// Assert
 			expect(handler.name).to.equal(MODULE);
 		});
+		
+		it('Should raise error if problems occur', done => {
+			// Arrange
+			const ERROR = 'Test error';
+
+			handlerMbConn = new TopicMessageBrokerConnector();
+			handler = new MessageBrokerRpcHandler(
+				new DependencyContainer(),
+				handlerMbConn
+			);
+
+			// Act
+			handler.name = MODULE;
+			handler.init();
+			handler.onError(err => {
+				// Assert
+				expect(err).to.equal(ERROR);
+				handlerMbConn.disconnect().then(() => done());
+			});
+
+			handlerMbConn.connect(rabbitOpts.handler)
+				.then(() => {
+					handlerMbConn['_emitter'].emit('error', ERROR);
+				});
+		});
+
 	}); // END describe 'init'
 
 	describe('handle', function() {

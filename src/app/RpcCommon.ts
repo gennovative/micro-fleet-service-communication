@@ -1,3 +1,5 @@
+import { EventEmitter } from 'events';
+
 import * as express from 'express-serve-static-core';
 import { injectable, IDependencyContainer, Guard, CriticalException } from 'back-lib-common-util';
 
@@ -28,7 +30,7 @@ export interface IRpcCaller {
 	 * Sets up this RPC caller with specified `param`. Each implementation class requires
 	 * different kinds of `param`.
 	 */
-	init(params?: any);
+	init(params?: any): any;
 
 	/**
 	 * Sends a request to `moduleName` to execute `action` with `params`.
@@ -37,6 +39,11 @@ export interface IRpcCaller {
 	 * @param params Parameters to pass to function `action`.
 	 */
 	call(moduleName: string, action: string, params?: any): Promise<IRpcResponse>;
+
+	/**
+	 * Registers a listener to handle errors.
+	 */
+	onError(handler: (err) => void): void;
 }
 
 
@@ -53,7 +60,7 @@ export interface IRpcHandler {
 	 * Sets up this RPC handler with specified `param`. Each implementation class requires
 	 * different kinds of `param`.
 	 */
-	init(params?: any): void;
+	init(params?: any): any;
 
 	/**
 	 * Waits for incoming request, resolves an instance with `dependencyIdentifier`,
@@ -61,6 +68,11 @@ export interface IRpcHandler {
 	 * calls instance's `customAction` instead.
 	 */
 	handle(action: string, dependencyIdentifier: string | symbol, actionFactory?: RpcActionFactory);
+
+	/**
+	 * Registers a listener to handle errors.
+	 */
+	onError(handler: (err) => void): void;
 }
 
 
@@ -69,6 +81,7 @@ export interface IRpcHandler {
 @injectable()
 export abstract class RpcCallerBase {
 
+	protected _emitter: EventEmitter;
 	protected _name: string;
 
 	public get name(): string {
@@ -78,11 +91,26 @@ export abstract class RpcCallerBase {
 	public set name(val: string) {
 		this._name = val;
 	}
+
+	constructor() {
+		this._emitter = new EventEmitter();
+	}
+
+
+	public onError(handler: (err) => void): void {
+		this._emitter.on('error', handler);
+	}
+
+
+	protected emitError(err): void {
+		this._emitter.emit('error', err);
+	}
 }
 
 @injectable()
 export abstract class RpcHandlerBase {
 
+	protected _emitter: EventEmitter;
 	protected _name: string;
 
 	public get name(): string {
@@ -94,8 +122,19 @@ export abstract class RpcHandlerBase {
 	}
 
 	constructor(protected _depContainer: IDependencyContainer) {
+		Guard.assertDefined('_depContainer', _depContainer);
+		this._emitter = new EventEmitter();
 	}
-	
+
+
+	public onError(handler: (err) => void): void {
+		this._emitter.on('error', handler);
+	}
+
+
+	protected emitError(err): void {
+		this._emitter.emit('error', err);
+	}
 
 	protected resolveActionFunc(action: string, depId: string | symbol, actFactory?: RpcActionFactory): RpcControllerFunction {
 		// Attempt to resolve controller instance

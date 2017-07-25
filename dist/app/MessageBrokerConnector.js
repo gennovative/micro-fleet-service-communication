@@ -175,7 +175,7 @@ let TopicMessageBrokerConnector = class TopicMessageBrokerConnector {
                 yield ch.cancel(consumerTag);
                 let unusedPattern = this.lessSub(consumerTag);
                 if (unusedPattern) {
-                    this.unbindQueue(this._consumeChanPrm, unusedPattern);
+                    yield this.unbindQueue(this._consumeChanPrm, unusedPattern);
                 }
             }
             catch (err) {
@@ -255,7 +255,7 @@ let TopicMessageBrokerConnector = class TopicMessageBrokerConnector {
     moreSub(matchingPattern, consumerTag) {
         let consumers = this._subscriptions.get(matchingPattern);
         if (!consumers) {
-            this._subscriptions.set(matchingPattern, new Set(consumerTag));
+            this._subscriptions.set(matchingPattern, new Set([consumerTag]));
             return;
         }
         consumers.add(consumerTag);
@@ -266,6 +266,8 @@ let TopicMessageBrokerConnector = class TopicMessageBrokerConnector {
     lessSub(consumerTag) {
         let subscriptions = this._subscriptions, matchingPattern = null;
         for (let sub of subscriptions) {
+            // sub[0] (string): topic name
+            // sub[1] (Set): collection of consumerTags
             if (!sub[1].has(consumerTag)) {
                 continue;
             }

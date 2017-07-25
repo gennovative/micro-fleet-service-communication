@@ -16,15 +16,12 @@ export class MessageBrokerRpcCaller
 			extends rpc.RpcCallerBase
 			implements IMediateRpcCaller {
 
-	private _emitter: EventEmitter;
-
 	constructor(
 		@inject(T.MSG_BROKER_CONNECTOR) private _msgBrokerConn: IMessageBrokerConnector
 	) {
 		super();
 		Guard.assertDefined('_msgBrokerConn', _msgBrokerConn);
 
-		this._emitter = new EventEmitter();
 		this._msgBrokerConn.queue = ''; // Make sure we only use temporary unique queue.
 	}
 
@@ -32,6 +29,7 @@ export class MessageBrokerRpcCaller
 	 * @see IRpcCaller.init
 	 */
 	public init(params?: any): void {
+		this._msgBrokerConn.onError(err => this.emitError(err));
 	}
 
 	/**

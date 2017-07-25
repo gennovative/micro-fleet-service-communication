@@ -20,7 +20,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const events_1 = require("events");
 const shortid = require("shortid");
 const back_lib_common_util_1 = require("back-lib-common-util");
 const Types_1 = require("./Types");
@@ -30,13 +29,13 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
         super();
         this._msgBrokerConn = _msgBrokerConn;
         back_lib_common_util_1.Guard.assertDefined('_msgBrokerConn', _msgBrokerConn);
-        this._emitter = new events_1.EventEmitter();
         this._msgBrokerConn.queue = ''; // Make sure we only use temporary unique queue.
     }
     /**
      * @see IRpcCaller.init
      */
     init(params) {
+        this._msgBrokerConn.onError(err => this.emitError(err));
     }
     /**
      * @see IRpcCaller.call

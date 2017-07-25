@@ -74,7 +74,7 @@ export interface IMessageBrokerConnector {
 	/**
 	 * Registers a listener to handle errors.
 	 */
-	onError(handler: Function): void;
+	onError(handler: (err) => void): void;
 }
 
 @injectable()
@@ -268,7 +268,7 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 			
 			let unusedPattern = this.lessSub(consumerTag);
 			if (unusedPattern) {
-				this.unbindQueue(this._consumeChanPrm, unusedPattern);
+				await this.unbindQueue(this._consumeChanPrm, unusedPattern);
 			}
 
 		} catch (err) {
@@ -279,7 +279,7 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 	/**
 	 * @see IMessageBrokerConnector.onError
 	 */
-	public onError(handler: (err: string) => void): void {
+	public onError(handler: (err) => void): void {
 		this._emitter.on('error', handler);
 	}
 
@@ -359,7 +359,7 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 		let consumers: Set<string> = this._subscriptions.get(matchingPattern);
 
 		if (!consumers) {
-			this._subscriptions.set(matchingPattern, new Set(consumerTag));
+			this._subscriptions.set(matchingPattern, new Set<string>([consumerTag]));
 			return;
 		}
 		consumers.add(consumerTag);
@@ -373,6 +373,8 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 			matchingPattern = null;
 		
 		for (let sub of subscriptions) {
+			// sub[0] (string): topic name
+			// sub[1] (Set): collection of consumerTags
 			if (!sub[1].has(consumerTag)) { continue; }
 
 			// Remove this tag from consumer list.

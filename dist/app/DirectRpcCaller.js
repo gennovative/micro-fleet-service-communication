@@ -8,6 +8,14 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const request = require("request-promise-native");
 const back_lib_common_util_1 = require("back-lib-common-util");
@@ -32,10 +40,10 @@ let HttpRpcCaller = class HttpRpcCaller extends rpc.RpcCallerBase {
      * @see IRpcCaller.call
      */
     call(moduleName, action, params) {
-        back_lib_common_util_1.Guard.assertDefined('moduleName', moduleName);
-        back_lib_common_util_1.Guard.assertDefined('action', action);
-        back_lib_common_util_1.Guard.assertIsTruthy(this._baseAddress, 'Base URL must be set!');
-        return new Promise((resolve, reject) => {
+        return __awaiter(this, void 0, void 0, function* () {
+            back_lib_common_util_1.Guard.assertDefined('moduleName', moduleName);
+            back_lib_common_util_1.Guard.assertDefined('action', action);
+            back_lib_common_util_1.Guard.assertIsTruthy(this._baseAddress, 'Base URL must be set!');
             let request = {
                 from: this._name,
                 to: moduleName,
@@ -46,10 +54,12 @@ let HttpRpcCaller = class HttpRpcCaller extends rpc.RpcCallerBase {
                 body: request,
                 json: true // Automatically stringifies the body to JSON
             };
-            return this._requestMaker(options)
-                .catch(rawResponse => {
-                return rawResponse.error;
-            });
+            try {
+                return yield this._requestMaker(options);
+            }
+            catch (rawResponse) {
+                throw rawResponse.error;
+            }
         });
     }
 };

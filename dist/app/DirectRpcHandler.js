@@ -12,6 +12,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const express = require("express");
 const bodyParser = require("body-parser");
 const back_lib_common_util_1 = require("back-lib-common-util");
 const rpc = require("./RpcCommon");
@@ -20,19 +21,39 @@ let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rp
         super(depContainer);
     }
     /**
-     * @see IRpcHandler.init
+     * @see IDirectRpcHandler.init
      */
     init(param) {
         back_lib_common_util_1.Guard.assertIsFalsey(this._router, 'This RPC Caller is already initialized!');
         back_lib_common_util_1.Guard.assertIsTruthy(this._name, '`name` property must be set!');
-        back_lib_common_util_1.Guard.assertDefined('param', param);
-        back_lib_common_util_1.Guard.assertIsTruthy(param.expressApp, '`expressApp` with an instance of Express is required!');
-        back_lib_common_util_1.Guard.assertIsTruthy(param.router, '`router` with an instance of Express Router is required!');
-        let app = this._app = param.expressApp;
-        this._router = param.router;
+        let app;
+        app = this._app = (param && param.expressApp)
+            ? param.expressApp
+            : express();
+        this._router = (param && param.expressRouter) ? param.expressRouter : express.Router();
         //app.use(bodyParser.urlencoded({extended: true})); // Parse Form values in POST request, but I don't think we need it in this case.
         app.use(bodyParser.json()); // Parse JSON in POST request
         app.use(`/${this._name}`, this._router);
+    }
+    /**
+     * @see IDirectRpcHandler.start
+     */
+    start() {
+        return new Promise((resolve, reject) => {
+            this._server = this._app.listen(3000, resolve);
+            this._server.on('error', err => this.emitError(err));
+        });
+    }
+    /**
+     * @see IDirectRpcHandler.dispose
+     */
+    dispose() {
+        return new Promise((resolve, reject) => {
+            this._server.close(() => {
+                this._server = null;
+                resolve();
+            });
+        });
     }
     /**
      * @see IRpcHandler.handle

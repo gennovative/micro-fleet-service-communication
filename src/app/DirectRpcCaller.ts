@@ -41,34 +41,33 @@ export class HttpRpcCaller
 	/**
 	 * @see IRpcCaller.init
 	 */
-	public init(param: any): void {
+	public init(param?: any): void {
 	}
 
 	/**
 	 * @see IRpcCaller.call
 	 */
-	public call(moduleName: string, action: string, params: any): Promise<rpc.IRpcResponse> {
+	public async call(moduleName: string, action: string, params: any): Promise<rpc.IRpcResponse> {
 		Guard.assertDefined('moduleName', moduleName);
 		Guard.assertDefined('action', action);
 		Guard.assertIsTruthy(this._baseAddress, 'Base URL must be set!');
 
-		return new Promise<rpc.IRpcResponse>((resolve, reject) => {
-			let request: rpc.IRpcRequest = {
-					from: this._name,
-					to: moduleName,
-					params
-				},
-				options: request.Options = {
-					method: 'POST',
-					uri: `http://${this._baseAddress}/${moduleName}/${action}`,
-					body: request,
-					json: true // Automatically stringifies the body to JSON
-				};
+		let request: rpc.IRpcRequest = {
+				from: this._name,
+				to: moduleName,
+				params
+			},
+			options: request.Options = {
+				method: 'POST',
+				uri: `http://${this._baseAddress}/${moduleName}/${action}`,
+				body: request,
+				json: true // Automatically stringifies the body to JSON
+			};
 
-			return this._requestMaker(options)
-				.catch(rawResponse => {
-					return <rpc.IRpcResponse>rawResponse.error;
-				});
-		});
+		try {
+			return await this._requestMaker(options);
+		} catch (rawResponse) {
+			throw rawResponse.error;
+		}
 	}
 }

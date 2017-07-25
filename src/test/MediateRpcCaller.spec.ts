@@ -29,6 +29,28 @@ describe('MessageBrokerRpcCaller', () => {
 			// Assert
 			expect(caller.name).to.equal(CALLER_MODULE);
 		});
+
+		it('Should raise error if problems occur', done => {
+			// Arrange
+			const ERROR = 'Test error';
+			let callerMbConn = new TopicMessageBrokerConnector(),
+				caller = new MessageBrokerRpcCaller(callerMbConn);
+
+			// Act
+			caller.name = CALLER_MODULE;
+			caller.init();
+			caller.onError(err => {
+				// Assert
+				expect(err).to.equal(ERROR);
+				callerMbConn.disconnect().then(() => done());
+			});
+
+			callerMbConn.connect(rabbitOpts.caller)
+				.then(() => {
+					callerMbConn['_emitter'].emit('error', ERROR);
+				});
+		});
+
 	}); // END describe 'init'
 	
 	describe('call', function() {

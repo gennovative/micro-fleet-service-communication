@@ -16,14 +16,16 @@ const back_lib_common_util_1 = require("back-lib-common-util");
 const Types_1 = require("./Types");
 const rpc = require("./RpcCommon");
 let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandlerBase {
-    constructor(depContainer, _msgBrokerCnn) {
+    constructor(depContainer, _msgBrokerConn) {
         super(depContainer);
-        this._msgBrokerCnn = _msgBrokerCnn;
+        this._msgBrokerConn = _msgBrokerConn;
+        back_lib_common_util_1.Guard.assertDefined('_msgBrokerConn', _msgBrokerConn);
     }
     /**
      * @see IRpcHandler.init
      */
     init(params) {
+        this._msgBrokerConn && this._msgBrokerConn.onError(err => this.emitError(err));
     }
     /**
      * @see IRpcHandler.handle
@@ -32,7 +34,7 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
         back_lib_common_util_1.Guard.assertDefined('action', action);
         back_lib_common_util_1.Guard.assertDefined('dependencyIdentifier', dependencyIdentifier);
         back_lib_common_util_1.Guard.assertDefined(null, this._name, '`name` property is required.');
-        this._msgBrokerCnn.subscribe(`request.${this._name}.${action}`, this.buildHandleFunc.apply(this, arguments));
+        this._msgBrokerConn.subscribe(`request.${this._name}.${action}`, this.buildHandleFunc.apply(this, arguments));
     }
     buildHandleFunc(action, dependencyIdentifier, actionFactory) {
         return (msg) => {
@@ -44,7 +46,7 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
             }))
                 .then(result => {
                 // Sends response to reply topic
-                return this._msgBrokerCnn.publish(replyTo, this.createResponse(true, result, request.from), { correlationId });
+                return this._msgBrokerConn.publish(replyTo, this.createResponse(true, result, request.from), { correlationId });
             })
                 .catch(error => {
                 let errMsg = error;
@@ -57,7 +59,7 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
                 }
                 // If this is a custom error, which means the action method sends this error
                 // back to caller on purpose.
-                return this._msgBrokerCnn.publish(replyTo, this.createResponse(false, errMsg, request.from), { correlationId });
+                return this._msgBrokerConn.publish(replyTo, this.createResponse(false, errMsg, request.from), { correlationId });
             });
         };
     }

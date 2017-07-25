@@ -15,9 +15,10 @@ export class MessageBrokerRpcHandler
 	
 	constructor(
 		@inject(CmT.DEPENDENCY_CONTAINER) depContainer: IDependencyContainer,
-		@inject(T.MSG_BROKER_CONNECTOR) private _msgBrokerCnn: IMessageBrokerConnector
+		@inject(T.MSG_BROKER_CONNECTOR) private _msgBrokerConn: IMessageBrokerConnector
 	) {
 		super(depContainer);
+		Guard.assertDefined('_msgBrokerConn', _msgBrokerConn);
 	}
 
 
@@ -25,6 +26,7 @@ export class MessageBrokerRpcHandler
 	 * @see IRpcHandler.init
 	 */
 	public init(params?: any): void {
+		this._msgBrokerConn && this._msgBrokerConn.onError(err => this.emitError(err));
 	}
 
 	/**
@@ -35,7 +37,7 @@ export class MessageBrokerRpcHandler
 		Guard.assertDefined('dependencyIdentifier', dependencyIdentifier);
 		Guard.assertDefined(null, this._name, '`name` property is required.');
 		
-		this._msgBrokerCnn.subscribe(`request.${this._name}.${action}`, this.buildHandleFunc.apply(this, arguments));
+		this._msgBrokerConn.subscribe(`request.${this._name}.${action}`, this.buildHandleFunc.apply(this, arguments));
 	}
 
 
@@ -52,7 +54,7 @@ export class MessageBrokerRpcHandler
 			}))
 			.then(result => { // When `actionFn` calls `resolve` from inside.
 				// Sends response to reply topic
-				return this._msgBrokerCnn.publish(replyTo, this.createResponse(true, result, request.from), { correlationId });
+				return this._msgBrokerConn.publish(replyTo, this.createResponse(true, result, request.from), { correlationId });
 			})
 			.catch(error => {
 				let errMsg = error;
@@ -66,7 +68,7 @@ export class MessageBrokerRpcHandler
 
 				// If this is a custom error, which means the action method sends this error
 				// back to caller on purpose.
-				return this._msgBrokerCnn.publish(replyTo, this.createResponse(false, errMsg, request.from), { correlationId });
+				return this._msgBrokerConn.publish(replyTo, this.createResponse(false, errMsg, request.from), { correlationId });
 			});
 		};
 	}
