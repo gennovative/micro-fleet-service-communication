@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 
-import * as uuid from 'uuid';
+import * as shortid from 'shortid';
 import { injectable, inject, IDependencyContainer, Guard, MinorException } from 'back-lib-common-util';
 
 import { Types as T } from './Types';
@@ -43,8 +43,8 @@ export class MessageBrokerRpcCaller
 
 		return new Promise<rpc.IRpcResponse>((resolve, reject) => {
 			// There are many requests to same `requestTopic` and they listen to same `responseTopic`,
-			// A request only carea for a response with same `correlationId`.
-			const correlationId = uuid.v4(),
+			// A request only cares about a response with same `correlationId`.
+			const correlationId = shortid.generate(),
 				replyTo = `response.${moduleName}.${action}`;
 
 			this._msgBrokerConn.subscribe(replyTo, (msg: IMessage) => {

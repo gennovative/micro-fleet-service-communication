@@ -21,7 +21,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const events_1 = require("events");
-const uuid = require("uuid");
+const shortid = require("shortid");
 const back_lib_common_util_1 = require("back-lib-common-util");
 const Types_1 = require("./Types");
 const rpc = require("./RpcCommon");
@@ -46,8 +46,8 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
         back_lib_common_util_1.Guard.assertDefined('action', action);
         return new Promise((resolve, reject) => {
             // There are many requests to same `requestTopic` and they listen to same `responseTopic`,
-            // A request only carea for a response with same `correlationId`.
-            const correlationId = uuid.v4(), replyTo = `response.${moduleName}.${action}`;
+            // A request only cares about a response with same `correlationId`.
+            const correlationId = shortid.generate(), replyTo = `response.${moduleName}.${action}`;
             this._msgBrokerConn.subscribe(replyTo, (msg) => {
                 // Announce that we've got a response with this correlationId.
                 this._emitter.emit(msg.properties.correlationId, msg);

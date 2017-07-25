@@ -1,9 +1,8 @@
 import 'reflect-metadata';
 import { expect } from 'chai';
-import * as uuid from 'uuid';
-import { injectable, MinorException } from 'back-lib-common-util';
+import { MinorException } from 'back-lib-common-util';
 
-import { MessageBrokerRpcCaller, IMessage, IConnectionOptions,
+import { MessageBrokerRpcCaller, IMessage,
 	TopicMessageBrokerConnector, IRpcRequest, IRpcResponse } from '../app';
 
 import rabbitOpts from './rabbit-options';

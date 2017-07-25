@@ -1,10 +1,9 @@
 import { EventEmitter } from 'events';
 
 import * as amqp from 'amqplib';
-import * as uuid from 'uuid';
 import * as _ from 'lodash';
 
-import { injectable, inject, CriticalException, Guard } from 'back-lib-common-util';
+import { injectable, CriticalException, Guard } from 'back-lib-common-util';
 
 
 export type MessageHandleFunction = (msg: IMessage, ack?: () => void, nack?: () => void) => void;

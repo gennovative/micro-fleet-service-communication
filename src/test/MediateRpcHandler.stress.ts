@@ -1,8 +1,8 @@
 import 'reflect-metadata';
-import * as uuid from 'uuid';
+import * as shortid from 'shortid';
 import { injectable, DependencyContainer } from 'back-lib-common-util';
 
-import { IMediateRpcHandler, MessageBrokerRpcHandler, IMessage, IConnectionOptions,
+import { MessageBrokerRpcHandler, IMessage,
 	TopicMessageBrokerConnector, IRpcRequest, IRpcResponse } from '../app';
 
 import rabbitOpts from './rabbit-options';
@@ -111,7 +111,7 @@ describe.skip('MediateRpcHandler', function() {
 				// Manually publish request.
 				start = new Date().getTime();
 				console.log('Request');
-				callerMbConn.publish(`request.${MODULE}.${ACTION}`, req, { correlationId: uuid.v4(), replyTo });
+				callerMbConn.publish(`request.${MODULE}.${ACTION}`, req, { correlationId: shortid.generate(), replyTo });
 			}, SENDING_GAP); // END setInterval
 		});
 

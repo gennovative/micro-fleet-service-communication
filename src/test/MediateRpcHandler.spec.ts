@@ -1,9 +1,9 @@
 import 'reflect-metadata';
 import { expect } from 'chai';
-import * as uuid from 'uuid';
+import * as shortid from 'shortid';
 import { injectable, DependencyContainer, MinorException } from 'back-lib-common-util';
 
-import { MessageBrokerRpcHandler, IMessage, IConnectionOptions,
+import { MessageBrokerRpcHandler, IMessage,
 	TopicMessageBrokerConnector, IRpcRequest, IRpcResponse } from '../app';
 
 import rabbitOpts from './rabbit-options';
@@ -133,7 +133,7 @@ describe('MediateRpcHandler', () => {
 				};
 				let topic = `request.${MODULE}.${ACTION}`;
 				// Manually publish request.
-				callerMbConn.publish(topic, req, { correlationId: uuid.v4(), replyTo });
+				callerMbConn.publish(topic, req, { correlationId: shortid.generate(), replyTo });
 			});
 
 		});
@@ -165,7 +165,7 @@ describe('MediateRpcHandler', () => {
 				};
 				let topic = `request.${MODULE}.${ACTION}`;
 				// Manually publish response.
-				callerMbConn.publish(topic, req, { correlationId: uuid.v4(), replyTo });
+				callerMbConn.publish(topic, req, { correlationId: shortid.generate(), replyTo });
 			});
 		});
 
@@ -196,7 +196,7 @@ describe('MediateRpcHandler', () => {
 				};
 				let topic = `request.${MODULE}.${ACTION}`;
 				// Manually publish response.
-				callerMbConn.publish(topic, req, { correlationId: uuid.v4(), replyTo });
+				callerMbConn.publish(topic, req, { correlationId: shortid.generate(), replyTo });
 			});
 		});
 

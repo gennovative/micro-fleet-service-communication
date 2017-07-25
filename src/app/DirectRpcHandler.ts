@@ -8,6 +8,10 @@ import * as rpc from './RpcCommon';
 export interface IDirectRpcHandler extends rpc.IRpcHandler {
 }
 
+export interface ExpressRpcHandlerInitOptions {
+	
+}
+
 @injectable()
 export class ExpressRpcHandler
 			extends rpc.RpcHandlerBase

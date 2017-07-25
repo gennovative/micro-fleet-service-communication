@@ -1,9 +1,8 @@
 import { EventEmitter } from 'events';
 
-import * as uuid from 'uuid';
 import * as request from 'request-promise-native';
 
-import { injectable, inject, IDependencyContainer, Guard } from 'back-lib-common-util';
+import { injectable, Guard } from 'back-lib-common-util';
 
 import * as rpc from './RpcCommon';
 
