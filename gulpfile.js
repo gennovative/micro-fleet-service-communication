@@ -3,17 +3,26 @@ const
 	cache = require('gulp-cached'),
 	debug = require("gulp-debug"),
 	dts = require('dts-generator'),
+	header = require('gulp-header'),
 	istanbul = require('gulp-istanbul'),
 	gulp = require("gulp"),
+	merge = require('merge-stream'),
 	mocha = require('gulp-mocha'),
 	remapIstanbul = require('remap-istanbul/lib/gulpRemapIstanbul'),
-    sequence = require('gulp-watch-sequence'),
+	replace = require('gulp-replace'),
+	sequence = require('gulp-watch-sequence'),
 	sourcemaps = require('gulp-sourcemaps'),
+	through = require("through2"),
 	tsc = require("gulp-typescript"),
 	tsProject = tsc.createProject("tsconfig.json"),
 	tslint = require('gulp-tslint'),
 	watch = require('gulp-watch')
 	;
+
+let onError = function (err) {
+	console.error(err.toString());
+	this.emit('end');
+};
 
 const DIST_FOLDER = 'dist';
 
@@ -28,9 +37,9 @@ gulp.task('clean', function() {
 /**
  * Checks coding convention.
  */
-const srcToLint = ['src/**/*.ts', '!node_modules/**/*.*'];
+const LINT_FILES = ['src/**/*.ts', '!node_modules/**/*.*'];
 let lintCode = function() {
-	return gulp.src(srcToLint)
+	return gulp.src(LINT_FILES)
 		.pipe(cache('linting'))
 		.pipe(tslint({
 			formatter: "verbose"
@@ -44,22 +53,21 @@ gulp.task('tslint-hot', lintCode);
 /**
  * Compiles TypeScript sources and writes to `dist` folder.
  */
-const TS_FILES = ['src/**/*.ts', 'typings/**/*.d.ts', '!node_modules/**/*.*'];
+const TS_FILES = ['src/**/*.ts', '!node_modules/**/*.*'],
+	TYPING_FILES = ['typings/**/*.d.ts', '!typings/app.d.ts'];
 let compile = function () {
+	let compileTs = gulp.src(TS_FILES)
+		.pipe(cache('compiling'));
 
-	var onError = function (err) {
-		console.error(err.toString());
-		this.emit('end');
-	};
+	let includeTypings = gulp.src(TYPING_FILES);
 
-	return gulp.src(TS_FILES)	
+	return merge(compileTs, includeTypings)
 		.on('error', onError)
 		.on('failed', onError)
-		.pipe(cache('compiling'))
 		.pipe(debug())
 		.pipe(sourcemaps.init())
 		.pipe(tsProject(tsc.reporter.fullReporter(true)))
-		.pipe(sourcemaps.write('.'))
+		.pipe(sourcemaps.write('./'))
 		.pipe(gulp.dest(DIST_FOLDER));
 };
 gulp.task('compile', ['tslint'], compile);
@@ -92,7 +100,7 @@ let runTest = function () {
 		// Creating the reports after tests ran
 		.pipe(istanbul.writeReports())
 		.once('error', function (err) {
-			console.log(err.toString());
+			onError(err);
 			process.exit(1);
 		});
 };
@@ -142,10 +150,26 @@ gulp.task('definition', ['compile'], (done) => {
 		out: DEF_FILE,
 		sendMessage: console.log,
 		verbose: true,
-		exclude: ['src/test/**/*.*', 'typings/**/*.*', 'node_modules/**/*.*', 'dist/**/*.*', 'coverage/**/*.*', '.git/**/*.*']
+		exclude: ['src/test/**/*.*', 'typings/**/*.*', 'node_modules/**/*.*', 'dist/**/*.*', 'coverage/**/*.*', '.git/**/*.*', 'gulpfile.js']
 	};
+
 	del.sync([DEF_FILE]);
-	dts.default(config).then(done);
+	dts.default(config).then(() => { 
+		gulp.src(DEF_FILE)
+			.on('error', onError)
+			.pipe(replace(/([\t\f\v]*)private(.*);[\r\n]*/g, ''))
+			.pipe(replace(/\/src\//g, '/'))
+			.pipe(replace(/\/app/g, ""))
+			.pipe(replace(/\/index'/g, "'"))
+			.pipe(through.obj(function(file, enc, cb) {
+				del.sync([DEF_FILE]);
+				this.push(file);
+				cb();
+			}))
+			.pipe(header('/// <reference path="./global.d.ts" />\r\n\r\n'))
+			.pipe(gulp.dest('./typings'))
+			.on('end', done);
+	});
 });
 
 

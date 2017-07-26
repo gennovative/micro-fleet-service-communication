@@ -1,4 +1,8 @@
+/// <reference path="./global.d.ts" />
+
 declare module 'back-lib-service-communication/RpcCommon' {
+	/// <reference types="node" />
+	import { EventEmitter } from 'events';
 	import { IDependencyContainer } from 'back-lib-common-util';
 	export interface IRpcRequest extends Json {
 	    from: string;
@@ -17,16 +21,21 @@ declare module 'back-lib-service-communication/RpcCommon' {
 	     */
 	    name: string;
 	    /**
-	     * Listens to `route`, resolves an instance with `dependencyIdentifier`
-	     * when there is a request coming, calls instance's `action` method. If `actions`
-	     * is not specified, RPC Caller tries to figure out an action method from `route`.
-	     */
-	    call(moduleName: string, action: string, params: any): Promise<IRpcResponse>;
-	    /**
 	     * Sets up this RPC caller with specified `param`. Each implementation class requires
 	     * different kinds of `param`.
 	     */
-	    init(param: any): any;
+	    init(params?: any): any;
+	    /**
+	     * Sends a request to `moduleName` to execute `action` with `params`.
+	     * @param moduleName The module to send request.
+	     * @param action The function name to call on `moduleName`.
+	     * @param params Parameters to pass to function `action`.
+	     */
+	    call(moduleName: string, action: string, params?: any): Promise<IRpcResponse>;
+	    /**
+	     * Registers a listener to handle errors.
+	     */
+	    onError(handler: (err) => void): void;
 	}
 	export type RpcControllerFunction = (request: IRpcRequest, resolve: PromiseResolveFn, reject: PromiseRejectFn) => void;
 	export type RpcActionFactory = (controller) => RpcControllerFunction;
@@ -36,26 +45,37 @@ declare module 'back-lib-service-communication/RpcCommon' {
 	     */
 	    name: string;
 	    /**
+	     * Sets up this RPC handler with specified `param`. Each implementation class requires
+	     * different kinds of `param`.
+	     */
+	    init(params?: any): any;
+	    /**
 	     * Waits for incoming request, resolves an instance with `dependencyIdentifier`,
 	     * calls instance's `action` method. If `customAction` is specified,
 	     * calls instance's `customAction` instead.
 	     */
 	    handle(action: string, dependencyIdentifier: string | symbol, actionFactory?: RpcActionFactory): any;
 	    /**
-	     * Sets up this RPC handler with specified `param`. Each implementation class requires
-	     * different kinds of `param`.
+	     * Registers a listener to handle errors.
 	     */
-	    init(param?: any): void;
+	    onError(handler: (err) => void): void;
 	}
 	export abstract class RpcCallerBase {
+	    protected _emitter: EventEmitter;
 	    protected _name: string;
 	    name: string;
+	    constructor();
+	    onError(handler: (err) => void): void;
+	    protected emitError(err: any): void;
 	}
 	export abstract class RpcHandlerBase {
 	    protected _depContainer: IDependencyContainer;
+	    protected _emitter: EventEmitter;
 	    protected _name: string;
 	    name: string;
 	    constructor(_depContainer: IDependencyContainer);
+	    onError(handler: (err) => void): void;
+	    protected emitError(err: any): void;
 	    protected resolveActionFunc(action: string, depId: string | symbol, actFactory?: RpcActionFactory): RpcControllerFunction;
 	    protected createResponse(isSuccess: any, data: any, replyTo: string): IRpcResponse;
 	}
@@ -72,23 +92,62 @@ declare module 'back-lib-service-communication/DirectRpcCaller' {
 	    baseAddress: string;
 	}
 	export class HttpRpcCaller extends rpc.RpcCallerBase implements IDirectRpcCaller {
-	    constructor();
+	    	    	    constructor();
 	    baseAddress: string;
-	    init(param: any): void;
+	    /**
+	     * @see IRpcCaller.init
+	     */
+	    init(param?: any): void;
+	    /**
+	     * @see IRpcCaller.call
+	     */
 	    call(moduleName: string, action: string, params: any): Promise<rpc.IRpcResponse>;
 	}
 
 }
 declare module 'back-lib-service-communication/DirectRpcHandler' {
+	/// <reference types="express" />
+	import * as express from 'express';
 	import { IDependencyContainer } from 'back-lib-common-util';
 	import * as rpc from 'back-lib-service-communication/RpcCommon';
+	export interface ExpressRpcHandlerInitOptions {
+	    expressApp: express.Express;
+	    expressRouter: express.Router;
+	}
 	export interface IDirectRpcHandler extends rpc.IRpcHandler {
+	    /**
+	     * @override
+	     * @see IRpcHandler.init
+	     */
+	    init(params?: ExpressRpcHandlerInitOptions): void;
+	    /**
+	     * Starts internal Http server and listening to requests.
+	     */
+	    start(): Promise<void>;
+	    /**
+	     * Stops internal Http server.
+	     */
+	    dispose(): Promise<void>;
 	}
 	export class ExpressRpcHandler extends rpc.RpcHandlerBase implements IDirectRpcHandler {
-	    constructor(depContainer: IDependencyContainer);
-	    init(param?: any): void;
+	    	    	    	    	    constructor(depContainer: IDependencyContainer);
+	    /**
+	     * @see IDirectRpcHandler.init
+	     */
+	    init(param?: ExpressRpcHandlerInitOptions): void;
+	    /**
+	     * @see IDirectRpcHandler.start
+	     */
+	    start(): Promise<void>;
+	    /**
+	     * @see IDirectRpcHandler.dispose
+	     */
+	    dispose(): Promise<void>;
+	    /**
+	     * @see IRpcHandler.handle
+	     */
 	    handle(action: string, dependencyIdentifier: string | symbol, actionFactory?: rpc.RpcActionFactory): void;
-	}
+	    	}
 
 }
 declare module 'back-lib-service-communication/Types' {
@@ -104,7 +163,6 @@ declare module 'back-lib-service-communication/Types' {
 declare module 'back-lib-service-communication/MessageBrokerConnector' {
 	import * as amqp from 'amqplib';
 	export type MessageHandleFunction = (msg: IMessage, ack?: () => void, nack?: () => void) => void;
-	export type RpcHandleFunction = (msg: IMessage, reply: (response: any) => void, deny?: () => void) => void;
 	export interface IMessage {
 	    data: any;
 	    raw: amqp.Message;
@@ -124,6 +182,13 @@ declare module 'back-lib-service-communication/MessageBrokerConnector' {
 	    queue: string;
 	}
 	export interface IMessageBrokerConnector {
+	    /**
+	     * Gets or sets queue name.
+	     * Queue can only be changed before it is bound.
+	     * Queue is bound on the first call to `subscribe()` method.
+	     * @throws Error if changing queue after it is bound.
+	     */
+	    queue: string;
 	    /**
 	     * Creates a connection to message broker engine.
 	     * @param {IConnectionOptions} options
@@ -148,20 +213,56 @@ declare module 'back-lib-service-communication/MessageBrokerConnector' {
 	     */
 	    subscribe(matchingPattern: string, onMessage: MessageHandleFunction, noAck?: boolean): Promise<string>;
 	    /**
-	     * Stop listening to a subscription that was made before.
+	     * Stops listening to a subscription that was made before.
 	     */
 	    unsubscribe(consumerTag: string): Promise<void>;
-	    onError(handler: Function): void;
+	    /**
+	     * Registers a listener to handle errors.
+	     */
+	    onError(handler: (err) => void): void;
 	}
 	export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
-	    constructor();
+	    	    	    	    	    	    	    	    	    constructor();
+	    /**
+	     * @see IMessageBrokerConnector.queue
+	     */
+	    /**
+	     * @see IMessageBrokerConnector.queue
+	     */
+	    queue: string;
+	    /**
+	     * @see IMessageBrokerConnector.connect
+	     */
 	    connect(options: IConnectionOptions): Promise<void>;
+	    /**
+	     * @see IMessageBrokerConnector.disconnect
+	     */
 	    disconnect(): Promise<void>;
+	    /**
+	     * @see IMessageBrokerConnector.subscribe
+	     */
 	    subscribe(matchingPattern: string, onMessage: MessageHandleFunction, noAck?: boolean): Promise<string>;
+	    /**
+	     * @see IMessageBrokerConnector.publish
+	     */
 	    publish(topic: string, payload: string | Json | JsonArray, options?: IPublishOptions): Promise<void>;
+	    /**
+	     * @see IMessageBrokerConnector.unsubscribe
+	     */
 	    unsubscribe(consumerTag: string): Promise<void>;
-	    onError(handler: Function): void;
-	}
+	    /**
+	     * @see IMessageBrokerConnector.onError
+	     */
+	    onError(handler: (err) => void): void;
+	    	    	    /**
+	     * If `queueName` is null, creates a queue and binds it to `matchingPattern`.
+	     * If `queueName` is not null, binds `matchingPattern` to the queue with that name.
+	     * @return {string} null if no queue is created, otherwise returns the new queue name.
+	     */
+	    	    	    	    	    /**
+	     * @return {string} the pattern name which should be unbound, othewise return null.
+	     */
+	    	    	    	}
 
 }
 declare module 'back-lib-service-communication/MediateRpcCaller' {
@@ -170,9 +271,15 @@ declare module 'back-lib-service-communication/MediateRpcCaller' {
 	export interface IMediateRpcCaller extends rpc.IRpcCaller {
 	}
 	export class MessageBrokerRpcCaller extends rpc.RpcCallerBase implements IMediateRpcCaller {
-	    constructor(_msgBrokerConn: IMessageBrokerConnector);
-	    init(param: any): void;
-	    call(moduleName: string, action: string, params: any): Promise<rpc.IRpcResponse>;
+	    	    constructor(_msgBrokerConn: IMessageBrokerConnector);
+	    /**
+	     * @see IRpcCaller.init
+	     */
+	    init(params?: any): void;
+	    /**
+	     * @see IRpcCaller.call
+	     */
+	    call(moduleName: string, action: string, params?: any): Promise<rpc.IRpcResponse>;
 	}
 
 }
@@ -183,10 +290,16 @@ declare module 'back-lib-service-communication/MediateRpcHandler' {
 	export interface IMediateRpcHandler extends rpc.IRpcHandler {
 	}
 	export class MessageBrokerRpcHandler extends rpc.RpcHandlerBase implements IMediateRpcHandler {
-	    constructor(depContainer: IDependencyContainer, _msgBrokerCnn: IMessageBrokerConnector);
-	    init(param?: any): void;
+	    	    constructor(depContainer: IDependencyContainer, _msgBrokerConn: IMessageBrokerConnector);
+	    /**
+	     * @see IRpcHandler.init
+	     */
+	    init(params?: any): void;
+	    /**
+	     * @see IRpcHandler.handle
+	     */
 	    handle(action: string, dependencyIdentifier: string | symbol, actionFactory?: rpc.RpcActionFactory): void;
-	}
+	    	}
 
 }
 declare module 'back-lib-service-communication' {
@@ -197,4 +310,5 @@ declare module 'back-lib-service-communication' {
 	export * from 'back-lib-service-communication/MediateRpcHandler';
 	export * from 'back-lib-service-communication/MessageBrokerConnector';
 	export * from 'back-lib-service-communication/Types';
+
 }
