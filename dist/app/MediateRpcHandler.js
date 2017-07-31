@@ -19,7 +19,7 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
     constructor(depContainer, _msgBrokerConn) {
         super(depContainer);
         this._msgBrokerConn = _msgBrokerConn;
-        back_lib_common_util_1.Guard.assertDefined('_msgBrokerConn', _msgBrokerConn);
+        back_lib_common_util_1.Guard.assertArgDefined('_msgBrokerConn', _msgBrokerConn);
     }
     /**
      * @see IRpcHandler.init
@@ -31,9 +31,9 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
      * @see IRpcHandler.handle
      */
     handle(action, dependencyIdentifier, actionFactory) {
-        back_lib_common_util_1.Guard.assertDefined('action', action);
-        back_lib_common_util_1.Guard.assertDefined('dependencyIdentifier', dependencyIdentifier);
-        back_lib_common_util_1.Guard.assertDefined(null, this._name, '`name` property is required.');
+        back_lib_common_util_1.Guard.assertArgDefined('action', action);
+        back_lib_common_util_1.Guard.assertArgDefined('dependencyIdentifier', dependencyIdentifier);
+        back_lib_common_util_1.Guard.assertIsDefined(this._name, '`name` property is required.');
         this._msgBrokerConn.subscribe(`request.${this._name}.${action}`, this.buildHandleFunc.apply(this, arguments));
     }
     buildHandleFunc(action, dependencyIdentifier, actionFactory) {

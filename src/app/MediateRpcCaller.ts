@@ -20,7 +20,7 @@ export class MessageBrokerRpcCaller
 		@inject(T.MSG_BROKER_CONNECTOR) private _msgBrokerConn: IMessageBrokerConnector
 	) {
 		super();
-		Guard.assertDefined('_msgBrokerConn', _msgBrokerConn);
+		Guard.assertArgDefined('_msgBrokerConn', _msgBrokerConn);
 
 		this._msgBrokerConn.queue = ''; // Make sure we only use temporary unique queue.
 	}
@@ -36,8 +36,8 @@ export class MessageBrokerRpcCaller
 	 * @see IRpcCaller.call
 	 */
 	public call(moduleName: string, action: string, params?: any): Promise<rpc.IRpcResponse> {
-		Guard.assertDefined('moduleName', moduleName);
-		Guard.assertDefined('action', action);
+		Guard.assertArgDefined('moduleName', moduleName);
+		Guard.assertArgDefined('action', action);
 
 		return new Promise<rpc.IRpcResponse>((resolve, reject) => {
 			// There are many requests to same `requestTopic` and they listen to same `responseTopic`,

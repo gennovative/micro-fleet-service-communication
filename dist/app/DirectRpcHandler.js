@@ -59,8 +59,8 @@ let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rp
      * @see IRpcHandler.handle
      */
     handle(action, dependencyIdentifier, actionFactory) {
-        back_lib_common_util_1.Guard.assertIsMatch(null, ExpressRpcHandler_1.URL_TESTER, action, `Route "${action}" is not URL-safe!`);
-        back_lib_common_util_1.Guard.assertIsTruthy(this._router, '`init` method must be called first!');
+        back_lib_common_util_1.Guard.assertIsMatch(ExpressRpcHandler_1.URL_TESTER, action, `Route "${action}" is not URL-safe!`);
+        back_lib_common_util_1.Guard.assertIsDefined(this._router, '`init` method must be called first!');
         this._router.post(`/${action}`, this.buildHandleFunc.apply(this, arguments));
     }
     buildHandleFunc(action, dependencyIdentifier, actionFactory) {

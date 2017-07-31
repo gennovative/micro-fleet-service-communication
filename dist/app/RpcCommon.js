@@ -37,7 +37,7 @@ exports.RpcCallerBase = RpcCallerBase;
 let RpcHandlerBase = class RpcHandlerBase {
     constructor(_depContainer) {
         this._depContainer = _depContainer;
-        back_lib_common_util_1.Guard.assertDefined('_depContainer', _depContainer);
+        back_lib_common_util_1.Guard.assertArgDefined('_depContainer', _depContainer);
         this._emitter = new events_1.EventEmitter();
     }
     get name() {
@@ -55,7 +55,7 @@ let RpcHandlerBase = class RpcHandlerBase {
     resolveActionFunc(action, depId, actFactory) {
         // Attempt to resolve controller instance
         let instance = this._depContainer.resolve(depId);
-        back_lib_common_util_1.Guard.assertIsTruthy(instance, `Cannot resolve dependency ${depId.toString()}!`);
+        back_lib_common_util_1.Guard.assertIsDefined(instance, `Cannot resolve dependency ${depId.toString()}!`);
         let actionFn = instance[action];
         // If default action is not available, attempt to get action from factory.
         if (!actionFn) {

@@ -18,7 +18,7 @@ export class MessageBrokerRpcHandler
 		@inject(T.MSG_BROKER_CONNECTOR) private _msgBrokerConn: IMessageBrokerConnector
 	) {
 		super(depContainer);
-		Guard.assertDefined('_msgBrokerConn', _msgBrokerConn);
+		Guard.assertArgDefined('_msgBrokerConn', _msgBrokerConn);
 	}
 
 
@@ -33,9 +33,9 @@ export class MessageBrokerRpcHandler
 	 * @see IRpcHandler.handle
 	 */
 	public handle(action: string, dependencyIdentifier: string | symbol, actionFactory?: rpc.RpcActionFactory) {
-		Guard.assertDefined('action', action);
-		Guard.assertDefined('dependencyIdentifier', dependencyIdentifier);
-		Guard.assertDefined(null, this._name, '`name` property is required.');
+		Guard.assertArgDefined('action', action);
+		Guard.assertArgDefined('dependencyIdentifier', dependencyIdentifier);
+		Guard.assertIsDefined(this._name, '`name` property is required.');
 		
 		this._msgBrokerConn.subscribe(`request.${this._name}.${action}`, this.buildHandleFunc.apply(this, arguments));
 	}

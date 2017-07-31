@@ -195,9 +195,10 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 	 * @see IMessageBrokerConnector.subscribe
 	 */
 	public async subscribe(matchingPattern: string, onMessage: MessageHandleFunction, noAck: boolean = true): Promise<string> {
-		Guard.assertNotEmpty('matchingPattern', matchingPattern);
-		Guard.assertIsFunction('onMessage', onMessage);
+		Guard.assertArgNotEmpty('matchingPattern', matchingPattern);
+		Guard.assertArgFunction('onMessage', onMessage);
 		this.assertConnection();
+
 		try {
 			let channelPromise = this._consumeChanPrm;
 			if (!channelPromise) {
@@ -231,8 +232,8 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 	 * @see IMessageBrokerConnector.publish
 	 */
 	public async publish(topic: string, payload: string | Json | JsonArray, options?: IPublishOptions): Promise<void> {
-		Guard.assertNotEmpty('topic', topic);
-		Guard.assertNotEmpty('message', payload);
+		Guard.assertArgNotEmpty('topic', topic);
+		Guard.assertArgNotEmpty('message', payload);
 		this.assertConnection();
 		try {
 			if (!this._publishChanPrm) {
@@ -285,7 +286,7 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 
 
 	private assertConnection(): void {
-		Guard.assertDefined('connection', this._connectionPrm,
+		Guard.assertIsDefined(this._connectionPrm,
 			'Connection to message broker is not established or has been disconnected!');
 	}
 

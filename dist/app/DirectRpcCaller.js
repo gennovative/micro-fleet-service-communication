@@ -41,9 +41,9 @@ let HttpRpcCaller = class HttpRpcCaller extends rpc.RpcCallerBase {
      */
     call(moduleName, action, params) {
         return __awaiter(this, void 0, void 0, function* () {
-            back_lib_common_util_1.Guard.assertDefined('moduleName', moduleName);
-            back_lib_common_util_1.Guard.assertDefined('action', action);
-            back_lib_common_util_1.Guard.assertIsTruthy(this._baseAddress, 'Base URL must be set!');
+            back_lib_common_util_1.Guard.assertArgDefined('moduleName', moduleName);
+            back_lib_common_util_1.Guard.assertArgDefined('action', action);
+            back_lib_common_util_1.Guard.assertIsDefined(this._baseAddress, 'Base URL must be set!');
             let request = {
                 from: this._name,
                 to: moduleName,

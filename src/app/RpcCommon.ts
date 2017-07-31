@@ -122,7 +122,7 @@ export abstract class RpcHandlerBase {
 	}
 
 	constructor(protected _depContainer: IDependencyContainer) {
-		Guard.assertDefined('_depContainer', _depContainer);
+		Guard.assertArgDefined('_depContainer', _depContainer);
 		this._emitter = new EventEmitter();
 	}
 
@@ -139,7 +139,7 @@ export abstract class RpcHandlerBase {
 	protected resolveActionFunc(action: string, depId: string | symbol, actFactory?: RpcActionFactory): RpcControllerFunction {
 		// Attempt to resolve controller instance
 		let instance = this._depContainer.resolve<any>(depId);
-		Guard.assertIsTruthy(instance, `Cannot resolve dependency ${depId.toString()}!`);
+		Guard.assertIsDefined(instance, `Cannot resolve dependency ${depId.toString()}!`);
 
 		let actionFn = instance[action];
 		

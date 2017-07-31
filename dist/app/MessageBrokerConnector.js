@@ -113,8 +113,8 @@ let TopicMessageBrokerConnector = class TopicMessageBrokerConnector {
      */
     subscribe(matchingPattern, onMessage, noAck = true) {
         return __awaiter(this, void 0, void 0, function* () {
-            back_lib_common_util_1.Guard.assertNotEmpty('matchingPattern', matchingPattern);
-            back_lib_common_util_1.Guard.assertIsFunction('onMessage', onMessage);
+            back_lib_common_util_1.Guard.assertArgNotEmpty('matchingPattern', matchingPattern);
+            back_lib_common_util_1.Guard.assertArgFunction('onMessage', onMessage);
             this.assertConnection();
             try {
                 let channelPromise = this._consumeChanPrm;
@@ -142,8 +142,8 @@ let TopicMessageBrokerConnector = class TopicMessageBrokerConnector {
      */
     publish(topic, payload, options) {
         return __awaiter(this, void 0, void 0, function* () {
-            back_lib_common_util_1.Guard.assertNotEmpty('topic', topic);
-            back_lib_common_util_1.Guard.assertNotEmpty('message', payload);
+            back_lib_common_util_1.Guard.assertArgNotEmpty('topic', topic);
+            back_lib_common_util_1.Guard.assertArgNotEmpty('message', payload);
             this.assertConnection();
             try {
                 if (!this._publishChanPrm) {
@@ -190,7 +190,7 @@ let TopicMessageBrokerConnector = class TopicMessageBrokerConnector {
         this._emitter.on('error', handler);
     }
     assertConnection() {
-        back_lib_common_util_1.Guard.assertDefined('connection', this._connectionPrm, 'Connection to message broker is not established or has been disconnected!');
+        back_lib_common_util_1.Guard.assertIsDefined(this._connectionPrm, 'Connection to message broker is not established or has been disconnected!');
     }
     createChannel() {
         return __awaiter(this, void 0, void 0, function* () {

@@ -48,9 +48,9 @@ export class HttpRpcCaller
 	 * @see IRpcCaller.call
 	 */
 	public async call(moduleName: string, action: string, params: any): Promise<rpc.IRpcResponse> {
-		Guard.assertDefined('moduleName', moduleName);
-		Guard.assertDefined('action', action);
-		Guard.assertIsTruthy(this._baseAddress, 'Base URL must be set!');
+		Guard.assertArgDefined('moduleName', moduleName);
+		Guard.assertArgDefined('action', action);
+		Guard.assertIsDefined(this._baseAddress, 'Base URL must be set!');
 
 		let request: rpc.IRpcRequest = {
 				from: this._name,

@@ -99,8 +99,8 @@ export class ExpressRpcHandler
 	 * @see IRpcHandler.handle
 	 */
 	public handle(action: string, dependencyIdentifier: string | symbol, actionFactory?: rpc.RpcActionFactory) {
-		Guard.assertIsMatch(null, ExpressRpcHandler.URL_TESTER, action, `Route "${action}" is not URL-safe!`);
-		Guard.assertIsTruthy(this._router, '`init` method must be called first!');
+		Guard.assertIsMatch(ExpressRpcHandler.URL_TESTER, action, `Route "${action}" is not URL-safe!`);
+		Guard.assertIsDefined(this._router, '`init` method must be called first!');
 
 		this._router.post(`/${action}`, this.buildHandleFunc.apply(this, arguments));
 	}

@@ -28,7 +28,7 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
     constructor(_msgBrokerConn) {
         super();
         this._msgBrokerConn = _msgBrokerConn;
-        back_lib_common_util_1.Guard.assertDefined('_msgBrokerConn', _msgBrokerConn);
+        back_lib_common_util_1.Guard.assertArgDefined('_msgBrokerConn', _msgBrokerConn);
         this._msgBrokerConn.queue = ''; // Make sure we only use temporary unique queue.
     }
     /**
@@ -41,8 +41,8 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
      * @see IRpcCaller.call
      */
     call(moduleName, action, params) {
-        back_lib_common_util_1.Guard.assertDefined('moduleName', moduleName);
-        back_lib_common_util_1.Guard.assertDefined('action', action);
+        back_lib_common_util_1.Guard.assertArgDefined('moduleName', moduleName);
+        back_lib_common_util_1.Guard.assertArgDefined('action', action);
         return new Promise((resolve, reject) => {
             // There are many requests to same `requestTopic` and they listen to same `responseTopic`,
             // A request only cares about a response with same `correlationId`.
