@@ -50,7 +50,7 @@ export class MessageBrokerRpcHandler
 			(new Promise((resolve, reject) => {
 				let actionFn = this.resolveActionFunc(action, dependencyIdentifier, actionFactory);
 				// Execute controller's action
-				actionFn(request, resolve, reject);
+				actionFn(request.payload, resolve, reject, request);
 			}))
 			.then(result => { // When `actionFn` calls `resolve` from inside.
 				// Sends response to reply topic

@@ -30,7 +30,7 @@ class NormalProductController {
 	}
 
 	public echo(request: IRpcRequest, resolve: PromiseResolveFn, reject: PromiseRejectFn): void {
-		resolve(request.params['text']);
+		resolve(request.payload['text']);
 	}
 }
 
@@ -101,7 +101,7 @@ describe.skip('MediateRpcHandler', function() {
 			let req: IRpcRequest = {
 				from: MODULE,
 				to: '',
-				params: {
+				payload: {
 					text: TEXT
 				}
 			};

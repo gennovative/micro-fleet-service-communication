@@ -158,8 +158,8 @@ gulp.task('definition', ['compile'], (done) => {
 		gulp.src(DEF_FILE)
 			.on('error', onError)
 			.pipe(replace(/([\t\f\v]*)private(.*);[\r\n]*/g, ''))
-			.pipe(replace(/\/src\//g, '/'))
-			.pipe(replace(/\/app/g, ""))
+			.pipe(replace(/\/src\//g, '/dist/'))
+			.pipe(replace(/\/dist\/app\/index'/g, "'"))
 			.pipe(replace(/\/index'/g, "'"))
 			.pipe(through.obj(function(file, enc, cb) {
 				del.sync([DEF_FILE]);

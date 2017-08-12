@@ -1,13 +1,13 @@
 /// <reference path="./global.d.ts" />
 
-declare module 'back-lib-service-communication/RpcCommon' {
+declare module 'back-lib-service-communication/dist/app/RpcCommon' {
 	/// <reference types="node" />
 	import { EventEmitter } from 'events';
 	import { IDependencyContainer } from 'back-lib-common-util';
 	export interface IRpcRequest extends Json {
 	    from: string;
 	    to: string;
-	    params: any;
+	    payload: any;
 	}
 	export interface IRpcResponse extends Json {
 	    isSuccess: boolean;
@@ -37,7 +37,7 @@ declare module 'back-lib-service-communication/RpcCommon' {
 	     */
 	    onError(handler: (err) => void): void;
 	}
-	export type RpcControllerFunction = (request: IRpcRequest, resolve: PromiseResolveFn, reject: PromiseRejectFn) => void;
+	export type RpcControllerFunction = (requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest) => void;
 	export type RpcActionFactory = (controller) => RpcControllerFunction;
 	export interface IRpcHandler {
 	    /**
@@ -81,8 +81,8 @@ declare module 'back-lib-service-communication/RpcCommon' {
 	}
 
 }
-declare module 'back-lib-service-communication/DirectRpcCaller' {
-	import * as rpc from 'back-lib-service-communication/RpcCommon';
+declare module 'back-lib-service-communication/dist/app/DirectRpcCaller' {
+	import * as rpc from 'back-lib-service-communication/dist/app/RpcCommon';
 	export interface IDirectRpcCaller extends rpc.IRpcCaller {
 	    /**
 	     * IP address or host name including port number.
@@ -101,15 +101,15 @@ declare module 'back-lib-service-communication/DirectRpcCaller' {
 	    /**
 	     * @see IRpcCaller.call
 	     */
-	    call(moduleName: string, action: string, params: any): Promise<rpc.IRpcResponse>;
+	    call(moduleName: string, action: string, params?: any): Promise<rpc.IRpcResponse>;
 	}
 
 }
-declare module 'back-lib-service-communication/DirectRpcHandler' {
+declare module 'back-lib-service-communication/dist/app/DirectRpcHandler' {
 	/// <reference types="express" />
 	import * as express from 'express';
 	import { IDependencyContainer } from 'back-lib-common-util';
-	import * as rpc from 'back-lib-service-communication/RpcCommon';
+	import * as rpc from 'back-lib-service-communication/dist/app/RpcCommon';
 	export interface ExpressRpcHandlerInitOptions {
 	    expressApp: express.Express;
 	    expressRouter: express.Router;
@@ -150,7 +150,7 @@ declare module 'back-lib-service-communication/DirectRpcHandler' {
 	    	}
 
 }
-declare module 'back-lib-service-communication/Types' {
+declare module 'back-lib-service-communication/dist/app/Types' {
 	export class Types {
 	    static readonly DIRECT_RPC_CALLER: symbol;
 	    static readonly DIRECT_RPC_HANDLER: symbol;
@@ -160,7 +160,7 @@ declare module 'back-lib-service-communication/Types' {
 	}
 
 }
-declare module 'back-lib-service-communication/MessageBrokerConnector' {
+declare module 'back-lib-service-communication/dist/app/MessageBrokerConnector' {
 	import * as amqp from 'amqplib';
 	export type MessageHandleFunction = (msg: IMessage, ack?: () => void, nack?: () => void) => void;
 	export interface IMessage {
@@ -265,9 +265,9 @@ declare module 'back-lib-service-communication/MessageBrokerConnector' {
 	    	    	    	}
 
 }
-declare module 'back-lib-service-communication/MediateRpcCaller' {
-	import { IMessageBrokerConnector } from 'back-lib-service-communication/MessageBrokerConnector';
-	import * as rpc from 'back-lib-service-communication/RpcCommon';
+declare module 'back-lib-service-communication/dist/app/MediateRpcCaller' {
+	import { IMessageBrokerConnector } from 'back-lib-service-communication/dist/app/MessageBrokerConnector';
+	import * as rpc from 'back-lib-service-communication/dist/app/RpcCommon';
 	export interface IMediateRpcCaller extends rpc.IRpcCaller {
 	}
 	export class MessageBrokerRpcCaller extends rpc.RpcCallerBase implements IMediateRpcCaller {
@@ -283,10 +283,10 @@ declare module 'back-lib-service-communication/MediateRpcCaller' {
 	}
 
 }
-declare module 'back-lib-service-communication/MediateRpcHandler' {
+declare module 'back-lib-service-communication/dist/app/MediateRpcHandler' {
 	import { IDependencyContainer } from 'back-lib-common-util';
-	import { IMessageBrokerConnector } from 'back-lib-service-communication/MessageBrokerConnector';
-	import * as rpc from 'back-lib-service-communication/RpcCommon';
+	import { IMessageBrokerConnector } from 'back-lib-service-communication/dist/app/MessageBrokerConnector';
+	import * as rpc from 'back-lib-service-communication/dist/app/RpcCommon';
 	export interface IMediateRpcHandler extends rpc.IRpcHandler {
 	}
 	export class MessageBrokerRpcHandler extends rpc.RpcHandlerBase implements IMediateRpcHandler {
@@ -303,12 +303,12 @@ declare module 'back-lib-service-communication/MediateRpcHandler' {
 
 }
 declare module 'back-lib-service-communication' {
-	export * from 'back-lib-service-communication/RpcCommon';
-	export * from 'back-lib-service-communication/DirectRpcCaller';
-	export * from 'back-lib-service-communication/DirectRpcHandler';
-	export * from 'back-lib-service-communication/MediateRpcCaller';
-	export * from 'back-lib-service-communication/MediateRpcHandler';
-	export * from 'back-lib-service-communication/MessageBrokerConnector';
-	export * from 'back-lib-service-communication/Types';
+	export * from 'back-lib-service-communication/dist/app/RpcCommon';
+	export * from 'back-lib-service-communication/dist/app/DirectRpcCaller';
+	export * from 'back-lib-service-communication/dist/app/DirectRpcHandler';
+	export * from 'back-lib-service-communication/dist/app/MediateRpcCaller';
+	export * from 'back-lib-service-communication/dist/app/MediateRpcHandler';
+	export * from 'back-lib-service-communication/dist/app/MessageBrokerConnector';
+	export * from 'back-lib-service-communication/dist/app/Types';
 
 }

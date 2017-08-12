@@ -8,7 +8,7 @@ import { injectable, IDependencyContainer, Guard, CriticalException } from 'back
 export interface IRpcRequest extends Json {
 	from: string;
 	to: string;
-	params: any;
+	payload: any;
 }
 
 export interface IRpcResponse extends Json {
@@ -47,7 +47,7 @@ export interface IRpcCaller {
 }
 
 
-export type RpcControllerFunction = (request: IRpcRequest, resolve: PromiseResolveFn, reject: PromiseRejectFn) => void;
+export type RpcControllerFunction = (requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest) => void;
 export type RpcActionFactory = (controller) => RpcControllerFunction;
 
 export interface IRpcHandler {

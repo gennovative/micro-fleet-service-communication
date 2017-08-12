@@ -16,29 +16,29 @@ const MODULE = 'TestHandler',
 
 @injectable()
 class NormalProductController {
-	public addProduct(request: IRpcRequest, resolve: PromiseResolveFn, reject: PromiseRejectFn): void {
+	public addProduct(requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest): void {
 		resolve(SUCCESS_ADD_PRODUCT);
 		console.log('Product added!');
 	}
 
-	public remove(request: IRpcRequest, resolve: PromiseResolveFn, reject: PromiseRejectFn): void {
+	public remove(requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest): void {
 		resolve(SUCCESS_DEL_PRODUCT);
 		console.log('Product deleted!');
 	}
 
-	public echo(request: IRpcRequest, resolve: PromiseResolveFn, reject: PromiseRejectFn): void {
-		resolve(request.params['text']);
+	public echo(requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest): void {
+		resolve(requestPayload['text']);
 	}
 }
 
 @injectable()
 class ErrorProductController {
-	public addProduct(request: IRpcRequest, resolve: PromiseResolveFn, reject: PromiseRejectFn): void {
+	public addProduct(requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest): void {
 		reject(ERROR_ADD_PRODUCT);
 		console.log('Product adding failed!');
 	}
 
-	public remove(request: IRpcRequest, resolve: PromiseResolveFn, reject: PromiseRejectFn): void {
+	public remove(requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest): void {
 		console.log('Product deleting failed!');
 		throw new MinorException(ERROR_DEL_PRODUCT);
 	}
@@ -212,7 +212,7 @@ describe('ExpressDirectRpcHandler', () => {
 					let request: IRpcRequest = {
 						from: '',
 						to: MODULE,
-						params: {
+						payload: {
 							text: TEXT
 						}
 					},
@@ -323,7 +323,7 @@ describe('ExpressDirectRpcHandler', () => {
 					let request: IRpcRequest = {
 						from: '',
 						to: MODULE,
-						params: {}
+						payload: {}
 					},
 					options = {
 						method: 'POST',
@@ -361,7 +361,7 @@ describe('ExpressDirectRpcHandler', () => {
 					let request: IRpcRequest = {
 							from: '',
 							to: MODULE,
-							params: {}
+							payload: {}
 						},
 						options = {
 							method: 'POST',

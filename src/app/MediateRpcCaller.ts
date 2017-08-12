@@ -60,7 +60,7 @@ export class MessageBrokerRpcCaller
 				let request: rpc.IRpcRequest = {
 					from: this._name,
 					to: moduleName,
-					params
+					payload: params
 				};
 
 				// Send request, marking the message with correlationId.

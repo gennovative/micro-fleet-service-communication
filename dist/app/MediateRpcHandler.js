@@ -42,7 +42,7 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
             (new Promise((resolve, reject) => {
                 let actionFn = this.resolveActionFunc(action, dependencyIdentifier, actionFactory);
                 // Execute controller's action
-                actionFn(request, resolve, reject);
+                actionFn(request.payload, resolve, reject, request);
             }))
                 .then(result => {
                 // Sends response to reply topic

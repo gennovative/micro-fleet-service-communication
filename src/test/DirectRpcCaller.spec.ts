@@ -62,7 +62,7 @@ describe('ExpressDirectRpcHandler', () => {
 				let request: IRpcRequest = req.body;
 				// Assert
 				expect(request).to.exist;
-				expect(request.params.msg).to.equal(TEXT_REQUEST);
+				expect(request.payload.msg).to.equal(TEXT_REQUEST);
 
 				res.status(200).send({
 					isSuccess: true,
