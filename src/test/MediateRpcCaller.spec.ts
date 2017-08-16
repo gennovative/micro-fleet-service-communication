@@ -111,7 +111,7 @@ describe('MessageBrokerRpcCaller', () => {
 				expect(request).to.be.not.null;
 				expect(request.from).to.equal(CALLER_MODULE);
 				expect(request.to).to.equal(HANDLER_MODULE);
-				expect(request.params.text).to.equal(TEXT);
+				expect(request.payload.text).to.equal(TEXT);
 				done();
 			})
 			.then(() => {

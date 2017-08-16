@@ -113,7 +113,7 @@ export class ExpressRpcHandler
 			(new Promise((resolve, reject) => {
 				let actionFn = this.resolveActionFunc(action, dependencyIdentifier, actionFactory);
 				// Execute controller's action
-				actionFn(request, resolve, reject);
+				actionFn(request.payload, resolve, reject, request);
 			}))
 			.then(result => {
 				res.status(200).send(this.createResponse(true, result, request.from));
@@ -127,7 +127,7 @@ export class ExpressRpcHandler
 				if (error instanceof Exception) {
 					// TODO: Should log this unexpected error.
 					statusCode = 500;
-					errMsg = error.message;
+					delete error.stack;
 				}
 
 				// If this is a reject error, which means the action method sends this error

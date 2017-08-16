@@ -47,7 +47,7 @@ let HttpRpcCaller = class HttpRpcCaller extends rpc.RpcCallerBase {
             let request = {
                 from: this._name,
                 to: moduleName,
-                params
+                payload: params
             }, options = {
                 method: 'POST',
                 uri: `http://${this._baseAddress}/${moduleName}/${action}`,

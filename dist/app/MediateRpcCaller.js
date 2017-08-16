@@ -61,7 +61,7 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
                 let request = {
                     from: this._name,
                     to: moduleName,
-                    params
+                    payload: params
                 };
                 // Send request, marking the message with correlationId.
                 return this._msgBrokerConn.publish(`request.${moduleName}.${action}`, request, { correlationId, replyTo });
