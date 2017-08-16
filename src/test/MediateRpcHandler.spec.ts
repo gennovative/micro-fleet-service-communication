@@ -15,7 +15,9 @@ const MODULE = 'TestHandler',
 	SUCCESS_ADD_PRODUCT = 'addProductOk',
 	SUCCESS_DEL_PRODUCT = 'removeOk',
 	ERROR_ADD_PRODUCT = 'addProductError',
-	ERROR_DEL_PRODUCT = 'removeError';
+	ERROR_DEL_PRODUCT = 'removeException',
+	ERROR_EDIT_PRODUCT = 'editError'
+	;
 
 @injectable()
 class NormalProductController {
@@ -39,6 +41,11 @@ class ErrorProductController {
 	public addProduct(requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest): void {
 		reject(ERROR_ADD_PRODUCT);
 		console.log('Product adding failed!');
+	}
+
+	public edit(requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest): void {
+		console.log('Product editing failed!');
+		throw new Error(ERROR_EDIT_PRODUCT);
 	}
 
 	public remove(requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest): void {
@@ -198,7 +205,7 @@ describe('MediateRpcHandler', () => {
 			});
 		});
 
-		it('Should respond with falsey result if there is internal error.', (done) => {
+		it('Should respond with falsey result if there is internal Exception.', (done) => {
 			// Arrange
 			const ACTION = 'deleteProduct';
 
@@ -215,6 +222,37 @@ describe('MediateRpcHandler', () => {
 				expect(response).to.be.not.null;
 				expect(response.isSuccess).to.be.false;
 				expect(response.data.message).to.equal(ERROR_DEL_PRODUCT);
+				done();
+			})
+			.then(() => {
+				let req: IRpcRequest = {
+					from: MODULE,
+					to: '',
+					payload: {}
+				};
+				let topic = `request.${MODULE}.${ACTION}`;
+				// Manually publish response.
+				callerMbConn.publish(topic, req, { correlationId: shortid.generate(), replyTo });
+			});
+		});
+
+		it('Should respond with falsey result if there is internal Error.', (done) => {
+			// Arrange
+			const ACTION = 'editProduct';
+
+			depContainer.bind<ErrorProductController>(CONTROLLER_ERR, ErrorProductController);
+
+			// Act
+			handler.handle(ACTION, CONTROLLER_ERR, (controller: ErrorProductController) => controller.edit);
+
+			// Assert
+			let replyTo = `response.${MODULE}.${ACTION}`;
+
+			callerMbConn.subscribe(replyTo, (msg: IMessage) => {
+				let response: IRpcResponse = msg.data;
+				expect(response).to.be.not.null;
+				expect(response.isSuccess).to.be.false;
+				expect(response.data.message).to.equal(ERROR_EDIT_PRODUCT);
 				done();
 			})
 			.then(() => {

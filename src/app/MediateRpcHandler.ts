@@ -58,9 +58,15 @@ export class MessageBrokerRpcHandler
 			})
 			.catch(error => {
 				let errMsg = error;
-				// If error is an uncaught Exception object, that means the action method
+				// If error is an uncaught Exception/Error object, that means the action method
 				// has a problem. We should nack to tell message broker to send this message to someone else.
-				if (error instanceof Exception) {
+				if (error instanceof Error) {
+					// Clone to a plain object, as class Error has problem
+					// with JSON.stringify.
+					errMsg = {
+						message: error.message
+					};
+				} else if (error instanceof Exception) {
 					// TODO: Should log this unexpected error.
 					delete error.stack;
 					// nack(); // Disable this, because we use auto-ack.

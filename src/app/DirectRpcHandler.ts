@@ -122,9 +122,16 @@ export class ExpressRpcHandler
 				let errMsg = error,
 					statusCode = 200;
 
-				// If error is an uncaught Exception object, that means the action method
+				// If error is an uncaught Exception/Error object, that means the action method
 				// has a problem. We should response with error status code.
-				if (error instanceof Exception) {
+				if (error instanceof Error) {
+					// Clone to a plain object, as class Error has problem
+					// with JSON.stringify.
+					errMsg = {
+						message: error.message
+					};
+					statusCode = 500;
+				} else if (error instanceof Exception) {
 					// TODO: Should log this unexpected error.
 					statusCode = 500;
 					delete error.stack;
