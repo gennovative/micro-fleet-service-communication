@@ -81,7 +81,7 @@ let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rp
                 if (error instanceof back_lib_common_util_1.Exception) {
                     // TODO: Should log this unexpected error.
                     statusCode = 500;
-                    errMsg = error.message;
+                    delete error.stack;
                 }
                 // If this is a reject error, which means the action method sends this error
                 // back to caller on purpose.

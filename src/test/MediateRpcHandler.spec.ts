@@ -214,7 +214,7 @@ describe('MediateRpcHandler', () => {
 				let response: IRpcResponse = msg.data;
 				expect(response).to.be.not.null;
 				expect(response.isSuccess).to.be.false;
-				expect(response.data).to.equal(ERROR_DEL_PRODUCT);
+				expect(response.data.message).to.equal(ERROR_DEL_PRODUCT);
 				done();
 			})
 			.then(() => {

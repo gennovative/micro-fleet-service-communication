@@ -5,13 +5,14 @@
   "description": "Provides methods for microservices to communicate with each other.",
   "main": "./dist/app/index.js",
   "types": "./typings/app.d.ts",
-  "engines": {
-    "node": "~7.10.1"
-  },
   "repository": "git@bitbucket.org:firstinteractive/back-lib-service-communication.git",
+  "engines": {
+    "node": "~7.10.1",
+    "npm": "~4.6.1"
+  },
   "dependencies": {
     "amqplib": "^0.5.1",
-    "back-lib-common-util": "git@bitbucket.org:firstinteractive/back-lib-common-util.git#1.0.0",
+    "back-lib-common-util": "git+ssh://git@bitbucket.org:firstinteractive/back-lib-common-util.git#1.0.0",
     "body-parser": "^1.17.2",
     "express": "^4.15.3",
     "lodash": "^4.17.4",
@@ -28,6 +29,7 @@
     "@types/mocha": "^2.2.41",
     "@types/node": "^7.0.38",
     "@types/request-promise-native": "^1.0.6",
+    "automapper-ts": "^1.8.2",
     "chai": "^4.1.0",
     "chai-spies": "^0.7.1",
     "del": "^3.0.0",
@@ -38,17 +40,17 @@
     "gulp-header": "^1.8.8",
     "gulp-istanbul": "^1.1.2",
     "gulp-mocha": "^3.0.1",
-    "gulp-sourcemaps": "^2.6.0",
     "gulp-replace": "^0.6.1",
+    "gulp-sourcemaps": "^2.6.0",
     "gulp-tslint": "^8.1.1",
     "gulp-typescript": "^3.2.1",
     "gulp-watch": "^4.3.11",
     "gulp-watch-sequence": "^1.0.0",
-    "merge-stream": "^1.0.1",
-    "through2": "^2.0.3",
     "istanbul": "^0.4.5",
+    "merge-stream": "^1.0.1",
     "mocha": "^3.4.2",
     "remap-istanbul": "^0.9.5",
+    "through2": "^2.0.3",
     "tslint": "^5.5.0",
     "typescript": "^2.4.2"
   }

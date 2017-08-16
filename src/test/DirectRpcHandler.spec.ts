@@ -300,7 +300,7 @@ describe('ExpressDirectRpcHandler', () => {
 					.catch(rawResponse => {
 						// If status 500 or request error.
 						expect(rawResponse.statusCode).to.equal(500);
-						expect(rawResponse.error.data).to.equal(ERROR_DEL_PRODUCT);
+						expect(rawResponse.error.data.message).to.equal(ERROR_DEL_PRODUCT);
 						done();
 					});
 				});
@@ -339,7 +339,7 @@ describe('ExpressDirectRpcHandler', () => {
 					.catch(rawResponse => {
 						// Assert
 						expect(rawResponse.statusCode).to.equal(500);
-						expect(rawResponse.error.data).to.contain('Cannot resolve dependency');
+						expect(rawResponse.error.data.message).to.contain('Cannot resolve dependency');
 						done();
 					});
 				});
@@ -377,7 +377,7 @@ describe('ExpressDirectRpcHandler', () => {
 					.catch(rawResponse => {
 						// Assert
 						expect(rawResponse.statusCode).to.equal(500);
-						expect(rawResponse.error.data).to.equal('Specified action does not exist in controller!');
+						expect(rawResponse.error.data.message).to.equal('Specified action does not exist in controller!');
 						done();
 					});
 				});

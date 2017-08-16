@@ -62,7 +62,7 @@ export class MessageBrokerRpcHandler
 				// has a problem. We should nack to tell message broker to send this message to someone else.
 				if (error instanceof Exception) {
 					// TODO: Should log this unexpected error.
-					errMsg = error.message;
+					delete error.stack;
 					// nack(); // Disable this, because we use auto-ack.
 				}
 

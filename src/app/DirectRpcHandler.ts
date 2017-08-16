@@ -127,7 +127,7 @@ export class ExpressRpcHandler
 				if (error instanceof Exception) {
 					// TODO: Should log this unexpected error.
 					statusCode = 500;
-					errMsg = error.message;
+					delete error.stack;
 				}
 
 				// If this is a reject error, which means the action method sends this error
