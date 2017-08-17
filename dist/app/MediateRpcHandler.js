@@ -41,8 +41,16 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
             let request = msg.data, replyTo = msg.properties.replyTo, correlationId = msg.properties.correlationId;
             (new Promise((resolve, reject) => {
                 let actionFn = this.resolveActionFunc(action, dependencyIdentifier, actionFactory);
-                // Execute controller's action
-                actionFn(request.payload, resolve, reject, request);
+                try {
+                    // Execute controller's action
+                    let output = actionFn(request.payload, resolve, reject, request);
+                    if (output instanceof Promise) {
+                        output.catch(reject); // Catch async exceptions.
+                    }
+                }
+                catch (err) {
+                    reject(err);
+                }
             }))
                 .then(result => {
                 // Sends response to reply topic
@@ -78,5 +86,3 @@ MessageBrokerRpcHandler = __decorate([
     __metadata("design:paramtypes", [Object, Object])
 ], MessageBrokerRpcHandler);
 exports.MessageBrokerRpcHandler = MessageBrokerRpcHandler;
-
-//# sourceMappingURL=MediateRpcHandler.js.map

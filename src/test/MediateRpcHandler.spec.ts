@@ -48,9 +48,11 @@ class ErrorProductController {
 		throw new Error(ERROR_EDIT_PRODUCT);
 	}
 
-	public remove(requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest): void {
-		console.log('Product deleting failed!');
-		throw new MinorException(ERROR_DEL_PRODUCT);
+	public remove(requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest): Promise<any> {
+		return new Promise((resolve, reject) => {
+			console.log('Product deleting failed!');
+			throw new MinorException(ERROR_DEL_PRODUCT);
+		});
 	}
 }
 

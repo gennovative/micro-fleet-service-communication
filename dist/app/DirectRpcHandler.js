@@ -68,8 +68,16 @@ let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rp
             let request = req.body;
             (new Promise((resolve, reject) => {
                 let actionFn = this.resolveActionFunc(action, dependencyIdentifier, actionFactory);
-                // Execute controller's action
-                actionFn(request.payload, resolve, reject, request);
+                try {
+                    // Execute controller's action
+                    let output = actionFn(request.payload, resolve, reject, request);
+                    if (output instanceof Promise) {
+                        output.catch(reject); // Catch async exceptions.
+                    }
+                }
+                catch (err) {
+                    reject(err);
+                }
             }))
                 .then(result => {
                 res.status(200).send(this.createResponse(true, result, request.from));
@@ -110,5 +118,3 @@ ExpressRpcHandler = ExpressRpcHandler_1 = __decorate([
 ], ExpressRpcHandler);
 exports.ExpressRpcHandler = ExpressRpcHandler;
 var ExpressRpcHandler_1;
-
-//# sourceMappingURL=DirectRpcHandler.js.map

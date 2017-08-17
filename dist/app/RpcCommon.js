@@ -78,5 +78,3 @@ RpcHandlerBase = __decorate([
     __metadata("design:paramtypes", [Object])
 ], RpcHandlerBase);
 exports.RpcHandlerBase = RpcHandlerBase;
-
-//# sourceMappingURL=RpcCommon.js.map

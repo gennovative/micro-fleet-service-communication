@@ -315,5 +315,3 @@ TopicMessageBrokerConnector = __decorate([
     __metadata("design:paramtypes", [])
 ], TopicMessageBrokerConnector);
 exports.TopicMessageBrokerConnector = TopicMessageBrokerConnector;
-
-//# sourceMappingURL=MessageBrokerConnector.js.map
