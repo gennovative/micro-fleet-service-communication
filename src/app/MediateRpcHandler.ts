@@ -49,8 +49,15 @@ export class MessageBrokerRpcHandler
 			
 			(new Promise((resolve, reject) => {
 				let actionFn = this.resolveActionFunc(action, dependencyIdentifier, actionFactory);
-				// Execute controller's action
-				actionFn(request.payload, resolve, reject, request);
+				try {
+					// Execute controller's action
+					let output: any = actionFn(request.payload, resolve, reject, request);
+					if (output instanceof Promise) {
+						output.catch(reject); // Catch async exceptions.
+					}
+				} catch (err) { // Catch normal exceptions.
+					reject(err);
+				}
 			}))
 			.then(result => { // When `actionFn` calls `resolve` from inside.
 				// Sends response to reply topic
@@ -58,9 +65,15 @@ export class MessageBrokerRpcHandler
 			})
 			.catch(error => {
 				let errMsg = error;
-				// If error is an uncaught Exception object, that means the action method
+				// If error is an uncaught Exception/Error object, that means the action method
 				// has a problem. We should nack to tell message broker to send this message to someone else.
-				if (error instanceof Exception) {
+				if (error instanceof Error) {
+					// Clone to a plain object, as class Error has problem
+					// with JSON.stringify.
+					errMsg = {
+						message: error.message
+					};
+				} else if (error instanceof Exception) {
 					// TODO: Should log this unexpected error.
 					delete error.stack;
 					// nack(); // Disable this, because we use auto-ack.

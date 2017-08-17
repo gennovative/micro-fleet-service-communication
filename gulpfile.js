@@ -65,9 +65,9 @@ let compile = function () {
 		.on('error', onError)
 		.on('failed', onError)
 		.pipe(debug())
-		.pipe(sourcemaps.init())
+		// .pipe(sourcemaps.init())
 		.pipe(tsProject(tsc.reporter.fullReporter(true)))
-		.pipe(sourcemaps.write('./'))
+		// .pipe(sourcemaps.write('./'))
 		.pipe(gulp.dest(DIST_FOLDER));
 };
 gulp.task('compile', ['tslint'], compile);

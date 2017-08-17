@@ -12,7 +12,9 @@ const MODULE = 'TestHandler',
 	SUCCESS_ADD_PRODUCT = 'addProductOk',
 	SUCCESS_DEL_PRODUCT = 'removeOk',
 	ERROR_ADD_PRODUCT = 'addProductError',
-	ERROR_DEL_PRODUCT = 'removeError';
+	ERROR_DEL_PRODUCT = 'removeException',
+	ERROR_EDIT_PRODUCT = 'editError'
+	;
 
 @injectable()
 class NormalProductController {
@@ -38,9 +40,16 @@ class ErrorProductController {
 		console.log('Product adding failed!');
 	}
 
-	public remove(requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest): void {
-		console.log('Product deleting failed!');
-		throw new MinorException(ERROR_DEL_PRODUCT);
+	public edit(requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest): void {
+		console.log('Product editing failed!');
+		throw new Error(ERROR_EDIT_PRODUCT);
+	}
+
+	public remove(requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest): Promise<any> {
+		return new Promise((resolve, reject) => {
+			console.log('Product deleting failed!');
+			throw new MinorException(ERROR_DEL_PRODUCT);
+		});
 	}
 }
 
@@ -271,7 +280,7 @@ describe('ExpressDirectRpcHandler', () => {
 				});
 		});
 
-		it('Should respond with status 500 if controller throws error.', done => {
+		it('Should respond with status 500 if controller throws Exception.', done => {
 			// Arrange
 			const ACTION = 'deleteProduct';
 
@@ -301,6 +310,41 @@ describe('ExpressDirectRpcHandler', () => {
 						// If status 500 or request error.
 						expect(rawResponse.statusCode).to.equal(500);
 						expect(rawResponse.error.data.message).to.equal(ERROR_DEL_PRODUCT);
+						done();
+					});
+				});
+		});
+
+		it('Should respond with status 500 if controller throws Error.', done => {
+			// Arrange
+			const ACTION = 'editProduct';
+
+			depContainer.bind<ErrorProductController>(CONTROLLER_ERR, ErrorProductController);
+
+			// Act
+			handler.handle(ACTION, CONTROLLER_ERR, (controller: ErrorProductController) => controller.edit.bind(controller));
+
+			// Assert
+			let app: express.Express = handler['_app'],
+				router: express.Router = handler['_router'];
+
+			handler.start()
+				.then(() => {
+					let options = {
+						method: 'POST',
+						uri: `http://localhost:3000/${MODULE}/${ACTION}`,
+						body: {},
+						json: true
+					};
+
+					requestMaker(options).then((res: IRpcResponse) => {
+						// If status 200
+						expect(true, 'Request should NOT be successful!').to.be.false;
+					})
+					.catch(rawResponse => {
+						// If status 500 or request error.
+						expect(rawResponse.statusCode).to.equal(500);
+						expect(rawResponse.error.data.message).to.equal(ERROR_EDIT_PRODUCT);
 						done();
 					});
 				});

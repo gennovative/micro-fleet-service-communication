@@ -10,5 +10,3 @@ __export(require("./MediateRpcCaller"));
 __export(require("./MediateRpcHandler"));
 __export(require("./MessageBrokerConnector"));
 __export(require("./Types"));
-
-//# sourceMappingURL=index.js.map

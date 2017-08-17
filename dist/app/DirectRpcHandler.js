@@ -68,17 +68,33 @@ let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rp
             let request = req.body;
             (new Promise((resolve, reject) => {
                 let actionFn = this.resolveActionFunc(action, dependencyIdentifier, actionFactory);
-                // Execute controller's action
-                actionFn(request.payload, resolve, reject, request);
+                try {
+                    // Execute controller's action
+                    let output = actionFn(request.payload, resolve, reject, request);
+                    if (output instanceof Promise) {
+                        output.catch(reject); // Catch async exceptions.
+                    }
+                }
+                catch (err) {
+                    reject(err);
+                }
             }))
                 .then(result => {
                 res.status(200).send(this.createResponse(true, result, request.from));
             })
                 .catch(error => {
                 let errMsg = error, statusCode = 200;
-                // If error is an uncaught Exception object, that means the action method
+                // If error is an uncaught Exception/Error object, that means the action method
                 // has a problem. We should response with error status code.
-                if (error instanceof back_lib_common_util_1.Exception) {
+                if (error instanceof Error) {
+                    // Clone to a plain object, as class Error has problem
+                    // with JSON.stringify.
+                    errMsg = {
+                        message: error.message
+                    };
+                    statusCode = 500;
+                }
+                else if (error instanceof back_lib_common_util_1.Exception) {
                     // TODO: Should log this unexpected error.
                     statusCode = 500;
                     delete error.stack;
@@ -102,5 +118,3 @@ ExpressRpcHandler = ExpressRpcHandler_1 = __decorate([
 ], ExpressRpcHandler);
 exports.ExpressRpcHandler = ExpressRpcHandler;
 var ExpressRpcHandler_1;
-
-//# sourceMappingURL=DirectRpcHandler.js.map
