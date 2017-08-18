@@ -15,20 +15,20 @@ export interface ExpressRpcHandlerInitOptions {
 
 export interface IDirectRpcHandler extends rpc.IRpcHandler {
 	/**
+	 * Http ports to listen
+	 */
+	port: number;
+
+	/**
 	 * @override
 	 * @see IRpcHandler.init
 	 */
 	init(params?: ExpressRpcHandlerInitOptions): void;
 
 	/**
-	 * Starts internal Http server and listening to requests.
+	 * @override IRpcHandler.handle to return void.
 	 */
-	start(): Promise<void>;
-
-	/**
-	 * Stops internal Http server.
-	 */
-	dispose(): Promise<void>;
+	handle(actions: string | string[], dependencyIdentifier: string | symbol, actionFactory?: rpc.RpcActionFactory): void;
 }
 
 @injectable()
@@ -42,6 +42,8 @@ export class ExpressRpcHandler
 			return regexp;
 		})();
 
+	public port: number;
+
 	private _server: http.Server;
 	private _app: express.Express;
 	private _router: express.Router;
@@ -51,6 +53,7 @@ export class ExpressRpcHandler
 		@inject(CmT.DEPENDENCY_CONTAINER) depContainer: IDependencyContainer
 	) {
 		super(depContainer);
+		this.port = 30000;
 	}
 
 
@@ -59,7 +62,7 @@ export class ExpressRpcHandler
 	 */
 	public init(param?: ExpressRpcHandlerInitOptions): void {
 		Guard.assertIsFalsey(this._router, 'This RPC Caller is already initialized!');
-		Guard.assertIsTruthy(this._name, '`name` property must be set!');
+		Guard.assertIsTruthy(this.name, '`name` property must be set!');
 
 		let app: express.Express;
 		app = this._app = (param && param.expressApp) 
@@ -69,22 +72,22 @@ export class ExpressRpcHandler
 		this._router = (param && param.expressRouter) ? param.expressRouter : express.Router();
 		//app.use(bodyParser.urlencoded({extended: true})); // Parse Form values in POST request, but I don't think we need it in this case.
 		app.use(bodyParser.json()); // Parse JSON in POST request
-		app.use(`/${this._name}`, this._router);
+		app.use(`/${this.name}`, this._router);
 		
 	}
 
 	/**
-	 * @see IDirectRpcHandler.start
+	 * @see IRpcHandler.start
 	 */
 	public start(): Promise<void> {
-		return new Promise<void>((resolve, reject) => {
-			this._server = this._app.listen(3000, resolve);
+		return new Promise<void>(resolve => {
+			this._server = this._app.listen(this.port, resolve);
 			this._server.on('error', err => this.emitError(err));
 		});
 	}
 
 	/**
-	 * @see IDirectRpcHandler.dispose
+	 * @see IRpcHandler.dispose
 	 */
 	public dispose(): Promise<void> {
 		return new Promise<void>((resolve, reject) => {
@@ -98,11 +101,15 @@ export class ExpressRpcHandler
 	/**
 	 * @see IRpcHandler.handle
 	 */
-	public handle(action: string, dependencyIdentifier: string | symbol, actionFactory?: rpc.RpcActionFactory) {
-		Guard.assertIsMatch(ExpressRpcHandler.URL_TESTER, action, `Route "${action}" is not URL-safe!`);
+	public handle(actions: string | string[], dependencyIdentifier: string | symbol, actionFactory?: rpc.RpcActionFactory): void {
 		Guard.assertIsDefined(this._router, '`init` method must be called first!');
-
-		this._router.post(`/${action}`, this.buildHandleFunc.apply(this, arguments));
+		
+		actions = Array.isArray(actions) ? actions : [actions];
+		
+		for (let a of actions) {
+			Guard.assertIsMatch(ExpressRpcHandler.URL_TESTER, a, `Route "${a}" is not URL-safe!`);
+			this._router.post(`/${a}`, this.buildHandleFunc(a, dependencyIdentifier, actionFactory));
+		}
 	}
 
 

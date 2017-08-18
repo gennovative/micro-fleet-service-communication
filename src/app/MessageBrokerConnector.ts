@@ -1,9 +1,11 @@
 import { EventEmitter } from 'events';
 
+import * as shortid from 'shortid';
 import * as amqp from 'amqplib';
 import * as _ from 'lodash';
 
-import { injectable, CriticalException, Guard } from 'back-lib-common-util';
+import { injectable, Exception, CriticalException, MinorException,
+	Guard } from 'back-lib-common-util';
 
 
 export type MessageHandleFunction = (msg: IMessage, ack?: () => void, nack?: () => void) => void;
@@ -15,18 +17,50 @@ export interface IMessage {
 }
 
 export interface IPublishOptions {
-	contentType?: string;
+	contentType?: 'text/plain' | 'application/json';
 	contentEncoding?: string;
 	correlationId?: string;
 	replyTo?: string;
 }
 
 export interface IConnectionOptions {
+	/**
+	 * IP address or host name where message broker is located.
+	 */
 	hostAddress: string;
+
+	/**
+	 * Username to login to message broker.
+	 */
 	username: string;
+
+	/**
+	 * Password to login to message broker.
+	 */
 	password: string;
+	
+	/**
+	 * Exchange name
+	 */
 	exchange: string;
-	queue: string;
+
+	/**
+	 * Milliseconds to wait before trying to reconnect to message broker.
+	 */
+	reconnectDelay: number;
+
+	/**
+	 * The default queue name to bind.
+	 * If not specified or given falsey values (empty string, null,...), a queue with random name will be created.
+	 * IMessageBrokerConnector's implementation may allow connecting to many queues.
+	 * But each TopicMessageBrokerConnector instance connects to only one queue.
+	 */
+	queue?: string;
+
+	/**
+	 * Milliseconds to expire messages arriving in the queue.
+	 */
+	messageExpiredIn: number;
 }
 
 export interface IMessageBrokerConnector {
@@ -40,6 +74,19 @@ export interface IMessageBrokerConnector {
 	queue: string;
 
 	/**
+	 * Gets or sets milliseconds to expire messages arriving in the queue.
+	 * Can only be changed before queue is bound.
+	 * Queue is bound on the first call to `subscribe()` method.
+	 * @throws Error if changing queue after it is bound.
+	 */
+	messageExpiredIn: number;
+
+	/**
+	 * Gets array of subscribed matching patterns.
+	 */
+	readonly subscribedPatterns: string[];
+
+	/**
 	 * Creates a connection to message broker engine.
 	 * @param {IConnectionOptions} options
 	 */
@@ -49,6 +96,34 @@ export interface IMessageBrokerConnector {
 	 * Closes all channels and the connection.
 	 */
 	disconnect(): Promise<void>;
+
+	/**
+	 * Deletes queue.
+	 */
+	deleteQueue(): Promise<void>;
+
+	/**
+	 * Deletes all messages in queue.
+	 * Note that this won't remove messages that have been delivered but not yet acknowledged.
+	 * They will remain, and may be requeued under some circumstances
+	 * (e.g., if the channel to which they were delivered closes without acknowledging them).
+	 * 
+	 * @returns Number of deleted message.
+	 */
+	emptyQueue(): Promise<number>;
+
+	/**
+	 * Starts receiving messages.
+	 * @param {function} onMessage - Callback to invoke when there is an incomming message.
+	 * @param {boolean} noAck - If true, received message is acknowledged automatically.
+	 * 	Default should be `true`.
+	 */
+	listen(onMessage: MessageHandleFunction, noAck?: boolean): Promise<void>;
+
+	/**
+	 * Stops receiving messages.
+	 */
+	stopListen(): Promise<void>;
 
 	/**
 	 * Sends `message` to the broker and label the message with `topic`.
@@ -61,15 +136,18 @@ export interface IMessageBrokerConnector {
 	/**
 	 * Listens to messages whose label matches `matchingPattern`.
 	 * @param {string} matchingPattern - Pattern to match with message label. Should be in format "xx.*" or "xx.#.#".
-	 * @param {function} onMessage - Callback to invoke when there is an incomming message.
-	 * @return {string} - A promise with resolve to a consumer tag, which is used to unsubscribe later.
 	 */
-	subscribe(matchingPattern: string, onMessage: MessageHandleFunction, noAck?: boolean): Promise<string>;
+	subscribe(matchingPattern: string): Promise<void>;
 
 	/**
-	 * Stops listening to a subscription that was made before.
+	 * Stops listening to a topic pattern.
 	 */
-	unsubscribe(consumerTag: string): Promise<void>;
+	unsubscribe(matchingPattern: string): Promise<void>;
+
+	/**
+	 * Stops listening to all subscriptions.
+	 */
+	unsubscribeAll(): Promise<void>;
 
 	/**
 	 * Registers a listener to handle errors.
@@ -80,22 +158,30 @@ export interface IMessageBrokerConnector {
 @injectable()
 export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 	
+	private static CHANNEL_RECREATE_DELAY = 100; // Millisecs
+
 	private _connectionPrm: Promise<amqp.Connection>;
 	
 	// Each microservice has 2 channels, one for consuming and the other for publishing.
 	private _publishChanPrm: Promise<amqp.Channel>;
 	private _consumeChanPrm: Promise<amqp.Channel>;
 
+	private _consumerTag: string;
 	private _exchange: string;
+	private _emitter: EventEmitter;
+	private _isConnected: boolean;
+	private _isConnecting: boolean;
 	private _queue: string;
 	private _queueBound: boolean;
-	private _subscriptions: Map<string, Set<string>>;
-	private _emitter: EventEmitter;
+	private _messageExpiredIn: number;
+	private _subscribedPatterns: string[];
 
 	constructor() {
-		this._subscriptions = new Map();
+		this._subscribedPatterns = [];
 		this._emitter = new EventEmitter();
 		this._queueBound = false;
+		this._isConnected = false;
+		this._isConnecting = false;
 	}
 
 
@@ -111,9 +197,38 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 	 */
 	public set queue(name: string) {
 		if (this._queueBound) {
-			throw new Error('Cannot change queue after binding!');
+			throw new MinorException('Cannot change queue after binding!');
 		}
-		this._queue = name;
+		this._queue = name || `auto-gen-${shortid.generate()}`;
+	}
+
+	/**
+	 * @see IMessageBrokerConnector.messageExpiredIn
+	 */
+	public get messageExpiredIn(): number {
+		return this._messageExpiredIn;
+	}
+
+	/**
+	 * @see IMessageBrokerConnector.messageExpiredIn
+	 */
+	public set messageExpiredIn(val: number) {
+		if (this._queueBound) {
+			throw new MinorException('Cannot change message expiration after queue has been bound!');
+		}
+		this._messageExpiredIn = (val >= 0) ? val : 0; // Unlimited
+	}
+
+	/**
+	 * @see IMessageBrokerConnector.subscribedPatterns
+	 */
+	public get subscribedPatterns(): string[] {
+		return this._subscribedPatterns;
+	}
+
+
+	private get isListening(): boolean {
+		return this._consumerTag != null;
 	}
 
 
@@ -124,7 +239,13 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 		let credentials = '';
 		
 		this._exchange = options.exchange;
-		this._queue = options.queue;
+		this.queue = options.queue;
+		this.messageExpiredIn = options.messageExpiredIn;
+		this._isConnecting = true;
+
+		options.reconnectDelay = (options.reconnectDelay >= 0) 
+			? options.reconnectDelay
+			: 3000; // 3s
 
 		// Output:
 		// - "usr@pass"
@@ -136,16 +257,7 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 		}
 
 		// URI format: amqp://usr:pass@10.1.2.3/vhost
-		return this._connectionPrm = <any>amqp.connect(`amqp://${credentials}${options.hostAddress}`)
-			.then((conn: amqp.Connection) => {
-				conn.on('error', (err) => {
-					this._emitter.emit('error', err);
-				});
-				return conn;
-			})
-			.catch(err => {
-				return this.handleError(err, 'Connection creation error');
-			});
+		return <any>this.createConnection(credentials, options);
 	}
 
 	/**
@@ -153,8 +265,8 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 	 */
 	public async disconnect(): Promise<void> {
 		try {
-			if (!this._connectionPrm && !this._consumeChanPrm) {
-				return;
+			if (!this._connectionPrm || (!this._isConnected && !this._isConnecting)) {
+				return Promise.resolve();
 			}
 
 			let ch: amqp.Channel,
@@ -162,12 +274,14 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 
 			if (this._consumeChanPrm) {
 				ch = await this._consumeChanPrm;
+				ch.removeAllListeners();
 				// Close consuming channel
 				promises.push(ch.close());
 			}
 
 			if (this._publishChanPrm) {
 				ch = await this._publishChanPrm;
+				ch.removeAllListeners();
 				// Close publishing channel
 				promises.push(ch.close());
 			}
@@ -178,6 +292,7 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 
 			if (this._connectionPrm) {
 				let conn: amqp.Connection = await this._connectionPrm;
+				conn.removeAllListeners();
 				// Close connection, causing all temp queues to be deleted.
 				return conn.close();
 			}
@@ -192,26 +307,47 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 	}
 
 	/**
-	 * @see IMessageBrokerConnector.subscribe
+	 * @see IMessageBrokerConnector.deleteQueue
 	 */
-	public async subscribe(matchingPattern: string, onMessage: MessageHandleFunction, noAck: boolean = true): Promise<string> {
-		Guard.assertArgNotEmpty('matchingPattern', matchingPattern);
+	public async deleteQueue(): Promise<void> {
+		this.assertConnection();
+		if (this.isListening) {
+			throw new MinorException('Must stop listening before deleting queue');
+		}
+
+		try {
+			let ch = await this._consumeChanPrm;
+			await ch.deleteQueue(this.queue);
+		} catch (err) {
+			return this.handleError(err, 'Queue deleting failed');
+		}
+	}
+
+	/**
+	 * @see IMessageBrokerConnector.emptyQueue
+	 */
+	public async emptyQueue(): Promise<number> {
+		this.assertConnection();
+
+		try {
+			let ch = await this._consumeChanPrm,
+				result = await ch.purgeQueue(this.queue);
+			return result.messageCount;
+		} catch (err) {
+			return this.handleError(err, 'Queue emptying failed');
+		}
+	}
+
+	/**
+	 * @see IMessageBrokerConnector.listen
+	 */
+	public async listen(onMessage: MessageHandleFunction, noAck: boolean = true): Promise<void> {
 		Guard.assertArgFunction('onMessage', onMessage);
 		this.assertConnection();
 
 		try {
-			let channelPromise = this._consumeChanPrm;
-			if (!channelPromise) {
-				// Create a new consuming channel if there is not already, and from now on we listen to this only channel.
-				channelPromise = this._consumeChanPrm = this.createChannel();
-			}
-
-			let ch = await channelPromise;
-
-			// The consuming channel should bind to only one queue, but that queue can be routed with multiple keys.
-			let queueName = await this.bindQueue(channelPromise, matchingPattern);
-
-			let conResult = await ch.consume(queueName,
+			let ch = await this._consumeChanPrm;
+			let conResult = await ch.consume(this.queue,
 				(msg: amqp.Message) => {
 					let ack = () => ch.ack(msg),
 						nack = () => ch.nack(msg);
@@ -220,11 +356,27 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 				}, 
 				{ noAck }
 			);
-			this.moreSub(matchingPattern, conResult.consumerTag);
-			return conResult.consumerTag;
-
+			this._consumerTag = conResult.consumerTag;
 		} catch (err) {
-			return this.handleError(err, 'Subscription error');
+			return this.handleError(err, 'Error when start listening');
+		}
+	}
+
+	/**
+	 * @see IMessageBrokerConnector.stopListen
+	 */
+	public async stopListen(): Promise<void> {
+		if (!this.isListening) { return Promise.resolve(); }
+		this.assertConnection();
+
+		try {
+			let ch = await this._consumeChanPrm;
+
+			// onMessage callback will never be called again.
+			await ch.cancel(this._consumerTag);
+			this._consumerTag = null;
+		} catch (err) {
+			return this.handleError(err, 'Error when stop listening');
 		}
 	}
 
@@ -238,7 +390,7 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 		try {
 			if (!this._publishChanPrm) {
 				// Create a new publishing channel if there is not already, and from now on we publish to this only channel.
-				this._publishChanPrm = this.createChannel();
+				this._publishChanPrm = this.createPublishChannel();
 			}
 			let ch: amqp.Channel = await this._publishChanPrm,
 				opt: amqp.Options.Publish;
@@ -253,28 +405,52 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 	}
 
 	/**
-	 * @see IMessageBrokerConnector.unsubscribe
+	 * @see IMessageBrokerConnector.subscribe
 	 */
-	public async unsubscribe(consumerTag: string): Promise<void> {
+	public async subscribe(matchingPattern: string): Promise<void> {
+		Guard.assertArgNotEmpty('matchingPattern', matchingPattern);
 		this.assertConnection();
+
 		try {
-			if (!this._consumeChanPrm) {
-				return;
+			let channelPromise = this._consumeChanPrm;
+			if (!channelPromise) {
+				// Create a new consuming channel if there is not already, and from now on we listen to this only channel.
+				channelPromise = this._consumeChanPrm = this.createConsumeChannel();
 			}
 
-			let ch = await this._consumeChanPrm;
+			// The consuming channel should bind to only one queue, but that queue can be routed with multiple keys.
+			await this.bindQueue(await channelPromise, matchingPattern);
 
-			// onMessage callback will never be called again.
-			await ch.cancel(consumerTag);
-			
-			let unusedPattern = this.lessSub(consumerTag);
-			if (unusedPattern) {
-				await this.unbindQueue(this._consumeChanPrm, unusedPattern);
-			}
+			this.moreSub(matchingPattern);
 
 		} catch (err) {
-			return this.handleError(err, `Failed to unsubscribe tag "${consumerTag}"`);
+			return this.handleError(err, 'Subscription error');
 		}
+	}
+
+	/**
+	 * @see IMessageBrokerConnector.unsubscribe
+	 */
+	public async unsubscribe(matchingPattern: string): Promise<void> {
+		this.assertConnection();
+		try {
+			if (!this._consumeChanPrm) { return; }
+			
+			this.lessSub(matchingPattern);
+			let ch = await this._consumeChanPrm;
+			await ch.unbindQueue(this._queue, this._exchange, matchingPattern);
+		} catch (err) {
+			return this.handleError(err, `Failed to unsubscribe pattern "${matchingPattern}"`);
+		}
+	}
+
+	/**
+	 * @see IMessageBrokerConnector.unsubscribeAll
+	 */
+	public async unsubscribeAll(): Promise<void> {
+		return <any>Promise.all(
+			this._subscribedPatterns.map(this.unsubscribe.bind(this))
+		);
 	}
 
 	/**
@@ -287,7 +463,93 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 
 	private assertConnection(): void {
 		Guard.assertIsDefined(this._connectionPrm,
+			'Connection to message broker is not established!');
+		Guard.assertIsTruthy(this._isConnected || this._isConnecting,
 			'Connection to message broker is not established or has been disconnected!');
+	}
+
+	private createConnection(credentials: string, options: IConnectionOptions): Promise<amqp.Connection> {
+		return this._connectionPrm = <any>amqp.connect(`amqp://${credentials}${options.hostAddress}`)
+			.then((conn: amqp.Connection) => {
+				this._isConnected = true;
+				this._isConnecting = false;
+				conn.on('error', (err) => {
+					this._emitter.emit('error', err);
+				})
+				.on('close', () => {
+					this._isConnected = false;
+					this.reconnect(credentials, options);
+				});
+				return conn;
+			})
+			.catch(err => {
+				return this.handleError(err, 'Connection creation error');
+			});
+	}
+
+	private reconnect(credentials: string, options: IConnectionOptions): void {
+		this._isConnecting = true;
+		this._connectionPrm = new Promise<amqp.Connection>((resolve, reject) => {
+			setTimeout(() => {
+				this.createConnection(credentials, options)
+					.then(resolve)
+					.catch(reject);
+			}, options.reconnectDelay);
+		});
+		this.resetChannels();
+	}
+
+	private resetChannels(): void {
+		if (this._consumeChanPrm) {
+			this._consumeChanPrm = this._consumeChanPrm
+				.then(ch => ch.removeAllListeners())
+				.then(() => {
+					return this.createConsumeChannel();
+				});
+		}
+
+		if (this._publishChanPrm) {
+			this._publishChanPrm = this._publishChanPrm
+				.then(ch => ch.removeAllListeners())
+				.then(() => this.createPublishChannel());
+		}
+	}
+
+	private async createConsumeChannel(): Promise<amqp.Channel> {
+		return this.createChannel()
+			.then(ch => {
+				ch.once('close', () => {
+					let oldCh = this._consumeChanPrm;
+
+					// Delay a little bit to see if underlying connection is still alive
+					setTimeout(() => {
+						// If connection has reset and already created new channels
+						if (this._consumeChanPrm !== oldCh) { return; }
+
+						this._consumeChanPrm = this.createConsumeChannel();
+					}, TopicMessageBrokerConnector.CHANNEL_RECREATE_DELAY);
+				});
+				return ch;
+			});
+	}
+
+	private async createPublishChannel(): Promise<amqp.Channel> {
+		return this.createChannel()
+			.then(ch => {
+				ch.once('close', () => {
+					let oldCh = this._publishChanPrm;
+
+					// Delay a little bit to see if underlying connection is still alive
+					setTimeout(() => {
+						
+						// If connection has reset and already created new channels
+						if (this._publishChanPrm !== oldCh) { return; }
+
+						this._publishChanPrm = this.createPublishChannel();
+					}, TopicMessageBrokerConnector.CHANNEL_RECREATE_DELAY);
+				});
+				return ch;
+			});
 	}
 
 	private async createChannel(): Promise<amqp.Channel> {
@@ -295,12 +557,12 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 
 		try {
 			let conn = await this._connectionPrm,
-				ch = await conn.createChannel(),
+				ch = await conn.createChannel();
 
 				// Tell message broker to create an exchange with this name if there's not any already.
 				// Setting exchange as "durable" means the exchange with same name will be re-created after the message broker restarts,
 				// but all queues and waiting messages will be lost.
-				exResult = await ch.assertExchange(this._exchange, EXCHANGE_TYPE, {durable: true});
+			await ch.assertExchange(this._exchange, EXCHANGE_TYPE, {durable: true});
 
 			ch.on('error', (err) => {
 				this._emitter.emit('error', err);
@@ -312,85 +574,51 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 		}
 	}
 
-	/**
-	 * If `queueName` is null, creates a queue and binds it to `matchingPattern`.
-	 * If `queueName` is not null, binds `matchingPattern` to the queue with that name.
-	 * @return {string} null if no queue is created, otherwise returns the new queue name.
-	 */
-	private async bindQueue(channelPromise: Promise<amqp.Channel>, matchingPattern: string): Promise<string> {
+	private async bindQueue(channel: amqp.Channel, matchingPattern: string): Promise<string> {
 		try {
-			let ch = await channelPromise,
-				isTempQueue = (!this._queue),
-				// If configuration doesn't provide queue name,
-				// we provide empty string as queue name to tell message broker to choose a unique name for us.
-				// Setting queue as "exclusive" to delete the temp queue when connection closes.
-				quResult = await ch.assertQueue(this._queue || '', {exclusive: isTempQueue});
+			let queue = this.queue,
+				isTempQueue = (queue.indexOf('auto-gen') == 0);
 
-			await ch.bindQueue(quResult.queue, this._exchange, matchingPattern);
+			// Setting queue as "exclusive" to delete the temp queue when connection closes.
+			await channel.assertQueue(queue, {
+				exclusive: isTempQueue,
+				messageTtl: this.messageExpiredIn,
+				autoDelete: true
+			});
 
-			// Store queue name for later use.
-			// In our system, each channel is associated with only one queue.
-			return this._queue = quResult.queue;
+			await channel.bindQueue(queue, this._exchange, matchingPattern);
+			this._queueBound = true;
 
 		} catch (err) {
 			return this.handleError(err, 'Queue binding error');
 		}
 	}
 
-	private async unbindQueue(channelPromise: Promise<amqp.Channel>, matchingPattern: string): Promise<void> {
-		try {
-			let ch = await channelPromise;
-
-			await ch.unbindQueue(this._queue, this._exchange, matchingPattern);
-
-		} catch (err) {
-			return this.handleError(err, 'Queue unbinding error');
-		}
+	private unbindQueue(channelPromise: Promise<amqp.Channel>, matchingPattern: string): Promise<void> {
+		return <any>channelPromise.then(
+			ch => ch.unbindQueue(this._queue, this._exchange, matchingPattern)
+		);
 	}
 
 	private handleError(err, message: string): Promise<never> {
-		if (err instanceof CriticalException) {
+		if (err instanceof Exception) {
 			// If this is already a wrapped exception.
 			return Promise.reject(err);
 		}
 		return Promise.reject(new CriticalException(`${message}: ${err}`));
 	}
 	
-	private moreSub(matchingPattern: string, consumerTag: string): void {
-		let consumers: Set<string> = this._subscriptions.get(matchingPattern);
-
-		if (!consumers) {
-			this._subscriptions.set(matchingPattern, new Set<string>([consumerTag]));
-			return;
+	private moreSub(pattern: string): void {
+		if (!this._subscribedPatterns.includes(pattern)) {
+			this._subscribedPatterns.push(pattern);
 		}
-		consumers.add(consumerTag);
 	}
 
-	/**
-	 * @return {string} the pattern name which should be unbound, othewise return null.
-	 */
-	private lessSub(consumerTag: string): string {
-		let subscriptions = this._subscriptions,
-			matchingPattern = null;
-		
-		for (let sub of subscriptions) {
-			// sub[0] (string): topic name
-			// sub[1] (Set): collection of consumerTags
-			if (!sub[1].has(consumerTag)) { continue; }
-
-			// Remove this tag from consumer list.
-			sub[1].delete(consumerTag);
-			
-			// If consumer list becomes empty.
-			if (!sub[1].size) {
-				// Mark this pattern as unused and should be unbound.
-				matchingPattern = sub[0];
-				subscriptions.delete(matchingPattern);
-			}
-			break;
+	private lessSub(pattern: string): void {
+		let pos = this._subscribedPatterns.indexOf(pattern);
+		if (pos >= 0) {
+			this._subscribedPatterns.splice(pos, 1);
 		}
-
-		return matchingPattern;
 	}
 
 	private buildMessage(payload: string | Json | JsonArray, options?: IPublishOptions): Array<any> {

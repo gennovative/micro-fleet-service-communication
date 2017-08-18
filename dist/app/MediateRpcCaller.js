@@ -35,7 +35,19 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
      * @see IRpcCaller.init
      */
     init(params) {
+        let expire = this._msgBrokerConn.messageExpiredIn;
+        this._msgBrokerConn.messageExpiredIn = expire > 0 ? expire : 30000; // Make sure we only use temporary unique queue.
         this._msgBrokerConn.onError(err => this.emitError(err));
+    }
+    /**
+     * @see IRpcCaller.dispose
+     */
+    dispose() {
+        const _super = name => super[name];
+        return __awaiter(this, void 0, void 0, function* () {
+            yield _super("dispose").call(this);
+            this._msgBrokerConn = null;
+        });
     }
     /**
      * @see IRpcCaller.call
@@ -46,20 +58,33 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
         return new Promise((resolve, reject) => {
             // There are many requests to same `requestTopic` and they listen to same `responseTopic`,
             // A request only cares about a response with same `correlationId`.
-            const correlationId = shortid.generate(), replyTo = `response.${moduleName}.${action}`;
-            this._msgBrokerConn.subscribe(replyTo, (msg) => {
-                // Announce that we've got a response with this correlationId.
-                this._emitter.emit(msg.properties.correlationId, msg);
-            })
-                .then(consumerTag => {
-                // TODO: Should have a timeout to remove this listener, in case this request never has response.
-                this._emitter.once(correlationId, (msg) => __awaiter(this, void 0, void 0, function* () {
+            const correlationId = shortid.generate(), replyTo = `response.${moduleName}.${action}`, conn = this._msgBrokerConn;
+            conn.subscribe(replyTo)
+                .then(() => {
+                let onMessage = (msg) => __awaiter(this, void 0, void 0, function* () {
                     // We got what we want, stop consuming.
-                    yield this._msgBrokerConn.unsubscribe(consumerTag);
+                    yield conn.unsubscribe(replyTo);
+                    yield conn.stopListen();
                     resolve(msg.data);
-                }));
+                });
+                // In case this request never has response.
+                let token = setTimeout(() => {
+                    this._emitter && this._emitter.removeListener(correlationId, onMessage);
+                    this._msgBrokerConn && conn.unsubscribe(replyTo).catch(() => { });
+                    reject(new back_lib_common_util_1.MinorException('Response waiting timeout'));
+                }, this.timeout);
+                this._emitter.once(correlationId, msg => {
+                    clearTimeout(token);
+                    onMessage(msg);
+                });
+                return conn.listen((msg) => {
+                    // Announce that we've got a response with this correlationId.
+                    this._emitter.emit(msg.properties.correlationId, msg);
+                });
+            })
+                .then(() => {
                 let request = {
-                    from: this._name,
+                    from: this.name,
                     to: moduleName,
                     payload: params
                 };
@@ -78,3 +103,5 @@ MessageBrokerRpcCaller = __decorate([
     __metadata("design:paramtypes", [Object])
 ], MessageBrokerRpcCaller);
 exports.MessageBrokerRpcCaller = MessageBrokerRpcCaller;
+
+//# sourceMappingURL=MediateRpcCaller.js.map

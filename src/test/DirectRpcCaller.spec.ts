@@ -5,7 +5,8 @@ import * as bodyParser from 'body-parser';
 import * as requestMaker from 'request-promise-native';
 import { MinorException, Exception } from 'back-lib-common-util';
 
-import { HttpRpcCaller, ExpressRpcHandler, IDirectRpcHandler, IRpcRequest, IRpcResponse } from '../app';
+import { HttpRpcCaller, ExpressRpcHandler, IDirectRpcHandler, IDirectRpcCaller,
+	IRpcRequest, IRpcResponse } from '../app';
 
 
 const HANDLER_ADDR = 'localhost:3000',
@@ -15,11 +16,16 @@ const HANDLER_ADDR = 'localhost:3000',
 	TEXT_RESPONSE = 'Test response',
 	ACTION = 'getMessage';
 
-describe('ExpressDirectRpcHandler', () => {
+describe('HttpRpcCaller', () => {
+	let caller: IDirectRpcCaller;
+
+	beforeEach(() => {
+		caller = new HttpRpcCaller();
+	});
+
 	describe('init', () => {
 		it('Should do nothing', () => {
 			// Arrange
-			let caller = new HttpRpcCaller();
 			caller.baseAddress = HANDLER_ADDR;
 
 			// Act
@@ -45,8 +51,7 @@ describe('ExpressDirectRpcHandler', () => {
 
 		it('Should make request and wait for response', done => {
 			// Arrange
-			let caller = new HttpRpcCaller(),
-				app = express(),
+			let app = express(),
 				router = express.Router();
 
 			caller.name = CALLER_NAME;
@@ -92,8 +97,6 @@ describe('ExpressDirectRpcHandler', () => {
 
 		it('Should reject if problem occur', done => {
 			// Arrange
-			let caller = new HttpRpcCaller();
-
 			caller.name = CALLER_NAME;
 			caller.baseAddress = HANDLER_ADDR;
 
@@ -114,4 +117,15 @@ describe('ExpressDirectRpcHandler', () => {
 		});
 
 	}); // END describe 'call'
+
+	describe('dispose', () => {
+		it('Should clear private fields', async () => {
+			// Act
+			await caller.dispose();
+
+			// Assert
+			expect(caller['_requestMaker']).not.to.exist;
+			expect(caller['_eventEmitter']).not.to.exist;
+		});
+	}); // END describe 'init'
 });

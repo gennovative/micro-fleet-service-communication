@@ -105,7 +105,8 @@ describe('ExpressDirectRpcHandler', () => {
 				expressRouter: express.Router()
 			});
 
-			let server = app.listen(3000, () => {
+			// Start this server to make a port conflict
+			let server = app.listen(handler.port, () => {
 
 				handler.onError(err => {
 					// Assert
@@ -153,7 +154,7 @@ describe('ExpressDirectRpcHandler', () => {
 				.then(() => {
 					let options: requestMaker.Options = {
 						method: 'POST',
-						uri: `http://localhost:3000/${MODULE}/${ACTION}`,
+						uri: `http://localhost:${handler.port}/${MODULE}/${ACTION}`,
 						body: {},
 						json: true
 					};
@@ -165,6 +166,7 @@ describe('ExpressDirectRpcHandler', () => {
 					})
 					.catch(rawResponse => {
 						console.error(rawResponse.error);
+						expect(rawResponse.error).not.to.exist;
 					});
 				});
 		});
@@ -187,7 +189,7 @@ describe('ExpressDirectRpcHandler', () => {
 				.then(() => {
 					let options = {
 						method: 'POST',
-						uri: `http://localhost:3000/${MODULE}/${ACTION}`,
+						uri: `http://localhost:${handler.port}/${MODULE}/${ACTION}`,
 						body: {},
 						json: true
 					};
@@ -227,7 +229,7 @@ describe('ExpressDirectRpcHandler', () => {
 					},
 					options = {
 						method: 'POST',
-						uri: `http://localhost:3000/${MODULE}/${ACTION}`,
+						uri: `http://localhost:${handler.port}/${MODULE}/${ACTION}`,
 						body: request,
 						json: true
 					};
@@ -260,7 +262,7 @@ describe('ExpressDirectRpcHandler', () => {
 				.then(() => {
 					let options = {
 						method: 'POST',
-						uri: `http://localhost:3000/${MODULE}/${ACTION}`,
+						uri: `http://localhost:${handler.port}/${MODULE}/${ACTION}`,
 						body: {},
 						json: true
 					};
@@ -297,7 +299,7 @@ describe('ExpressDirectRpcHandler', () => {
 				.then(() => {
 					let options = {
 						method: 'POST',
-						uri: `http://localhost:3000/${MODULE}/${ACTION}`,
+						uri: `http://localhost:${handler.port}/${MODULE}/${ACTION}`,
 						body: {},
 						json: true
 					};
@@ -332,7 +334,7 @@ describe('ExpressDirectRpcHandler', () => {
 				.then(() => {
 					let options = {
 						method: 'POST',
-						uri: `http://localhost:3000/${MODULE}/${ACTION}`,
+						uri: `http://localhost:${handler.port}/${MODULE}/${ACTION}`,
 						body: {},
 						json: true
 					};
@@ -371,7 +373,7 @@ describe('ExpressDirectRpcHandler', () => {
 					},
 					options = {
 						method: 'POST',
-						uri: `http://localhost:3000/${MODULE}/${ACTION}`,
+						uri: `http://localhost:${handler.port}/${MODULE}/${ACTION}`,
 						body: request,
 						json: true
 					};
@@ -409,7 +411,7 @@ describe('ExpressDirectRpcHandler', () => {
 						},
 						options = {
 							method: 'POST',
-							uri: `http://localhost:3000/${MODULE}/${UNEXIST_ACTION}`,
+							uri: `http://localhost:${handler.port}/${MODULE}/${UNEXIST_ACTION}`,
 							body: request,
 							json: true
 						};

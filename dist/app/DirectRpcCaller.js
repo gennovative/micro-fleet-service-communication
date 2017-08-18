@@ -37,30 +37,34 @@ let HttpRpcCaller = class HttpRpcCaller extends rpc.RpcCallerBase {
     init(param) {
     }
     /**
+     * @see IRpcCaller.dispose
+     */
+    dispose() {
+        const _super = name => super[name];
+        return __awaiter(this, void 0, void 0, function* () {
+            yield _super("dispose").call(this);
+            this._requestMaker = null;
+        });
+    }
+    /**
      * @see IRpcCaller.call
      */
     call(moduleName, action, params) {
-        return __awaiter(this, void 0, void 0, function* () {
-            back_lib_common_util_1.Guard.assertArgDefined('moduleName', moduleName);
-            back_lib_common_util_1.Guard.assertArgDefined('action', action);
-            back_lib_common_util_1.Guard.assertIsDefined(this._baseAddress, 'Base URL must be set!');
-            let request = {
-                from: this._name,
-                to: moduleName,
-                payload: params
-            }, options = {
-                method: 'POST',
-                uri: `http://${this._baseAddress}/${moduleName}/${action}`,
-                body: request,
-                json: true // Automatically stringifies the body to JSON
-            };
-            try {
-                return yield this._requestMaker(options);
-            }
-            catch (rawResponse) {
-                throw rawResponse.error;
-            }
-        });
+        back_lib_common_util_1.Guard.assertArgDefined('moduleName', moduleName);
+        back_lib_common_util_1.Guard.assertArgDefined('action', action);
+        back_lib_common_util_1.Guard.assertIsDefined(this._baseAddress, 'Base URL must be set!');
+        let request = {
+            from: this.name,
+            to: moduleName,
+            payload: params
+        }, options = {
+            method: 'POST',
+            uri: `http://${this._baseAddress}/${moduleName}/${action}`,
+            body: request,
+            json: true // Automatically stringifies the body to JSON
+        };
+        return this._requestMaker(options)
+            .catch(rawResponse => Promise.reject(rawResponse.error));
     }
 };
 HttpRpcCaller = __decorate([
@@ -68,3 +72,5 @@ HttpRpcCaller = __decorate([
     __metadata("design:paramtypes", [])
 ], HttpRpcCaller);
 exports.HttpRpcCaller = HttpRpcCaller;
+
+//# sourceMappingURL=DirectRpcCaller.js.map
