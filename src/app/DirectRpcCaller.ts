@@ -45,15 +45,23 @@ export class HttpRpcCaller
 	}
 
 	/**
+	 * @see IRpcCaller.dispose
+	 */
+	public async dispose(): Promise<void> {
+		await super.dispose();
+		this._requestMaker = null;
+	}
+
+	/**
 	 * @see IRpcCaller.call
 	 */
-	public async call(moduleName: string, action: string, params?: any): Promise<rpc.IRpcResponse> {
+	public call(moduleName: string, action: string, params?: any): Promise<rpc.IRpcResponse> {
 		Guard.assertArgDefined('moduleName', moduleName);
 		Guard.assertArgDefined('action', action);
 		Guard.assertIsDefined(this._baseAddress, 'Base URL must be set!');
 
 		let request: rpc.IRpcRequest = {
-				from: this._name,
+				from: this.name,
 				to: moduleName,
 				payload: params
 			},
@@ -64,10 +72,7 @@ export class HttpRpcCaller
 				json: true // Automatically stringifies the body to JSON
 			};
 
-		try {
-			return await this._requestMaker(options);
-		} catch (rawResponse) {
-			throw rawResponse.error;
-		}
+		return this._requestMaker(options)
+			.catch(rawResponse => Promise.reject(rawResponse.error));
 	}
 }

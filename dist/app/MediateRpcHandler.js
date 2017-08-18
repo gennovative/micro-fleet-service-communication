@@ -11,6 +11,14 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const back_lib_common_util_1 = require("back-lib-common-util");
 const Types_1 = require("./Types");
@@ -20,6 +28,7 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
         super(depContainer);
         this._msgBrokerConn = _msgBrokerConn;
         back_lib_common_util_1.Guard.assertArgDefined('_msgBrokerConn', _msgBrokerConn);
+        this._registeredHandlers = [];
     }
     /**
      * @see IRpcHandler.init
@@ -28,55 +37,82 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
         this._msgBrokerConn && this._msgBrokerConn.onError(err => this.emitError(err));
     }
     /**
-     * @see IRpcHandler.handle
+     * @see IRpcHandler.start
      */
-    handle(action, dependencyIdentifier, actionFactory) {
-        back_lib_common_util_1.Guard.assertArgDefined('action', action);
-        back_lib_common_util_1.Guard.assertArgDefined('dependencyIdentifier', dependencyIdentifier);
-        back_lib_common_util_1.Guard.assertIsDefined(this._name, '`name` property is required.');
-        this._msgBrokerConn.subscribe(`request.${this._name}.${action}`, this.buildHandleFunc.apply(this, arguments));
+    start() {
+        return this._msgBrokerConn.listen(this.onMessage.bind(this));
     }
-    buildHandleFunc(action, dependencyIdentifier, actionFactory) {
-        return (msg) => {
-            let request = msg.data, replyTo = msg.properties.replyTo, correlationId = msg.properties.correlationId;
-            (new Promise((resolve, reject) => {
-                let actionFn = this.resolveActionFunc(action, dependencyIdentifier, actionFactory);
-                try {
-                    // Execute controller's action
-                    let output = actionFn(request.payload, resolve, reject, request);
-                    if (output instanceof Promise) {
-                        output.catch(reject); // Catch async exceptions.
-                    }
+    /**
+     * @see IRpcHandler.dispose
+     */
+    dispose() {
+        // Stop listening then unsbuscribe all topic patterns.
+        return Promise.all([
+            this._msgBrokerConn.stopListen(),
+            this._msgBrokerConn.unsubscribeAll()
+        ]);
+    }
+    /**
+     * @see IMediateRpcHandler.handle
+     */
+    handle(actions, dependencyIdentifier, actionFactory) {
+        return __awaiter(this, void 0, void 0, function* () {
+            back_lib_common_util_1.Guard.assertArgDefined('action', actions);
+            back_lib_common_util_1.Guard.assertArgDefined('dependencyIdentifier', dependencyIdentifier);
+            back_lib_common_util_1.Guard.assertIsDefined(this.name, '`name` property is required.');
+            actions = Array.isArray(actions) ? actions : [actions];
+            return Promise.all(actions.map(a => {
+                this._registeredHandlers[a] = { dependencyIdentifier, actionFactory };
+                return this._msgBrokerConn.subscribe(`request.${this.name}.${a}`);
+            }));
+        });
+    }
+    /**
+     * @see IMediateRpcHandler.handleCRUD
+     */
+    handleCRUD(dependencyIdentifier, actionFactory) {
+        return this.handle(['countAll', 'create', 'delete', 'find', 'patch', 'update'], dependencyIdentifier, actionFactory);
+    }
+    onMessage(msg) {
+        let action = msg.raw.fields.routingKey.match(/[^\.]+$/)[0], handlerDetails = this._registeredHandlers[action];
+        let request = msg.data, replyTo = msg.properties.replyTo, correlationId = msg.properties.correlationId;
+        (new Promise((resolve, reject) => {
+            let actionFn = this.resolveActionFunc(action, handlerDetails.dependencyIdentifier, handlerDetails.actionFactory);
+            try {
+                // Execute controller's action
+                let output = actionFn(request.payload, resolve, reject, request);
+                if (output instanceof Promise) {
+                    output.catch(reject); // Catch async exceptions.
                 }
-                catch (err) {
-                    reject(err);
-                }
-            }))
-                .then(result => {
-                // Sends response to reply topic
-                return this._msgBrokerConn.publish(replyTo, this.createResponse(true, result, request.from), { correlationId });
-            })
-                .catch(error => {
-                let errMsg = error;
-                // If error is an uncaught Exception/Error object, that means the action method
-                // has a problem. We should nack to tell message broker to send this message to someone else.
-                if (error instanceof Error) {
-                    // Clone to a plain object, as class Error has problem
-                    // with JSON.stringify.
-                    errMsg = {
-                        message: error.message
-                    };
-                }
-                else if (error instanceof back_lib_common_util_1.Exception) {
-                    // TODO: Should log this unexpected error.
-                    delete error.stack;
-                    // nack(); // Disable this, because we use auto-ack.
-                }
-                // If this is a custom error, which means the action method sends this error
-                // back to caller on purpose.
-                return this._msgBrokerConn.publish(replyTo, this.createResponse(false, errMsg, request.from), { correlationId });
-            });
-        };
+            }
+            catch (err) {
+                reject(err);
+            }
+        }))
+            .then(result => {
+            // Sends response to reply topic
+            return this._msgBrokerConn.publish(replyTo, this.createResponse(true, result, request.from), { correlationId });
+        })
+            .catch(error => {
+            let errMsg = error;
+            // If error is an uncaught Exception/Error object, that means the action method
+            // has a problem. We should nack to tell message broker to send this message to someone else.
+            if (error instanceof Error) {
+                // Clone to a plain object, as class Error has problem
+                // with JSON.stringify.
+                errMsg = {
+                    message: error.message
+                };
+            }
+            else if (error instanceof back_lib_common_util_1.Exception) {
+                // TODO: Should log this unexpected error.
+                delete error.stack;
+                // nack(); // Disable this, because we use auto-ack.
+            }
+            // If this is a custom error, which means the action method sends this error
+            // back to caller on purpose.
+            return this._msgBrokerConn.publish(replyTo, this.createResponse(false, errMsg, request.from), { correlationId });
+        });
     }
 };
 MessageBrokerRpcHandler = __decorate([
@@ -86,3 +122,5 @@ MessageBrokerRpcHandler = __decorate([
     __metadata("design:paramtypes", [Object, Object])
 ], MessageBrokerRpcHandler);
 exports.MessageBrokerRpcHandler = MessageBrokerRpcHandler;
+
+//# sourceMappingURL=MediateRpcHandler.js.map

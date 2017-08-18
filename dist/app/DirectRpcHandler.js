@@ -19,13 +19,14 @@ const rpc = require("./RpcCommon");
 let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rpc.RpcHandlerBase {
     constructor(depContainer) {
         super(depContainer);
+        this.port = 30000;
     }
     /**
      * @see IDirectRpcHandler.init
      */
     init(param) {
         back_lib_common_util_1.Guard.assertIsFalsey(this._router, 'This RPC Caller is already initialized!');
-        back_lib_common_util_1.Guard.assertIsTruthy(this._name, '`name` property must be set!');
+        back_lib_common_util_1.Guard.assertIsTruthy(this.name, '`name` property must be set!');
         let app;
         app = this._app = (param && param.expressApp)
             ? param.expressApp
@@ -33,19 +34,19 @@ let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rp
         this._router = (param && param.expressRouter) ? param.expressRouter : express.Router();
         //app.use(bodyParser.urlencoded({extended: true})); // Parse Form values in POST request, but I don't think we need it in this case.
         app.use(bodyParser.json()); // Parse JSON in POST request
-        app.use(`/${this._name}`, this._router);
+        app.use(`/${this.name}`, this._router);
     }
     /**
-     * @see IDirectRpcHandler.start
+     * @see IRpcHandler.start
      */
     start() {
-        return new Promise((resolve, reject) => {
-            this._server = this._app.listen(3000, resolve);
+        return new Promise(resolve => {
+            this._server = this._app.listen(this.port, resolve);
             this._server.on('error', err => this.emitError(err));
         });
     }
     /**
-     * @see IDirectRpcHandler.dispose
+     * @see IRpcHandler.dispose
      */
     dispose() {
         return new Promise((resolve, reject) => {
@@ -58,10 +59,13 @@ let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rp
     /**
      * @see IRpcHandler.handle
      */
-    handle(action, dependencyIdentifier, actionFactory) {
-        back_lib_common_util_1.Guard.assertIsMatch(ExpressRpcHandler_1.URL_TESTER, action, `Route "${action}" is not URL-safe!`);
+    handle(actions, dependencyIdentifier, actionFactory) {
         back_lib_common_util_1.Guard.assertIsDefined(this._router, '`init` method must be called first!');
-        this._router.post(`/${action}`, this.buildHandleFunc.apply(this, arguments));
+        actions = Array.isArray(actions) ? actions : [actions];
+        for (let a of actions) {
+            back_lib_common_util_1.Guard.assertIsMatch(ExpressRpcHandler_1.URL_TESTER, a, `Route "${a}" is not URL-safe!`);
+            this._router.post(`/${a}`, this.buildHandleFunc(a, dependencyIdentifier, actionFactory));
+        }
     }
     buildHandleFunc(action, dependencyIdentifier, actionFactory) {
         return (req, res) => {
@@ -118,3 +122,5 @@ ExpressRpcHandler = ExpressRpcHandler_1 = __decorate([
 ], ExpressRpcHandler);
 exports.ExpressRpcHandler = ExpressRpcHandler;
 var ExpressRpcHandler_1;
+
+//# sourceMappingURL=DirectRpcHandler.js.map

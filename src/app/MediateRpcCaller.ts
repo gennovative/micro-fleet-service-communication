@@ -23,13 +23,24 @@ export class MessageBrokerRpcCaller
 		Guard.assertArgDefined('_msgBrokerConn', _msgBrokerConn);
 
 		this._msgBrokerConn.queue = ''; // Make sure we only use temporary unique queue.
+		
 	}
 
 	/**
 	 * @see IRpcCaller.init
 	 */
 	public init(params?: any): void {
+		let expire = this._msgBrokerConn.messageExpiredIn;
+		this._msgBrokerConn.messageExpiredIn = expire > 0 ? expire : 30000; // Make sure we only use temporary unique queue.
 		this._msgBrokerConn.onError(err => this.emitError(err));
+	}
+
+	/**
+	 * @see IRpcCaller.dispose
+	 */
+	public async dispose(): Promise<void> {
+		await super.dispose();
+		this._msgBrokerConn = null;
 	}
 
 	/**
@@ -43,33 +54,49 @@ export class MessageBrokerRpcCaller
 			// There are many requests to same `requestTopic` and they listen to same `responseTopic`,
 			// A request only cares about a response with same `correlationId`.
 			const correlationId = shortid.generate(),
-				replyTo = `response.${moduleName}.${action}`;
+				replyTo = `response.${moduleName}.${action}`,
+				conn = this._msgBrokerConn;
 
-			this._msgBrokerConn.subscribe(replyTo, (msg: IMessage) => {
-				// Announce that we've got a response with this correlationId.
-				this._emitter.emit(msg.properties.correlationId, msg);
-			})
-			.then(consumerTag => {
-				// TODO: Should have a timeout to remove this listener, in case this request never has response.
-				this._emitter.once(correlationId, async (msg: IMessage) => {
-					// We got what we want, stop consuming.
-					await this._msgBrokerConn.unsubscribe(consumerTag);
-					resolve(<rpc.IRpcResponse>msg.data);
+			conn.subscribe(replyTo)
+				.then(() => {
+					let onMessage = async (msg: IMessage) => {
+						// We got what we want, stop consuming.
+						await conn.unsubscribe(replyTo);
+						await conn.stopListen();
+						resolve(<rpc.IRpcResponse>msg.data);
+					};
+
+					// In case this request never has response.
+					let token = setTimeout(() => {
+						this._emitter && this._emitter.removeListener(correlationId, onMessage);
+						this._msgBrokerConn && conn.unsubscribe(replyTo).catch(() => { /* Swallow */ });
+						reject(new MinorException('Response waiting timeout'));
+					}, this.timeout);
+
+					this._emitter.once(correlationId, msg => {
+						clearTimeout(token);
+						onMessage(msg);
+					});
+
+					return conn.listen((msg: IMessage) => {
+						// Announce that we've got a response with this correlationId.
+						this._emitter.emit(msg.properties.correlationId, msg);
+					});
+				})
+				.then(() => {
+					let request: rpc.IRpcRequest = {
+						from: this.name,
+						to: moduleName,
+						payload: params
+					};
+
+					// Send request, marking the message with correlationId.
+					return this._msgBrokerConn.publish(`request.${moduleName}.${action}`, request, 
+						{ correlationId, replyTo });
+				})
+				.catch(err => {
+					reject(new MinorException(`RPC error: ${err}`));
 				});
-
-				let request: rpc.IRpcRequest = {
-					from: this._name,
-					to: moduleName,
-					payload: params
-				};
-
-				// Send request, marking the message with correlationId.
-				return this._msgBrokerConn.publish(`request.${moduleName}.${action}`, request, 
-					{ correlationId, replyTo });
-			})
-			.catch(err => {
-				reject(new MinorException(`RPC error: ${err}`));
-			});
 		});
 	}
 }

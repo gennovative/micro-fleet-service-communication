@@ -17,6 +17,7 @@ export default {
 		queue: '', // Caller must use anonymous queue to receive responses
 					// for its own requests, which means each service instances must
 					// have a unique queue.
-		exchange: 'first-infras'
+		exchange: 'first-infras',
+		messageExpiredIn: 3000
 	}
 };

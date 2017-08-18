@@ -27,10 +27,20 @@ export interface IRpcCaller {
 	name: string;
 
 	/**
+	 * Number of seconds to wait for response before cancelling the request.
+	 */
+	timeout: number;
+
+	/**
 	 * Sets up this RPC caller with specified `param`. Each implementation class requires
 	 * different kinds of `param`.
 	 */
 	init(params?: any): any;
+
+	/**
+	 * Clear resources.
+	 */
+	dispose(): Promise<void>;
 
 	/**
 	 * Sends a request to `moduleName` to execute `action` with `params`.
@@ -47,8 +57,8 @@ export interface IRpcCaller {
 }
 
 
-export type RpcControllerFunction = (requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest) => void;
-export type RpcActionFactory = (controller) => RpcControllerFunction;
+export type RpcControllerFunction = (requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest) => any;
+export type RpcActionFactory = (controller, action: string) => RpcControllerFunction;
 
 export interface IRpcHandler {
 	/**
@@ -67,12 +77,22 @@ export interface IRpcHandler {
 	 * calls instance's `action` method. If `customAction` is specified, 
 	 * calls instance's `customAction` instead.
 	 */
-	handle(action: string, dependencyIdentifier: string | symbol, actionFactory?: RpcActionFactory);
+	handle(action: string | string[], dependencyIdentifier: string | symbol, actionFactory?: RpcActionFactory): any;
 
 	/**
 	 * Registers a listener to handle errors.
 	 */
 	onError(handler: (err) => void): void;
+
+	/**
+	 * Starts listening to requests.
+	 */
+	start(): Promise<void>;
+
+	/**
+	 * Stops handling requests and removes registered actions.
+	 */
+	dispose(): Promise<void>;
 }
 
 
@@ -81,22 +101,33 @@ export interface IRpcHandler {
 @injectable()
 export abstract class RpcCallerBase {
 
+	/**
+	 * @see IRpcCaller.name
+	 */
+	public name: string;
+
+	/**
+	 * @see IRpcCaller.timeout
+	 */
+	public timeout: number;
+
 	protected _emitter: EventEmitter;
-	protected _name: string;
 
-	public get name(): string {
-		return this._name;
-	}
-
-	public set name(val: string) {
-		this._name = val;
-	}
 
 	constructor() {
 		this._emitter = new EventEmitter();
+		this.timeout = 30000;
+	}
+	
+	public dispose(): Promise<void> {
+		this._emitter.removeAllListeners();
+		this._emitter = null;
+		return Promise.resolve();
 	}
 
-
+	/**
+	 * @see IRpcCaller.onError
+	 */
 	public onError(handler: (err) => void): void {
 		this._emitter.on('error', handler);
 	}
@@ -110,16 +141,13 @@ export abstract class RpcCallerBase {
 @injectable()
 export abstract class RpcHandlerBase {
 
+	/**
+	 * @see IRpcHandler.name
+	 */
+	public name: string;
+
 	protected _emitter: EventEmitter;
-	protected _name: string;
 
-	public get name(): string {
-		return this._name;
-	}
-
-	public set name(val: string) {
-		this._name = val;
-	}
 
 	constructor(protected _depContainer: IDependencyContainer) {
 		Guard.assertArgDefined('_depContainer', _depContainer);
@@ -127,6 +155,9 @@ export abstract class RpcHandlerBase {
 	}
 
 
+	/**
+	 * @see IRpcHandler.onError
+	 */
 	public onError(handler: (err) => void): void {
 		this._emitter.on('error', handler);
 	}
@@ -145,7 +176,7 @@ export abstract class RpcHandlerBase {
 		
 		// If default action is not available, attempt to get action from factory.
 		if (!actionFn) {
-			actionFn = (actFactory ? actFactory(instance) : null);
+			actionFn = (actFactory ? actFactory(instance, action) : null);
 		}
 
 		Guard.assertIsTruthy(actionFn, 'Specified action does not exist in controller!');
@@ -156,7 +187,7 @@ export abstract class RpcHandlerBase {
 	protected createResponse(isSuccess, data, replyTo: string): IRpcResponse {
 		return {
 			isSuccess,
-			from: this._name,
+			from: this.name,
 			to: replyTo,
 			data
 		};

@@ -21,10 +21,18 @@ declare module 'back-lib-service-communication/dist/app/RpcCommon' {
 	     */
 	    name: string;
 	    /**
+	     * Number of seconds to wait for response before cancelling the request.
+	     */
+	    timeout: number;
+	    /**
 	     * Sets up this RPC caller with specified `param`. Each implementation class requires
 	     * different kinds of `param`.
 	     */
 	    init(params?: any): any;
+	    /**
+	     * Clear resources.
+	     */
+	    dispose(): Promise<void>;
 	    /**
 	     * Sends a request to `moduleName` to execute `action` with `params`.
 	     * @param moduleName The module to send request.
@@ -37,8 +45,8 @@ declare module 'back-lib-service-communication/dist/app/RpcCommon' {
 	     */
 	    onError(handler: (err) => void): void;
 	}
-	export type RpcControllerFunction = (requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest) => void;
-	export type RpcActionFactory = (controller) => RpcControllerFunction;
+	export type RpcControllerFunction = (requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest) => any;
+	export type RpcActionFactory = (controller, action: string) => RpcControllerFunction;
 	export interface IRpcHandler {
 	    /**
 	     * A name used in "from" and "to" request property.
@@ -54,26 +62,49 @@ declare module 'back-lib-service-communication/dist/app/RpcCommon' {
 	     * calls instance's `action` method. If `customAction` is specified,
 	     * calls instance's `customAction` instead.
 	     */
-	    handle(action: string, dependencyIdentifier: string | symbol, actionFactory?: RpcActionFactory): any;
+	    handle(action: string | string[], dependencyIdentifier: string | symbol, actionFactory?: RpcActionFactory): any;
 	    /**
 	     * Registers a listener to handle errors.
 	     */
 	    onError(handler: (err) => void): void;
+	    /**
+	     * Starts listening to requests.
+	     */
+	    start(): Promise<void>;
+	    /**
+	     * Stops handling requests and removes registered actions.
+	     */
+	    dispose(): Promise<void>;
 	}
 	export abstract class RpcCallerBase {
-	    protected _emitter: EventEmitter;
-	    protected _name: string;
+	    /**
+	     * @see IRpcCaller.name
+	     */
 	    name: string;
+	    /**
+	     * @see IRpcCaller.timeout
+	     */
+	    timeout: number;
+	    protected _emitter: EventEmitter;
 	    constructor();
+	    dispose(): Promise<void>;
+	    /**
+	     * @see IRpcCaller.onError
+	     */
 	    onError(handler: (err) => void): void;
 	    protected emitError(err: any): void;
 	}
 	export abstract class RpcHandlerBase {
 	    protected _depContainer: IDependencyContainer;
-	    protected _emitter: EventEmitter;
-	    protected _name: string;
+	    /**
+	     * @see IRpcHandler.name
+	     */
 	    name: string;
+	    protected _emitter: EventEmitter;
 	    constructor(_depContainer: IDependencyContainer);
+	    /**
+	     * @see IRpcHandler.onError
+	     */
 	    onError(handler: (err) => void): void;
 	    protected emitError(err: any): void;
 	    protected resolveActionFunc(action: string, depId: string | symbol, actFactory?: RpcActionFactory): RpcControllerFunction;
@@ -99,6 +130,10 @@ declare module 'back-lib-service-communication/dist/app/DirectRpcCaller' {
 	     */
 	    init(param?: any): void;
 	    /**
+	     * @see IRpcCaller.dispose
+	     */
+	    dispose(): Promise<void>;
+	    /**
 	     * @see IRpcCaller.call
 	     */
 	    call(moduleName: string, action: string, params?: any): Promise<rpc.IRpcResponse>;
@@ -116,37 +151,38 @@ declare module 'back-lib-service-communication/dist/app/DirectRpcHandler' {
 	}
 	export interface IDirectRpcHandler extends rpc.IRpcHandler {
 	    /**
+	     * Http ports to listen
+	     */
+	    port: number;
+	    /**
 	     * @override
 	     * @see IRpcHandler.init
 	     */
 	    init(params?: ExpressRpcHandlerInitOptions): void;
 	    /**
-	     * Starts internal Http server and listening to requests.
+	     * @override IRpcHandler.handle to return void.
 	     */
-	    start(): Promise<void>;
-	    /**
-	     * Stops internal Http server.
-	     */
-	    dispose(): Promise<void>;
+	    handle(actions: string | string[], dependencyIdentifier: string | symbol, actionFactory?: rpc.RpcActionFactory): void;
 	}
 	export class ExpressRpcHandler extends rpc.RpcHandlerBase implements IDirectRpcHandler {
-	    	    	    	    	    constructor(depContainer: IDependencyContainer);
+	    	    port: number;
+	    	    	    	    constructor(depContainer: IDependencyContainer);
 	    /**
 	     * @see IDirectRpcHandler.init
 	     */
 	    init(param?: ExpressRpcHandlerInitOptions): void;
 	    /**
-	     * @see IDirectRpcHandler.start
+	     * @see IRpcHandler.start
 	     */
 	    start(): Promise<void>;
 	    /**
-	     * @see IDirectRpcHandler.dispose
+	     * @see IRpcHandler.dispose
 	     */
 	    dispose(): Promise<void>;
 	    /**
 	     * @see IRpcHandler.handle
 	     */
-	    handle(action: string, dependencyIdentifier: string | symbol, actionFactory?: rpc.RpcActionFactory): void;
+	    handle(actions: string | string[], dependencyIdentifier: string | symbol, actionFactory?: rpc.RpcActionFactory): void;
 	    	}
 
 }
@@ -169,17 +205,43 @@ declare module 'back-lib-service-communication/dist/app/MessageBrokerConnector' 
 	    properties?: IPublishOptions;
 	}
 	export interface IPublishOptions {
-	    contentType?: string;
+	    contentType?: 'text/plain' | 'application/json';
 	    contentEncoding?: string;
 	    correlationId?: string;
 	    replyTo?: string;
 	}
 	export interface IConnectionOptions {
+	    /**
+	     * IP address or host name where message broker is located.
+	     */
 	    hostAddress: string;
+	    /**
+	     * Username to login to message broker.
+	     */
 	    username: string;
+	    /**
+	     * Password to login to message broker.
+	     */
 	    password: string;
+	    /**
+	     * Exchange name
+	     */
 	    exchange: string;
-	    queue: string;
+	    /**
+	     * Milliseconds to wait before trying to reconnect to message broker.
+	     */
+	    reconnectDelay: number;
+	    /**
+	     * The default queue name to bind.
+	     * If not specified or given falsey values (empty string, null,...), a queue with random name will be created.
+	     * IMessageBrokerConnector's implementation may allow connecting to many queues.
+	     * But each TopicMessageBrokerConnector instance connects to only one queue.
+	     */
+	    queue?: string;
+	    /**
+	     * Milliseconds to expire messages arriving in the queue.
+	     */
+	    messageExpiredIn: number;
 	}
 	export interface IMessageBrokerConnector {
 	    /**
@@ -190,6 +252,17 @@ declare module 'back-lib-service-communication/dist/app/MessageBrokerConnector' 
 	     */
 	    queue: string;
 	    /**
+	     * Gets or sets milliseconds to expire messages arriving in the queue.
+	     * Can only be changed before queue is bound.
+	     * Queue is bound on the first call to `subscribe()` method.
+	     * @throws Error if changing queue after it is bound.
+	     */
+	    messageExpiredIn: number;
+	    /**
+	     * Gets array of subscribed matching patterns.
+	     */
+	    readonly subscribedPatterns: string[];
+	    /**
 	     * Creates a connection to message broker engine.
 	     * @param {IConnectionOptions} options
 	     */
@@ -198,6 +271,30 @@ declare module 'back-lib-service-communication/dist/app/MessageBrokerConnector' 
 	     * Closes all channels and the connection.
 	     */
 	    disconnect(): Promise<void>;
+	    /**
+	     * Deletes queue.
+	     */
+	    deleteQueue(): Promise<void>;
+	    /**
+	     * Deletes all messages in queue.
+	     * Note that this won't remove messages that have been delivered but not yet acknowledged.
+	     * They will remain, and may be requeued under some circumstances
+	     * (e.g., if the channel to which they were delivered closes without acknowledging them).
+	     *
+	     * @returns Number of deleted message.
+	     */
+	    emptyQueue(): Promise<number>;
+	    /**
+	     * Starts receiving messages.
+	     * @param {function} onMessage - Callback to invoke when there is an incomming message.
+	     * @param {boolean} noAck - If true, received message is acknowledged automatically.
+	     * 	Default should be `true`.
+	     */
+	    listen(onMessage: MessageHandleFunction, noAck?: boolean): Promise<void>;
+	    /**
+	     * Stops receiving messages.
+	     */
+	    stopListen(): Promise<void>;
 	    /**
 	     * Sends `message` to the broker and label the message with `topic`.
 	     * @param {string} topic - A name to label the message with. Should be in format "xxx.yyy.zzz".
@@ -208,21 +305,23 @@ declare module 'back-lib-service-communication/dist/app/MessageBrokerConnector' 
 	    /**
 	     * Listens to messages whose label matches `matchingPattern`.
 	     * @param {string} matchingPattern - Pattern to match with message label. Should be in format "xx.*" or "xx.#.#".
-	     * @param {function} onMessage - Callback to invoke when there is an incomming message.
-	     * @return {string} - A promise with resolve to a consumer tag, which is used to unsubscribe later.
 	     */
-	    subscribe(matchingPattern: string, onMessage: MessageHandleFunction, noAck?: boolean): Promise<string>;
+	    subscribe(matchingPattern: string): Promise<void>;
 	    /**
-	     * Stops listening to a subscription that was made before.
+	     * Stops listening to a topic pattern.
 	     */
-	    unsubscribe(consumerTag: string): Promise<void>;
+	    unsubscribe(matchingPattern: string): Promise<void>;
+	    /**
+	     * Stops listening to all subscriptions.
+	     */
+	    unsubscribeAll(): Promise<void>;
 	    /**
 	     * Registers a listener to handle errors.
 	     */
 	    onError(handler: (err) => void): void;
 	}
 	export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
-	    	    	    	    	    	    	    	    	    constructor();
+	    	    	    	    	    	    	    	    	    	    	    	    	    	    constructor();
 	    /**
 	     * @see IMessageBrokerConnector.queue
 	     */
@@ -231,6 +330,17 @@ declare module 'back-lib-service-communication/dist/app/MessageBrokerConnector' 
 	     */
 	    queue: string;
 	    /**
+	     * @see IMessageBrokerConnector.messageExpiredIn
+	     */
+	    /**
+	     * @see IMessageBrokerConnector.messageExpiredIn
+	     */
+	    messageExpiredIn: number;
+	    /**
+	     * @see IMessageBrokerConnector.subscribedPatterns
+	     */
+	    readonly subscribedPatterns: string[];
+	    	    /**
 	     * @see IMessageBrokerConnector.connect
 	     */
 	    connect(options: IConnectionOptions): Promise<void>;
@@ -239,30 +349,42 @@ declare module 'back-lib-service-communication/dist/app/MessageBrokerConnector' 
 	     */
 	    disconnect(): Promise<void>;
 	    /**
-	     * @see IMessageBrokerConnector.subscribe
+	     * @see IMessageBrokerConnector.deleteQueue
 	     */
-	    subscribe(matchingPattern: string, onMessage: MessageHandleFunction, noAck?: boolean): Promise<string>;
+	    deleteQueue(): Promise<void>;
+	    /**
+	     * @see IMessageBrokerConnector.emptyQueue
+	     */
+	    emptyQueue(): Promise<number>;
+	    /**
+	     * @see IMessageBrokerConnector.listen
+	     */
+	    listen(onMessage: MessageHandleFunction, noAck?: boolean): Promise<void>;
+	    /**
+	     * @see IMessageBrokerConnector.stopListen
+	     */
+	    stopListen(): Promise<void>;
 	    /**
 	     * @see IMessageBrokerConnector.publish
 	     */
 	    publish(topic: string, payload: string | Json | JsonArray, options?: IPublishOptions): Promise<void>;
 	    /**
+	     * @see IMessageBrokerConnector.subscribe
+	     */
+	    subscribe(matchingPattern: string): Promise<void>;
+	    /**
 	     * @see IMessageBrokerConnector.unsubscribe
 	     */
-	    unsubscribe(consumerTag: string): Promise<void>;
+	    unsubscribe(matchingPattern: string): Promise<void>;
+	    /**
+	     * @see IMessageBrokerConnector.unsubscribeAll
+	     */
+	    unsubscribeAll(): Promise<void>;
 	    /**
 	     * @see IMessageBrokerConnector.onError
 	     */
 	    onError(handler: (err) => void): void;
-	    	    	    /**
-	     * If `queueName` is null, creates a queue and binds it to `matchingPattern`.
-	     * If `queueName` is not null, binds `matchingPattern` to the queue with that name.
-	     * @return {string} null if no queue is created, otherwise returns the new queue name.
-	     */
-	    	    	    	    	    /**
-	     * @return {string} the pattern name which should be unbound, othewise return null.
-	     */
-	    	    	    	}
+	    	    	    	    	    	    	    	    	    	    	    	    	    	    	}
 
 }
 declare module 'back-lib-service-communication/dist/app/MediateRpcCaller' {
@@ -277,6 +399,10 @@ declare module 'back-lib-service-communication/dist/app/MediateRpcCaller' {
 	     */
 	    init(params?: any): void;
 	    /**
+	     * @see IRpcCaller.dispose
+	     */
+	    dispose(): Promise<void>;
+	    /**
 	     * @see IRpcCaller.call
 	     */
 	    call(moduleName: string, action: string, params?: any): Promise<rpc.IRpcResponse>;
@@ -287,18 +413,42 @@ declare module 'back-lib-service-communication/dist/app/MediateRpcHandler' {
 	import { IDependencyContainer } from 'back-lib-common-util';
 	import { IMessageBrokerConnector } from 'back-lib-service-communication/dist/app/MessageBrokerConnector';
 	import * as rpc from 'back-lib-service-communication/dist/app/RpcCommon';
+	export interface IHandlerDetails {
+	    dependencyIdentifier: string | symbol;
+	    actionFactory?: rpc.RpcActionFactory;
+	}
 	export interface IMediateRpcHandler extends rpc.IRpcHandler {
+	    /**
+	     * @override IRpcHandler.handle to return Promise<void>
+	     */
+	    handle(actions: string | string[], dependencyIdentifier: string | symbol, actionFactory?: rpc.RpcActionFactory): Promise<void>;
+	    /**
+	     * Handles countAll, create, delete, find, patch, update.
+	     */
+	    handleCRUD(dependencyIdentifier: string | symbol, actionFactory?: rpc.RpcActionFactory): Promise<void>;
 	}
 	export class MessageBrokerRpcHandler extends rpc.RpcHandlerBase implements IMediateRpcHandler {
-	    	    constructor(depContainer: IDependencyContainer, _msgBrokerConn: IMessageBrokerConnector);
+	    	    	    constructor(depContainer: IDependencyContainer, _msgBrokerConn: IMessageBrokerConnector);
 	    /**
 	     * @see IRpcHandler.init
 	     */
 	    init(params?: any): void;
 	    /**
-	     * @see IRpcHandler.handle
+	     * @see IRpcHandler.start
 	     */
-	    handle(action: string, dependencyIdentifier: string | symbol, actionFactory?: rpc.RpcActionFactory): void;
+	    start(): Promise<void>;
+	    /**
+	     * @see IRpcHandler.dispose
+	     */
+	    dispose(): Promise<void>;
+	    /**
+	     * @see IMediateRpcHandler.handle
+	     */
+	    handle(actions: string | string[], dependencyIdentifier: string | symbol, actionFactory?: rpc.RpcActionFactory): Promise<void>;
+	    /**
+	     * @see IMediateRpcHandler.handleCRUD
+	     */
+	    handleCRUD(dependencyIdentifier: string | symbol, actionFactory?: rpc.RpcActionFactory): Promise<void>;
 	    	}
 
 }

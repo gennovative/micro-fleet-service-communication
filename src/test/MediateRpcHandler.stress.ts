@@ -92,28 +92,30 @@ describe.skip('MediateRpcHandler', function() {
 		let replyTo = `response.${MODULE}.${ACTION}`,
 			start, end;
 		
-		callerMbConn.subscribe(replyTo, (msg: IMessage) => {
-			let response: IRpcResponse = msg.data;
-			end = new Date().getTime();
-			console.log(`Response after ${end - start}ms`);
-		})
-		.then(() => {
-			let req: IRpcRequest = {
-				from: MODULE,
-				to: '',
-				payload: {
-					text: TEXT
-				}
-			};
+		callerMbConn.subscribe(replyTo)
+			.then(() => {
+				return handlerMbConn.listen((msg: IMessage) => {
+					let response: IRpcResponse = msg.data;
+					end = new Date().getTime();
+					console.log(`Response after ${end - start}ms`);
+				});
+			}).then(() => {
+				let req: IRpcRequest = {
+					from: MODULE,
+					to: '',
+					payload: {
+						text: TEXT
+					}
+				};
 
-			const SENDING_GAP = 100; //ms
-			setInterval(() => {
-				// Manually publish request.
-				start = new Date().getTime();
-				console.log('Request');
-				callerMbConn.publish(`request.${MODULE}.${ACTION}`, req, { correlationId: shortid.generate(), replyTo });
-			}, SENDING_GAP); // END setInterval
-		});
+				const SENDING_GAP = 100; //ms
+				setInterval(() => {
+					// Manually publish request.
+					start = new Date().getTime();
+					console.log('Request');
+					callerMbConn.publish(`request.${MODULE}.${ACTION}`, req, { correlationId: shortid.generate(), replyTo });
+				}, SENDING_GAP); // END setInterval
+			});
 
 	});
 });

@@ -15,13 +15,16 @@ const back_lib_common_util_1 = require("back-lib-common-util");
 let RpcCallerBase = class RpcCallerBase {
     constructor() {
         this._emitter = new events_1.EventEmitter();
+        this.timeout = 30000;
     }
-    get name() {
-        return this._name;
+    dispose() {
+        this._emitter.removeAllListeners();
+        this._emitter = null;
+        return Promise.resolve();
     }
-    set name(val) {
-        this._name = val;
-    }
+    /**
+     * @see IRpcCaller.onError
+     */
     onError(handler) {
         this._emitter.on('error', handler);
     }
@@ -40,12 +43,9 @@ let RpcHandlerBase = class RpcHandlerBase {
         back_lib_common_util_1.Guard.assertArgDefined('_depContainer', _depContainer);
         this._emitter = new events_1.EventEmitter();
     }
-    get name() {
-        return this._name;
-    }
-    set name(val) {
-        this._name = val;
-    }
+    /**
+     * @see IRpcHandler.onError
+     */
     onError(handler) {
         this._emitter.on('error', handler);
     }
@@ -59,7 +59,7 @@ let RpcHandlerBase = class RpcHandlerBase {
         let actionFn = instance[action];
         // If default action is not available, attempt to get action from factory.
         if (!actionFn) {
-            actionFn = (actFactory ? actFactory(instance) : null);
+            actionFn = (actFactory ? actFactory(instance, action) : null);
         }
         back_lib_common_util_1.Guard.assertIsTruthy(actionFn, 'Specified action does not exist in controller!');
         return actionFn.bind(instance);
@@ -67,7 +67,7 @@ let RpcHandlerBase = class RpcHandlerBase {
     createResponse(isSuccess, data, replyTo) {
         return {
             isSuccess,
-            from: this._name,
+            from: this.name,
             to: replyTo,
             data
         };
@@ -78,3 +78,5 @@ RpcHandlerBase = __decorate([
     __metadata("design:paramtypes", [Object])
 ], RpcHandlerBase);
 exports.RpcHandlerBase = RpcHandlerBase;
+
+//# sourceMappingURL=RpcCommon.js.map

@@ -16,7 +16,9 @@ let handlerMbConn: TopicMessageBrokerConnector,
 	callerMbConn: TopicMessageBrokerConnector,
 	caller: MessageBrokerRpcCaller;
 
-describe('MessageBrokerRpcCaller', () => {
+describe('MessageBrokerRpcCaller', function() {
+	this.timeout(10000);
+	
 	describe('init', () => {
 		it('Should do nothing', () => {
 			// Arrange
@@ -76,24 +78,20 @@ describe('MessageBrokerRpcCaller', () => {
 				callerMbConn.connect(rabbitOpts.caller)
 			])
 			.then(() => { done(); })
-			.catch(err => {
-				console.error(err);
-			});
+			.catch(console.error);
 		});
 
-		afterEach(done => {
-			console.warn('After each: Trying to diconnect from message broker!');
-			Promise.all([
+		afterEach(async function() {
+			this.timeout(5000);
+			await handlerMbConn.stopListen();
+			await Promise.all([
+				handlerMbConn.deleteQueue(),
+				caller.dispose()
+			]);
+			await Promise.all([
 				handlerMbConn.disconnect(),
 				callerMbConn.disconnect()
-			])
-			.then(() => { 
-				console.warn('After each: diconnected from message broker!');
-				done(); 
-			})
-			.catch(err => {
-				console.error(err);
-			});
+			]);
 		});
 
 		it('Should publish a topic pattern on message broker.', (done) => {
@@ -101,26 +99,29 @@ describe('MessageBrokerRpcCaller', () => {
 			const ACTION = 'echo',
 				TEXT = 'eeeechooooo';
 
+			caller.timeout = 3000;
+
 			// This is the topic that caller should make
 			let topic = `request.${HANDLER_MODULE}.${ACTION}`;
 
-			handlerMbConn.subscribe(topic, (msg: IMessage) => {
-				let request: IRpcRequest = msg.data;
-			
-				// Assert
-				expect(request).to.be.not.null;
-				expect(request.from).to.equal(CALLER_MODULE);
-				expect(request.to).to.equal(HANDLER_MODULE);
-				expect(request.payload.text).to.equal(TEXT);
-				done();
-			})
-			.then(() => {
+			handlerMbConn.subscribe(topic)
+				.then(() => handlerMbConn.listen((msg: IMessage) => {
+					let request: IRpcRequest = msg.data;
+				
+					// Assert
+					expect(request).to.be.not.null;
+					expect(request.from).to.equal(CALLER_MODULE);
+					expect(request.to).to.equal(HANDLER_MODULE);
+					expect(request.payload.text).to.equal(TEXT);
+					done();
+				}))
 				// Act
-				caller.call(HANDLER_MODULE, ACTION, { text: TEXT });
-			})
-			.catch(err => {
-				console.error(err);
-			});
+				.then(() => caller.call(HANDLER_MODULE, ACTION, { text: TEXT }))
+				.catch(err => {
+					if (err.message == 'Response waiting timeout') { return; }
+					console.error(err);
+					expect(err).not.to.exist;
+				});
 		});
 
 		it('Should publish then wait for response.', (done) => {
@@ -131,35 +132,38 @@ describe('MessageBrokerRpcCaller', () => {
 			// This is the topic that caller should make
 			let topic = `request.${HANDLER_MODULE}.${ACTION}`;
 
-			handlerMbConn.subscribe(topic, (msg: IMessage) => {
-				let request: IRpcRequest = msg.data,
-					props = msg.properties,
-					response: IRpcResponse = {
-					isSuccess: false,
-					from: request.to,
-					to: request.from,
-					data: {
-						text: TEXT
-					}
-				};
-				handlerMbConn.publish(props.replyTo, response, { correlationId: props.correlationId });
-			})
-			.then(() => {
-				// Act
-				return caller.call(HANDLER_MODULE, ACTION);
-			})
-			.then((res: IRpcResponse) => {
-				// Assert
-				expect(res).to.be.not.null;
-				expect(res.from).to.equal(HANDLER_MODULE);
-				expect(res.to).to.equal(CALLER_MODULE);
-				expect(res.data.text).to.equal(TEXT);
-				console.warn('Got and checked response!');
-				done();
-			})
-			.catch(err => {
-				console.error(err);
-			});
+			handlerMbConn.subscribe(topic)
+				.then(() => {
+					return handlerMbConn.listen((msg: IMessage) => {
+						let request: IRpcRequest = msg.data,
+							props = msg.properties,
+							response: IRpcResponse = {
+							isSuccess: false,
+							from: request.to,
+							to: request.from,
+							data: {
+								text: TEXT
+							}
+						};
+						handlerMbConn.publish(props.replyTo, response, { correlationId: props.correlationId });
+					});
+				}).then(() => {
+					// Act
+					return caller.call(HANDLER_MODULE, ACTION);
+				})
+				.then((res: IRpcResponse) => {
+					// Assert
+					expect(res).to.be.not.null;
+					expect(res.from).to.equal(HANDLER_MODULE);
+					expect(res.to).to.equal(CALLER_MODULE);
+					expect(res.data.text).to.equal(TEXT);
+					console.warn('Got and checked response!');
+					done();
+				})
+				.catch(err => {
+					console.error(err);
+					expect(err).not.to.exist;
+				});
 		});
 
 		it('Should reject if an error occurs', done => {
@@ -170,25 +174,96 @@ describe('MessageBrokerRpcCaller', () => {
 			// This is the topic that caller should make
 			let topic = `request.${HANDLER_MODULE}.${ACTION}`;
 
-			handlerMbConn.subscribe(topic, (msg: IMessage) => {
-				expect(true, 'Should NOT get any request!').to.be.false;
-			})
-			.then(() => {
-				return callerMbConn.disconnect();
-			})
-			.then(() => {
-				// Act
-				return caller.call(HANDLER_MODULE, ACTION);
-			})
-			.then((res: IRpcResponse) => {
-				expect(true, 'Should NOT get any response!').to.be.false;
-			})
-			.catch(err => {
-				// Assert
-				expect(err).to.be.not.null;
-				expect(err).to.be.instanceOf(MinorException);
-				done();
-			});
+			handlerMbConn.subscribe(topic)
+				.then(() => {
+					return handlerMbConn.listen((msg: IMessage) => {
+						expect(true, 'Should NOT get any request!').to.be.false;
+					});
+				}).then(() => {
+					return callerMbConn.disconnect();
+				})
+				.then(() => {
+					// Act
+					return caller.call(HANDLER_MODULE, ACTION);
+				})
+				.then((res: IRpcResponse) => {
+					expect(res, 'Should NOT get any response!').not.to.exist;
+				})
+				.catch(err => {
+					// Assert
+					expect(err).to.exist;
+					expect(err).to.be.instanceOf(MinorException);
+					done();
+				});
+		});
+
+		it('Should reject if request times out', function (done) {
+			// Arrange
+			const ACTION = 'echo',
+				TEXT = 'eeeechooooo',
+				CALLER_TIMEOUT = 3000, // Time to wait before cancel the request
+				HANDLER_DELAY = 3500, // Enough to make caller's request time out
+				CALLER_QUEUE_TTL = 1000 // Time to live of messages in caller's queue.
+				;
+
+			// Unit test timeout
+			this.timeout(CALLER_TIMEOUT + HANDLER_DELAY + 3000);
+
+			// This is the topic that caller should make
+			let topic = `request.${HANDLER_MODULE}.${ACTION}`;
+			callerMbConn.messageExpiredIn = CALLER_QUEUE_TTL;
+			caller.timeout = CALLER_TIMEOUT;
+
+			// Step 1: Caller sends a request, waits in CALLER_TIMEOUT millisecs,
+			// 		then stops waiting for response.
+			// Step 2: Handler waits in HANDLER_DELAY millisecs to let caller time out, then sends response.
+			// Step 3: The response stays in caller's queue for CALLER_QUEUE_TTL millisecs, then
+			// 		is deleted by broker.
+			let replyTo;
+			handlerMbConn.subscribe(topic)
+				.then(() => {
+					return handlerMbConn.listen((msg: IMessage) => {
+						expect(msg).to.exist;
+						replyTo = msg.properties.replyTo;
+						// Step 2
+						setTimeout(() => {
+							handlerMbConn.publish(
+								replyTo,
+								{ text: TEXT },
+								{
+									correlationId: msg.properties.correlationId
+								}
+							);
+						}, HANDLER_DELAY);
+						// Do nothing and let request time out!
+					});
+				})
+				.then(() => {
+					// Act
+					// Step 1
+					return caller.call(HANDLER_MODULE, ACTION);
+				})
+				.then((res: IRpcResponse) => {
+					expect(res, 'Should NOT get any response!').not.to.exist;
+				})
+				.catch(err => {
+					// Assert
+					expect(err).to.exist;
+					expect(err).to.be.instanceOf(MinorException);
+					expect(err.message).to.equal('Response waiting timeout');
+
+					// Step 3: Waits for response message to die
+					setTimeout(async () => {
+						await callerMbConn.subscribe(replyTo);
+						await callerMbConn.listen(msg => {
+							expect(msg, 'No message should be in caller queue').not.to.exist;
+						});
+
+						// Waits 1s to make sure no message is left
+						setTimeout(done, 1000);
+
+					}, CALLER_QUEUE_TTL + 500);
+				});
 		});
 
 	}); // END describe 'call'
