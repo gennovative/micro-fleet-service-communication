@@ -3,7 +3,8 @@ import * as http from 'http';
 import * as express from 'express';
 import * as bodyParser from 'body-parser';
 
-import { injectable, inject, IDependencyContainer, Guard, Exception, Types as CmT } from 'back-lib-common-util';
+import { injectable, inject, IDependencyContainer, Guard, Exception, HandlerContainer,
+	ActionFactory, HandlerDetails, Types as CmT } from 'back-lib-common-util';
 
 import * as rpc from './RpcCommon';
 
@@ -28,7 +29,7 @@ export interface IDirectRpcHandler extends rpc.IRpcHandler {
 	/**
 	 * @override IRpcHandler.handle to return void.
 	 */
-	handle(actions: string | string[], dependencyIdentifier: string | symbol, actionFactory?: rpc.RpcActionFactory): void;
+	handle(actions: string | string[], dependencyIdentifier: string | symbol, actionFactory?: ActionFactory): void;
 }
 
 @injectable()
@@ -42,20 +43,33 @@ export class ExpressRpcHandler
 			return regexp;
 		})();
 
-	public port: number;
 
 	private _server: http.Server;
 	private _app: express.Express;
 	private _router: express.Router;
+	private _port: number;
+	private _container: HandlerContainer;
 
 
 	constructor(
 		@inject(CmT.DEPENDENCY_CONTAINER) depContainer: IDependencyContainer
 	) {
 		super(depContainer);
-		this.port = 30000;
+		this._port = 30000;
+		this._container = HandlerContainer.instance;
+		this._container.dependencyContainer = depContainer;
 	}
 
+
+	public get port(): number {
+		return this._port;
+	}
+
+	public set port(val: number) {
+		if (val > 0 && val <= 65535) {
+			this._port = val;
+		}
+	}
 
 	/**
 	 * @see IDirectRpcHandler.init
@@ -81,7 +95,7 @@ export class ExpressRpcHandler
 	 */
 	public start(): Promise<void> {
 		return new Promise<void>(resolve => {
-			this._server = this._app.listen(this.port, resolve);
+			this._server = this._app.listen(this._port, resolve);
 			this._server.on('error', err => this.emitError(err));
 		});
 	}
@@ -101,60 +115,60 @@ export class ExpressRpcHandler
 	/**
 	 * @see IRpcHandler.handle
 	 */
-	public handle(actions: string | string[], dependencyIdentifier: string | symbol, actionFactory?: rpc.RpcActionFactory): void {
+	public handle(actions: string | string[], dependencyIdentifier: string | symbol, actionFactory?: ActionFactory): void {
 		Guard.assertIsDefined(this._router, '`init` method must be called first!');
 		
 		actions = Array.isArray(actions) ? actions : [actions];
 		
 		for (let a of actions) {
 			Guard.assertIsMatch(ExpressRpcHandler.URL_TESTER, a, `Route "${a}" is not URL-safe!`);
-			this._router.post(`/${a}`, this.buildHandleFunc(a, dependencyIdentifier, actionFactory));
+			this._container.register(a, dependencyIdentifier, actionFactory);
+			this._router.post(`/${a}`, this.onRequest.bind(this));
 		}
 	}
 
 
-	private buildHandleFunc(action: string, dependencyIdentifier: string | symbol, actionFactory?: rpc.RpcActionFactory): express.RequestHandler {
-		return (req: express.Request, res: express.Response) => {
-			let request: rpc.IRpcRequest = req.body;
+	private onRequest(req: express.Request, res: express.Response): void {
+		let action = req.url.match(/[^\/]+$/)[0],
+			request: rpc.IRpcRequest = req.body;
 
-			(new Promise((resolve, reject) => {
-				let actionFn = this.resolveActionFunc(action, dependencyIdentifier, actionFactory);
-				try {
-					// Execute controller's action
-					let output: any = actionFn(request.payload, resolve, reject, request);
-					if (output instanceof Promise) {
-						output.catch(reject); // Catch async exceptions.
-					}
-				} catch (err) { // Catch normal exceptions.
-					reject(err);
+		(new Promise((resolve, reject) => {
+			let actionFn = this._container.resolve(action);
+			try {
+				// Execute controller's action
+				let output: any = actionFn(request.payload, resolve, reject, request);
+				if (output instanceof Promise) {
+					output.catch(reject); // Catch async exceptions.
 				}
-			}))
-			.then(result => {
-				res.status(200).send(this.createResponse(true, result, request.from));
-			})
-			.catch(error => {
-				let errMsg = error,
-					statusCode = 200;
+			} catch (err) { // Catch normal exceptions.
+				reject(err);
+			}
+		}))
+		.then(result => {
+			res.status(200).send(this.createResponse(true, result, request.from));
+		})
+		.catch(error => {
+			let errMsg = error,
+				statusCode = 200;
 
-				// If error is an uncaught Exception/Error object, that means the action method
-				// has a problem. We should response with error status code.
-				if (error instanceof Error) {
-					// Clone to a plain object, as class Error has problem
-					// with JSON.stringify.
-					errMsg = {
-						message: error.message
-					};
-					statusCode = 500;
-				} else if (error instanceof Exception) {
-					// TODO: Should log this unexpected error.
-					statusCode = 500;
-					delete error.stack;
-				}
+			// If error is an uncaught Exception/Error object, that means the action method
+			// has a problem. We should response with error status code.
+			if (error instanceof Error) {
+				// Clone to a plain object, as class Error has problem
+				// with JSON.stringify.
+				errMsg = {
+					message: error.message
+				};
+				statusCode = 500;
+			} else if (error instanceof Exception) {
+				// TODO: Should log this unexpected error.
+				statusCode = 500;
+				delete error.stack;
+			}
 
-				// If this is a reject error, which means the action method sends this error
-				// back to caller on purpose.
-				res.status(statusCode).send(this.createResponse(false, errMsg, request.from));
-			});
-		};
+			// If this is a reject error, which means the action method sends this error
+			// back to caller on purpose.
+			res.status(statusCode).send(this.createResponse(false, errMsg, request.from));
+		});
 	}
 }

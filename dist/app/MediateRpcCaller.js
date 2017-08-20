@@ -58,7 +58,7 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
         return new Promise((resolve, reject) => {
             // There are many requests to same `requestTopic` and they listen to same `responseTopic`,
             // A request only cares about a response with same `correlationId`.
-            const correlationId = shortid.generate(), replyTo = `response.${moduleName}.${action}`, conn = this._msgBrokerConn;
+            const correlationId = shortid.generate(), replyTo = `response.${moduleName}.${action}@${correlationId}`, conn = this._msgBrokerConn;
             conn.subscribe(replyTo)
                 .then(() => {
                 let onMessage = (msg) => __awaiter(this, void 0, void 0, function* () {

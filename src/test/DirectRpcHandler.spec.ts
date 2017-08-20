@@ -423,7 +423,7 @@ describe('ExpressDirectRpcHandler', () => {
 					.catch(rawResponse => {
 						// Assert
 						expect(rawResponse.statusCode).to.equal(500);
-						expect(rawResponse.error.data.message).to.equal('Specified action does not exist in controller!');
+						expect(rawResponse.error.data.message).to.contain('does not exist in object');
 						done();
 					});
 				});

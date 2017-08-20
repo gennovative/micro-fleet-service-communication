@@ -28,7 +28,8 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
         super(depContainer);
         this._msgBrokerConn = _msgBrokerConn;
         back_lib_common_util_1.Guard.assertArgDefined('_msgBrokerConn', _msgBrokerConn);
-        this._registeredHandlers = [];
+        this._container = back_lib_common_util_1.HandlerContainer.instance;
+        this._container.dependencyContainer = depContainer;
     }
     /**
      * @see IRpcHandler.init
@@ -57,12 +58,10 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
      */
     handle(actions, dependencyIdentifier, actionFactory) {
         return __awaiter(this, void 0, void 0, function* () {
-            back_lib_common_util_1.Guard.assertArgDefined('action', actions);
-            back_lib_common_util_1.Guard.assertArgDefined('dependencyIdentifier', dependencyIdentifier);
             back_lib_common_util_1.Guard.assertIsDefined(this.name, '`name` property is required.');
             actions = Array.isArray(actions) ? actions : [actions];
             return Promise.all(actions.map(a => {
-                this._registeredHandlers[a] = { dependencyIdentifier, actionFactory };
+                this._container.register(a, dependencyIdentifier, actionFactory);
                 return this._msgBrokerConn.subscribe(`request.${this.name}.${a}`);
             }));
         });
@@ -74,10 +73,9 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
         return this.handle(['countAll', 'create', 'delete', 'find', 'patch', 'update'], dependencyIdentifier, actionFactory);
     }
     onMessage(msg) {
-        let action = msg.raw.fields.routingKey.match(/[^\.]+$/)[0], handlerDetails = this._registeredHandlers[action];
-        let request = msg.data, replyTo = msg.properties.replyTo, correlationId = msg.properties.correlationId;
+        let action = msg.raw.fields.routingKey.match(/[^\.]+$/)[0], request = msg.data, correlationId = msg.properties.correlationId, replyTo = msg.properties.replyTo;
         (new Promise((resolve, reject) => {
-            let actionFn = this.resolveActionFunc(action, handlerDetails.dependencyIdentifier, handlerDetails.actionFactory);
+            let actionFn = this._container.resolve(action);
             try {
                 // Execute controller's action
                 let output = actionFn(request.payload, resolve, reject, request);

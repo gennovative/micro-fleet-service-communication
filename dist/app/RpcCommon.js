@@ -15,7 +15,21 @@ const back_lib_common_util_1 = require("back-lib-common-util");
 let RpcCallerBase = class RpcCallerBase {
     constructor() {
         this._emitter = new events_1.EventEmitter();
-        this.timeout = 30000;
+        this._timeout = 30000;
+    }
+    /**
+     * @see IRpcCaller.timeout
+     */
+    get timeout() {
+        return this._timeout;
+    }
+    /**
+     * @see IRpcCaller.timeout
+     */
+    set timeout(val) {
+        if (val >= 1000 && val <= 60000) {
+            this._timeout = val;
+        }
     }
     dispose() {
         this._emitter.removeAllListeners();
@@ -52,18 +66,18 @@ let RpcHandlerBase = class RpcHandlerBase {
     emitError(err) {
         this._emitter.emit('error', err);
     }
-    resolveActionFunc(action, depId, actFactory) {
-        // Attempt to resolve controller instance
-        let instance = this._depContainer.resolve(depId);
-        back_lib_common_util_1.Guard.assertIsDefined(instance, `Cannot resolve dependency ${depId.toString()}!`);
-        let actionFn = instance[action];
-        // If default action is not available, attempt to get action from factory.
-        if (!actionFn) {
-            actionFn = (actFactory ? actFactory(instance, action) : null);
-        }
-        back_lib_common_util_1.Guard.assertIsTruthy(actionFn, 'Specified action does not exist in controller!');
-        return actionFn.bind(instance);
-    }
+    // protected resolveActionFunc(action: string, depId: string | symbol, actFactory?: ActionFactory): RpcControllerFunction {
+    // 	// Attempt to resolve controller instance
+    // 	let instance = this._depContainer.resolve<any>(depId);
+    // 	Guard.assertIsDefined(instance, `Cannot resolve dependency ${depId.toString()}!`);
+    // 	let actionFn = instance[action];
+    // 	// If default action is not available, attempt to get action from factory.
+    // 	if (!actionFn) {
+    // 		actionFn = (actFactory ? actFactory(instance, action) : null);
+    // 	}
+    // 	Guard.assertIsTruthy(actionFn, 'Specified action does not exist in controller!');
+    // 	return actionFn.bind(instance);
+    // }
     createResponse(isSuccess, data, replyTo) {
         return {
             isSuccess,

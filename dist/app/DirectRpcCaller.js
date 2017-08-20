@@ -61,7 +61,8 @@ let HttpRpcCaller = class HttpRpcCaller extends rpc.RpcCallerBase {
             method: 'POST',
             uri: `http://${this._baseAddress}/${moduleName}/${action}`,
             body: request,
-            json: true // Automatically stringifies the body to JSON
+            json: true,
+            timeout: this.timeout
         };
         return this._requestMaker(options)
             .catch(rawResponse => Promise.reject(rawResponse.error));

@@ -47,7 +47,7 @@ export interface IConnectionOptions {
 	/**
 	 * Milliseconds to wait before trying to reconnect to message broker.
 	 */
-	reconnectDelay: number;
+	reconnectDelay?: number;
 
 	/**
 	 * The default queue name to bind.
@@ -60,7 +60,7 @@ export interface IConnectionOptions {
 	/**
 	 * Milliseconds to expire messages arriving in the queue.
 	 */
-	messageExpiredIn: number;
+	messageExpiredIn?: number;
 }
 
 export interface IMessageBrokerConnector {

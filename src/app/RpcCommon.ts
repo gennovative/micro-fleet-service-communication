@@ -1,4 +1,5 @@
 import { EventEmitter } from 'events';
+import { ActionFactory } from 'back-lib-common-util';
 
 import * as express from 'express-serve-static-core';
 import { injectable, IDependencyContainer, Guard, CriticalException } from 'back-lib-common-util';
@@ -27,7 +28,8 @@ export interface IRpcCaller {
 	name: string;
 
 	/**
-	 * Number of seconds to wait for response before cancelling the request.
+	 * Number of milliseconds to wait for response before cancelling the request.
+	 * Must be between (inclusive) 1000 and 60000 (Min: 1s, Max: 60s).
 	 */
 	timeout: number;
 
@@ -58,7 +60,6 @@ export interface IRpcCaller {
 
 
 export type RpcControllerFunction = (requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest) => any;
-export type RpcActionFactory = (controller, action: string) => RpcControllerFunction;
 
 export interface IRpcHandler {
 	/**
@@ -77,7 +78,7 @@ export interface IRpcHandler {
 	 * calls instance's `action` method. If `customAction` is specified, 
 	 * calls instance's `customAction` instead.
 	 */
-	handle(action: string | string[], dependencyIdentifier: string | symbol, actionFactory?: RpcActionFactory): any;
+	handle(action: string | string[], dependencyIdentifier: string | symbol, actionFactory?: ActionFactory): any;
 
 	/**
 	 * Registers a listener to handle errors.
@@ -106,19 +107,33 @@ export abstract class RpcCallerBase {
 	 */
 	public name: string;
 
-	/**
-	 * @see IRpcCaller.timeout
-	 */
-	public timeout: number;
+	private _timeout: number;
 
 	protected _emitter: EventEmitter;
 
 
 	constructor() {
 		this._emitter = new EventEmitter();
-		this.timeout = 30000;
+		this._timeout = 30000;
 	}
 	
+
+	/**
+	 * @see IRpcCaller.timeout
+	 */
+	public get timeout(): number {
+		return this._timeout;
+	}
+
+	/**
+	 * @see IRpcCaller.timeout
+	 */
+	public set timeout(val: number) {
+		if (val >= 1000 && val <= 60000) {
+			this._timeout = val;
+		}
+	}
+
 	public dispose(): Promise<void> {
 		this._emitter.removeAllListeners();
 		this._emitter = null;
@@ -165,23 +180,6 @@ export abstract class RpcHandlerBase {
 
 	protected emitError(err): void {
 		this._emitter.emit('error', err);
-	}
-
-	protected resolveActionFunc(action: string, depId: string | symbol, actFactory?: RpcActionFactory): RpcControllerFunction {
-		// Attempt to resolve controller instance
-		let instance = this._depContainer.resolve<any>(depId);
-		Guard.assertIsDefined(instance, `Cannot resolve dependency ${depId.toString()}!`);
-
-		let actionFn = instance[action];
-		
-		// If default action is not available, attempt to get action from factory.
-		if (!actionFn) {
-			actionFn = (actFactory ? actFactory(instance, action) : null);
-		}
-
-		Guard.assertIsTruthy(actionFn, 'Specified action does not exist in controller!');
-
-		return actionFn.bind(instance);
 	}
 
 	protected createResponse(isSuccess, data, replyTo: string): IRpcResponse {
