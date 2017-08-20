@@ -19,7 +19,17 @@ const rpc = require("./RpcCommon");
 let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rpc.RpcHandlerBase {
     constructor(depContainer) {
         super(depContainer);
-        this.port = 30000;
+        this._port = 30000;
+        this._container = back_lib_common_util_1.HandlerContainer.instance;
+        this._container.dependencyContainer = depContainer;
+    }
+    get port() {
+        return this._port;
+    }
+    set port(val) {
+        if (val > 0 && val <= 65535) {
+            this._port = val;
+        }
     }
     /**
      * @see IDirectRpcHandler.init
@@ -41,7 +51,7 @@ let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rp
      */
     start() {
         return new Promise(resolve => {
-            this._server = this._app.listen(this.port, resolve);
+            this._server = this._app.listen(this._port, resolve);
             this._server.on('error', err => this.emitError(err));
         });
     }
@@ -64,50 +74,49 @@ let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rp
         actions = Array.isArray(actions) ? actions : [actions];
         for (let a of actions) {
             back_lib_common_util_1.Guard.assertIsMatch(ExpressRpcHandler_1.URL_TESTER, a, `Route "${a}" is not URL-safe!`);
-            this._router.post(`/${a}`, this.buildHandleFunc(a, dependencyIdentifier, actionFactory));
+            this._container.register(a, dependencyIdentifier, actionFactory);
+            this._router.post(`/${a}`, this.onRequest.bind(this));
         }
     }
-    buildHandleFunc(action, dependencyIdentifier, actionFactory) {
-        return (req, res) => {
-            let request = req.body;
-            (new Promise((resolve, reject) => {
-                let actionFn = this.resolveActionFunc(action, dependencyIdentifier, actionFactory);
-                try {
-                    // Execute controller's action
-                    let output = actionFn(request.payload, resolve, reject, request);
-                    if (output instanceof Promise) {
-                        output.catch(reject); // Catch async exceptions.
-                    }
+    onRequest(req, res) {
+        let action = req.url.match(/[^\/]+$/)[0], request = req.body;
+        (new Promise((resolve, reject) => {
+            let actionFn = this._container.resolve(action);
+            try {
+                // Execute controller's action
+                let output = actionFn(request.payload, resolve, reject, request);
+                if (output instanceof Promise) {
+                    output.catch(reject); // Catch async exceptions.
                 }
-                catch (err) {
-                    reject(err);
-                }
-            }))
-                .then(result => {
-                res.status(200).send(this.createResponse(true, result, request.from));
-            })
-                .catch(error => {
-                let errMsg = error, statusCode = 200;
-                // If error is an uncaught Exception/Error object, that means the action method
-                // has a problem. We should response with error status code.
-                if (error instanceof Error) {
-                    // Clone to a plain object, as class Error has problem
-                    // with JSON.stringify.
-                    errMsg = {
-                        message: error.message
-                    };
-                    statusCode = 500;
-                }
-                else if (error instanceof back_lib_common_util_1.Exception) {
-                    // TODO: Should log this unexpected error.
-                    statusCode = 500;
-                    delete error.stack;
-                }
-                // If this is a reject error, which means the action method sends this error
-                // back to caller on purpose.
-                res.status(statusCode).send(this.createResponse(false, errMsg, request.from));
-            });
-        };
+            }
+            catch (err) {
+                reject(err);
+            }
+        }))
+            .then(result => {
+            res.status(200).send(this.createResponse(true, result, request.from));
+        })
+            .catch(error => {
+            let errMsg = error, statusCode = 200;
+            // If error is an uncaught Exception/Error object, that means the action method
+            // has a problem. We should response with error status code.
+            if (error instanceof Error) {
+                // Clone to a plain object, as class Error has problem
+                // with JSON.stringify.
+                errMsg = {
+                    message: error.message
+                };
+                statusCode = 500;
+            }
+            else if (error instanceof back_lib_common_util_1.Exception) {
+                // TODO: Should log this unexpected error.
+                statusCode = 500;
+                delete error.stack;
+            }
+            // If this is a reject error, which means the action method sends this error
+            // back to caller on purpose.
+            res.status(statusCode).send(this.createResponse(false, errMsg, request.from));
+        });
     }
 };
 ExpressRpcHandler.URL_TESTER = (function () {

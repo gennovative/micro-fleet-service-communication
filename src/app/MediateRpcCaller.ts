@@ -54,7 +54,7 @@ export class MessageBrokerRpcCaller
 			// There are many requests to same `requestTopic` and they listen to same `responseTopic`,
 			// A request only cares about a response with same `correlationId`.
 			const correlationId = shortid.generate(),
-				replyTo = `response.${moduleName}.${action}`,
+				replyTo = `response.${moduleName}.${action}@${correlationId}`,
 				conn = this._msgBrokerConn;
 
 			conn.subscribe(replyTo)

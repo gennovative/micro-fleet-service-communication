@@ -3,6 +3,7 @@
 declare module 'back-lib-service-communication/dist/app/RpcCommon' {
 	/// <reference types="node" />
 	import { EventEmitter } from 'events';
+	import { ActionFactory } from 'back-lib-common-util';
 	import { IDependencyContainer } from 'back-lib-common-util';
 	export interface IRpcRequest extends Json {
 	    from: string;
@@ -21,7 +22,8 @@ declare module 'back-lib-service-communication/dist/app/RpcCommon' {
 	     */
 	    name: string;
 	    /**
-	     * Number of seconds to wait for response before cancelling the request.
+	     * Number of milliseconds to wait for response before cancelling the request.
+	     * Must be between (inclusive) 1000 and 60000 (Min: 1s, Max: 60s).
 	     */
 	    timeout: number;
 	    /**
@@ -46,7 +48,6 @@ declare module 'back-lib-service-communication/dist/app/RpcCommon' {
 	    onError(handler: (err) => void): void;
 	}
 	export type RpcControllerFunction = (requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest) => any;
-	export type RpcActionFactory = (controller, action: string) => RpcControllerFunction;
 	export interface IRpcHandler {
 	    /**
 	     * A name used in "from" and "to" request property.
@@ -62,7 +63,7 @@ declare module 'back-lib-service-communication/dist/app/RpcCommon' {
 	     * calls instance's `action` method. If `customAction` is specified,
 	     * calls instance's `customAction` instead.
 	     */
-	    handle(action: string | string[], dependencyIdentifier: string | symbol, actionFactory?: RpcActionFactory): any;
+	    handle(action: string | string[], dependencyIdentifier: string | symbol, actionFactory?: ActionFactory): any;
 	    /**
 	     * Registers a listener to handle errors.
 	     */
@@ -81,12 +82,15 @@ declare module 'back-lib-service-communication/dist/app/RpcCommon' {
 	     * @see IRpcCaller.name
 	     */
 	    name: string;
+	    	    protected _emitter: EventEmitter;
+	    constructor();
+	    /**
+	     * @see IRpcCaller.timeout
+	     */
 	    /**
 	     * @see IRpcCaller.timeout
 	     */
 	    timeout: number;
-	    protected _emitter: EventEmitter;
-	    constructor();
 	    dispose(): Promise<void>;
 	    /**
 	     * @see IRpcCaller.onError
@@ -107,7 +111,6 @@ declare module 'back-lib-service-communication/dist/app/RpcCommon' {
 	     */
 	    onError(handler: (err) => void): void;
 	    protected emitError(err: any): void;
-	    protected resolveActionFunc(action: string, depId: string | symbol, actFactory?: RpcActionFactory): RpcControllerFunction;
 	    protected createResponse(isSuccess: any, data: any, replyTo: string): IRpcResponse;
 	}
 
@@ -143,7 +146,7 @@ declare module 'back-lib-service-communication/dist/app/DirectRpcCaller' {
 declare module 'back-lib-service-communication/dist/app/DirectRpcHandler' {
 	/// <reference types="express" />
 	import * as express from 'express';
-	import { IDependencyContainer } from 'back-lib-common-util';
+	import { IDependencyContainer, ActionFactory } from 'back-lib-common-util';
 	import * as rpc from 'back-lib-service-communication/dist/app/RpcCommon';
 	export interface ExpressRpcHandlerInitOptions {
 	    expressApp: express.Express;
@@ -162,11 +165,11 @@ declare module 'back-lib-service-communication/dist/app/DirectRpcHandler' {
 	    /**
 	     * @override IRpcHandler.handle to return void.
 	     */
-	    handle(actions: string | string[], dependencyIdentifier: string | symbol, actionFactory?: rpc.RpcActionFactory): void;
+	    handle(actions: string | string[], dependencyIdentifier: string | symbol, actionFactory?: ActionFactory): void;
 	}
 	export class ExpressRpcHandler extends rpc.RpcHandlerBase implements IDirectRpcHandler {
-	    	    port: number;
-	    	    	    	    constructor(depContainer: IDependencyContainer);
+	    	    	    	    	    	    	    constructor(depContainer: IDependencyContainer);
+	    port: number;
 	    /**
 	     * @see IDirectRpcHandler.init
 	     */
@@ -182,7 +185,7 @@ declare module 'back-lib-service-communication/dist/app/DirectRpcHandler' {
 	    /**
 	     * @see IRpcHandler.handle
 	     */
-	    handle(actions: string | string[], dependencyIdentifier: string | symbol, actionFactory?: rpc.RpcActionFactory): void;
+	    handle(actions: string | string[], dependencyIdentifier: string | symbol, actionFactory?: ActionFactory): void;
 	    	}
 
 }
@@ -230,7 +233,7 @@ declare module 'back-lib-service-communication/dist/app/MessageBrokerConnector' 
 	    /**
 	     * Milliseconds to wait before trying to reconnect to message broker.
 	     */
-	    reconnectDelay: number;
+	    reconnectDelay?: number;
 	    /**
 	     * The default queue name to bind.
 	     * If not specified or given falsey values (empty string, null,...), a queue with random name will be created.
@@ -241,7 +244,7 @@ declare module 'back-lib-service-communication/dist/app/MessageBrokerConnector' 
 	    /**
 	     * Milliseconds to expire messages arriving in the queue.
 	     */
-	    messageExpiredIn: number;
+	    messageExpiredIn?: number;
 	}
 	export interface IMessageBrokerConnector {
 	    /**
@@ -410,22 +413,18 @@ declare module 'back-lib-service-communication/dist/app/MediateRpcCaller' {
 
 }
 declare module 'back-lib-service-communication/dist/app/MediateRpcHandler' {
-	import { IDependencyContainer } from 'back-lib-common-util';
+	import { IDependencyContainer, ActionFactory } from 'back-lib-common-util';
 	import { IMessageBrokerConnector } from 'back-lib-service-communication/dist/app/MessageBrokerConnector';
 	import * as rpc from 'back-lib-service-communication/dist/app/RpcCommon';
-	export interface IHandlerDetails {
-	    dependencyIdentifier: string | symbol;
-	    actionFactory?: rpc.RpcActionFactory;
-	}
 	export interface IMediateRpcHandler extends rpc.IRpcHandler {
 	    /**
 	     * @override IRpcHandler.handle to return Promise<void>
 	     */
-	    handle(actions: string | string[], dependencyIdentifier: string | symbol, actionFactory?: rpc.RpcActionFactory): Promise<void>;
+	    handle(actions: string | string[], dependencyIdentifier: string | symbol, actionFactory?: ActionFactory): Promise<void>;
 	    /**
 	     * Handles countAll, create, delete, find, patch, update.
 	     */
-	    handleCRUD(dependencyIdentifier: string | symbol, actionFactory?: rpc.RpcActionFactory): Promise<void>;
+	    handleCRUD(dependencyIdentifier: string | symbol, actionFactory?: ActionFactory): Promise<void>;
 	}
 	export class MessageBrokerRpcHandler extends rpc.RpcHandlerBase implements IMediateRpcHandler {
 	    	    	    constructor(depContainer: IDependencyContainer, _msgBrokerConn: IMessageBrokerConnector);
@@ -444,11 +443,11 @@ declare module 'back-lib-service-communication/dist/app/MediateRpcHandler' {
 	    /**
 	     * @see IMediateRpcHandler.handle
 	     */
-	    handle(actions: string | string[], dependencyIdentifier: string | symbol, actionFactory?: rpc.RpcActionFactory): Promise<void>;
+	    handle(actions: string | string[], dependencyIdentifier: string | symbol, actionFactory?: ActionFactory): Promise<void>;
 	    /**
 	     * @see IMediateRpcHandler.handleCRUD
 	     */
-	    handleCRUD(dependencyIdentifier: string | symbol, actionFactory?: rpc.RpcActionFactory): Promise<void>;
+	    handleCRUD(dependencyIdentifier: string | symbol, actionFactory?: ActionFactory): Promise<void>;
 	    	}
 
 }

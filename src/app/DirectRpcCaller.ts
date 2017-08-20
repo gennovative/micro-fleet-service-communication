@@ -69,7 +69,8 @@ export class HttpRpcCaller
 				method: 'POST',
 				uri: `http://${this._baseAddress}/${moduleName}/${action}`,
 				body: request,
-				json: true // Automatically stringifies the body to JSON
+				json: true, // Automatically stringifies the body to JSON
+				timeout: this.timeout
 			};
 
 		return this._requestMaker(options)
