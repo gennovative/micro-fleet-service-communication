@@ -217,6 +217,7 @@ declare module 'back-lib-service-communication/dist/app/DirectRpcHandlerAddOnBas
 }
 declare module 'back-lib-service-communication/dist/app/Types' {
 	export class Types {
+	    static readonly BROKER_ADDON: symbol;
 	    static readonly DIRECT_RPC_CALLER: symbol;
 	    static readonly DIRECT_RPC_HANDLER: symbol;
 	    static readonly MEDIATE_RPC_CALLER: symbol;
