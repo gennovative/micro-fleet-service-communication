@@ -1,7 +1,7 @@
 {
   "name": "back-lib-service-communication",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Provides methods for microservices to communicate with each other.",
   "main": "./dist/app/index.js",
   "types": "./typings/app.d.ts",
@@ -12,7 +12,9 @@
   },
   "dependencies": {
     "amqplib": "^0.5.1",
-    "back-lib-common-util": "git+ssh://git@bitbucket.org:firstinteractive/back-lib-common-util.git#1.0.0",
+    "back-lib-common-constants": "git+ssh://git@bitbucket.org:firstinteractive/back-lib-common-constants.git#1.0.0",
+    "back-lib-common-contracts": "git+ssh://git@bitbucket.org/firstinteractive/back-lib-common-contracts.git#1.1.0",
+    "back-lib-common-util": "git+ssh://git@bitbucket.org:firstinteractive/back-lib-common-util.git#1.1.0",
     "body-parser": "^1.17.2",
     "express": "^4.15.3",
     "lodash": "^4.17.4",

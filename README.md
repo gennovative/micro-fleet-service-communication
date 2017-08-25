@@ -20,6 +20,11 @@ See more examples and usage guide in unit test.
 ---
 ## VERSIONS
 
+### 0.2.0
+- Moved **MessageBrokerAddOn**, **DirectRpcHandlerAddOnBase** and **MediateRpcHandlerAddOnBase** from `back-lib-foundation`.
+- RPC Handlers take module name as their names, instead of service slug.
+- Test coverage: 85%
+
 ### 0.1.0
 - *HttpRpcCaller*: Makes direct RPC calls via HTTP to an *ExpressRpcHandler* endpoint.
 - *ExpressRpcHandler*: Listens and handles requests from *HttpRpcCaller*.

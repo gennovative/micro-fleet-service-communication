@@ -189,6 +189,32 @@ declare module 'back-lib-service-communication/dist/app/DirectRpcHandler' {
 	    	}
 
 }
+declare module 'back-lib-service-communication/dist/app/DirectRpcHandlerAddOnBase' {
+	import { IConfigurationProvider } from 'back-lib-common-contracts';
+	import { IDirectRpcHandler } from 'back-lib-service-communication/dist/app/DirectRpcHandler';
+	/**
+	 * Base class for DirectRpcAddOn.
+	 */
+	export abstract class DirectRpcHandlerAddOnBase implements IServiceAddOn {
+	    protected _configProvider: IConfigurationProvider;
+	    protected _rpcHandler: IDirectRpcHandler;
+	    constructor(_configProvider: IConfigurationProvider, _rpcHandler: IDirectRpcHandler);
+	    /**
+	     * @see IServiceAddOn.init
+	     */
+	    init(moduleName?: string): Promise<void>;
+	    /**
+	     * @see IServiceAddOn.deadLetter
+	     */
+	    deadLetter(): Promise<void>;
+	    /**
+	     * @see IServiceAddOn.dispose
+	     */
+	    dispose(): Promise<void>;
+	    protected handleRequests(): void;
+	}
+
+}
 declare module 'back-lib-service-communication/dist/app/Types' {
 	export class Types {
 	    static readonly DIRECT_RPC_CALLER: symbol;
@@ -451,12 +477,62 @@ declare module 'back-lib-service-communication/dist/app/MediateRpcHandler' {
 	    	}
 
 }
+declare module 'back-lib-service-communication/dist/app/MediateRpcHandlerAddOnBase' {
+	import { IConfigurationProvider } from 'back-lib-common-contracts';
+	import { IMediateRpcHandler } from 'back-lib-service-communication/dist/app/MediateRpcHandler';
+	/**
+	 * Base class for MediateRpcAddOn.
+	 */
+	export abstract class MediateRpcHandlerAddOnBase implements IServiceAddOn {
+	    protected _configProvider: IConfigurationProvider;
+	    protected _rpcHandler: IMediateRpcHandler;
+	    protected abstract controllerIdentifier: string | symbol;
+	    constructor(_configProvider: IConfigurationProvider, _rpcHandler: IMediateRpcHandler);
+	    /**
+	     * @see IServiceAddOn.init
+	     */
+	    init(moduleName?: string): Promise<void>;
+	    /**
+	     * @see IServiceAddOn.deadLetter
+	     */
+	    deadLetter(): Promise<void>;
+	    /**
+	     * @see IServiceAddOn.dispose
+	     */
+	    dispose(): Promise<void>;
+	    protected handleRequests(): void;
+	}
+
+}
+declare module 'back-lib-service-communication/dist/app/MessageBrokerAddOn' {
+	import { IConfigurationProvider } from 'back-lib-common-contracts';
+	import { IMessageBrokerConnector } from 'back-lib-service-communication/dist/app/MessageBrokerConnector';
+	export class MessageBrokerAddOn implements IServiceAddOn {
+	    	    	    constructor(_configProvider: IConfigurationProvider, _msgBrokerCnn: IMessageBrokerConnector);
+	    /**
+	     * @see IServiceAddOn.init
+	     */
+	    init(): Promise<void>;
+	    /**
+	     * @see IServiceAddOn.deadLetter
+	     */
+	    deadLetter(): Promise<void>;
+	    /**
+	     * @see IServiceAddOn.dispose
+	     */
+	    dispose(): Promise<void>;
+	}
+
+}
 declare module 'back-lib-service-communication' {
 	export * from 'back-lib-service-communication/dist/app/RpcCommon';
 	export * from 'back-lib-service-communication/dist/app/DirectRpcCaller';
 	export * from 'back-lib-service-communication/dist/app/DirectRpcHandler';
+	export * from 'back-lib-service-communication/dist/app/DirectRpcHandlerAddOnBase';
 	export * from 'back-lib-service-communication/dist/app/MediateRpcCaller';
 	export * from 'back-lib-service-communication/dist/app/MediateRpcHandler';
+	export * from 'back-lib-service-communication/dist/app/MediateRpcHandlerAddOnBase';
+	export * from 'back-lib-service-communication/dist/app/MessageBrokerAddOn';
 	export * from 'back-lib-service-communication/dist/app/MessageBrokerConnector';
 	export * from 'back-lib-service-communication/dist/app/Types';
 
