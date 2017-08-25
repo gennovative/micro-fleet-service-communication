@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 class Types {
 }
+Types.BROKER_ADDON = Symbol('MessageBrokerAddOn');
 Types.DIRECT_RPC_CALLER = Symbol('IDirectRpcCaller');
 Types.DIRECT_RPC_HANDLER = Symbol('IDirectRpcHandler');
 Types.MEDIATE_RPC_CALLER = Symbol('IMediateRpcCaller');
