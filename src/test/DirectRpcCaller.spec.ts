@@ -73,7 +73,7 @@ describe('HttpRpcCaller', () => {
 					isSuccess: true,
 					from: HANDLER_NAME,
 					to: CALLER_NAME,
-					data: {
+					payload: {
 						text: TEXT_RESPONSE
 					}
 				});
@@ -86,7 +86,7 @@ describe('HttpRpcCaller', () => {
 				.then((res: IRpcResponse) => {
 					// Assert
 					expect(res).to.exist;
-					expect(res.data.text).to.equal(TEXT_RESPONSE);
+					expect(res.payload.text).to.equal(TEXT_RESPONSE);
 					done();
 				})
 				.catch(err => {
@@ -100,7 +100,6 @@ describe('HttpRpcCaller', () => {
 			caller.name = CALLER_NAME;
 			caller.baseAddress = HANDLER_ADDR;
 
-			// DirectRpcCaller.spec.js
 			caller.call(HANDLER_NAME, ACTION, {
 				msg: TEXT_REQUEST
 			})
@@ -110,7 +109,7 @@ describe('HttpRpcCaller', () => {
 			})
 			.catch((err: Error) => {
 				expect(err).to.exist;
-				expect(err).to.be.a('Error');
+				expect(err).to.be.instanceOf(MinorException);
 				expect(err.message).to.include('ECONNREFUSED');
 				done();
 			});

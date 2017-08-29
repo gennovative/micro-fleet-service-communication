@@ -59,10 +59,11 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
     handle(actions, dependencyIdentifier, actionFactory) {
         return __awaiter(this, void 0, void 0, function* () {
             back_lib_common_util_1.Guard.assertIsDefined(this.name, '`name` property is required.');
+            back_lib_common_util_1.Guard.assertIsDefined(this.module, '`module` property is required.');
             actions = Array.isArray(actions) ? actions : [actions];
             return Promise.all(actions.map(a => {
                 this._container.register(a, dependencyIdentifier, actionFactory);
-                return this._msgBrokerConn.subscribe(`request.${this.name}.${a}`);
+                return this._msgBrokerConn.subscribe(`request.${this.module}.${a}`);
             }));
         });
     }
@@ -92,25 +93,11 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
             return this._msgBrokerConn.publish(replyTo, this.createResponse(true, result, request.from), { correlationId });
         })
             .catch(error => {
-            let errMsg = error;
-            // If error is an uncaught Exception/Error object, that means the action method
-            // has a problem. We should nack to tell message broker to send this message to someone else.
-            if (error instanceof Error) {
-                // Clone to a plain object, as class Error has problem
-                // with JSON.stringify.
-                errMsg = {
-                    message: error.message
-                };
-            }
-            else if (error instanceof back_lib_common_util_1.Exception) {
-                // TODO: Should log this unexpected error.
-                delete error.stack;
-                // nack(); // Disable this, because we use auto-ack.
-            }
-            // If this is a custom error, which means the action method sends this error
-            // back to caller on purpose.
-            return this._msgBrokerConn.publish(replyTo, this.createResponse(false, errMsg, request.from), { correlationId });
-        });
+            let errObj = this.createError(error);
+            // nack(); // Disable this, because we use auto-ack.
+            return this._msgBrokerConn.publish(replyTo, this.createResponse(false, errObj, request.from), { correlationId });
+        })
+            .catch(this.emitError.bind(this));
     }
 };
 MessageBrokerRpcHandler = __decorate([

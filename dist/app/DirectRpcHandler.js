@@ -37,6 +37,7 @@ let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rp
     init(param) {
         back_lib_common_util_1.Guard.assertIsFalsey(this._router, 'This RPC Caller is already initialized!');
         back_lib_common_util_1.Guard.assertIsTruthy(this.name, '`name` property must be set!');
+        back_lib_common_util_1.Guard.assertIsTruthy(this.module, '`module` property must be set!');
         let app;
         app = this._app = (param && param.expressApp)
             ? param.expressApp
@@ -44,7 +45,7 @@ let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rp
         this._router = (param && param.expressRouter) ? param.expressRouter : express.Router();
         //app.use(bodyParser.urlencoded({extended: true})); // Parse Form values in POST request, but I don't think we need it in this case.
         app.use(bodyParser.json()); // Parse JSON in POST request
-        app.use(`/${this.name}`, this._router);
+        app.use(`/${this.module}`, this._router);
     }
     /**
      * @see IRpcHandler.start
@@ -97,26 +98,10 @@ let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rp
             res.status(200).send(this.createResponse(true, result, request.from));
         })
             .catch(error => {
-            let errMsg = error, statusCode = 200;
-            // If error is an uncaught Exception/Error object, that means the action method
-            // has a problem. We should response with error status code.
-            if (error instanceof Error) {
-                // Clone to a plain object, as class Error has problem
-                // with JSON.stringify.
-                errMsg = {
-                    message: error.message
-                };
-                statusCode = 500;
-            }
-            else if (error instanceof back_lib_common_util_1.Exception) {
-                // TODO: Should log this unexpected error.
-                statusCode = 500;
-                delete error.stack;
-            }
-            // If this is a reject error, which means the action method sends this error
-            // back to caller on purpose.
-            res.status(statusCode).send(this.createResponse(false, errMsg, request.from));
-        });
+            let statusCode = 500, errObj = this.createError(error);
+            res.status(statusCode).send(this.createResponse(false, errObj, request.from));
+        })
+            .catch(this.emitError.bind(this));
     }
 };
 ExpressRpcHandler.URL_TESTER = (function () {

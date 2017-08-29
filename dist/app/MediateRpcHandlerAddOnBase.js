@@ -9,6 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const back_lib_common_constants_1 = require("back-lib-common-constants");
 const back_lib_common_util_1 = require("back-lib-common-util");
 /**
  * Base class for MediateRpcAddOn.
@@ -24,7 +25,8 @@ let MediateRpcHandlerAddOnBase = class MediateRpcHandlerAddOnBase {
      * @see IServiceAddOn.init
      */
     init(moduleName = null) {
-        this._rpcHandler.name = moduleName;
+        this._rpcHandler.module = moduleName;
+        this._rpcHandler.name = this._configProvider.get(back_lib_common_constants_1.SvcSettingKeys.SERVICE_SLUG);
         this._rpcHandler.init();
         this.handleRequests();
         return this._rpcHandler.start();

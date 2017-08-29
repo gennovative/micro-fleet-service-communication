@@ -59,24 +59,29 @@ export class MessageBrokerRpcCaller
 
 			conn.subscribe(replyTo)
 				.then(() => {
+					let token;
 					let onMessage = async (msg: IMessage) => {
+						clearTimeout(token);
 						// We got what we want, stop consuming.
 						await conn.unsubscribe(replyTo);
 						await conn.stopListen();
-						resolve(<rpc.IRpcResponse>msg.data);
+
+						let response: rpc.IRpcResponse = msg.data;
+						if (response.isSuccess) {
+							resolve(response);
+						} else {
+							reject(this.rebuildError(response.payload));
+						}
 					};
 
 					// In case this request never has response.
-					let token = setTimeout(() => {
+					token = setTimeout(() => {
 						this._emitter && this._emitter.removeListener(correlationId, onMessage);
 						this._msgBrokerConn && conn.unsubscribe(replyTo).catch(() => { /* Swallow */ });
 						reject(new MinorException('Response waiting timeout'));
 					}, this.timeout);
 
-					this._emitter.once(correlationId, msg => {
-						clearTimeout(token);
-						onMessage(msg);
-					});
+					this._emitter.once(correlationId, onMessage);
 
 					return conn.listen((msg: IMessage) => {
 						// Announce that we've got a response with this correlationId.

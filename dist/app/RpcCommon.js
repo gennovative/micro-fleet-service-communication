@@ -11,6 +11,19 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const events_1 = require("events");
 const back_lib_common_util_1 = require("back-lib-common-util");
+const back_lib_common_contracts_1 = require("back-lib-common-contracts");
+/* istanbul ignore else */
+if (!global['ValidationError']) {
+    global['ValidationError'] = back_lib_common_contracts_1.ValidationError;
+}
+/* istanbul ignore else */
+if (!global['MinorException']) {
+    global['MinorException'] = back_lib_common_util_1.MinorException;
+}
+/* istanbul ignore else */
+if (!global['InternalErrorException']) {
+    global['InternalErrorException'] = back_lib_common_util_1.InternalErrorException;
+}
 // RPC Base classes
 let RpcCallerBase = class RpcCallerBase {
     constructor() {
@@ -45,6 +58,17 @@ let RpcCallerBase = class RpcCallerBase {
     emitError(err) {
         this._emitter.emit('error', err);
     }
+    rebuildError(payload) {
+        if (payload.type) {
+            // Expect response.payload.type = MinorException | ValidationError
+            return new global[payload.type](payload.message);
+        }
+        else {
+            let ex = new back_lib_common_util_1.MinorException(payload.message);
+            ex.stack = payload.stack;
+            return ex;
+        }
+    }
 };
 RpcCallerBase = __decorate([
     back_lib_common_util_1.injectable(),
@@ -66,13 +90,37 @@ let RpcHandlerBase = class RpcHandlerBase {
     emitError(err) {
         this._emitter.emit('error', err);
     }
-    createResponse(isSuccess, data, replyTo) {
+    createResponse(isSuccess, payload, replyTo) {
         return {
             isSuccess,
             from: this.name,
             to: replyTo,
-            data
+            payload
         };
+    }
+    createError(rawError) {
+        // TODO: Should log this unexpected error.
+        let errObj = {};
+        if (rawError instanceof back_lib_common_util_1.MinorException) {
+            // If this is a minor error, or the action method sends this error
+            // back to caller on purpose.
+            errObj.type = rawError.name;
+            errObj.message = rawError.message;
+            errObj.detail = rawError['details'];
+        }
+        else if ((rawError instanceof Error) || (rawError instanceof back_lib_common_util_1.Exception)) {
+            // If error is an uncaught Exception/Error object, that means the action method
+            // has a problem. We should not send it back to caller.
+            errObj.type = 'InternalErrorException';
+            errObj.message = rawError.message;
+            this.emitError(rawError);
+        }
+        else {
+            let ex = new back_lib_common_util_1.MinorException(rawError + '');
+            errObj.type = 'InternalErrorException';
+            this.emitError(ex.message);
+        }
+        return errObj;
     }
 };
 RpcHandlerBase = __decorate([

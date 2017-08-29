@@ -25,7 +25,8 @@ export abstract class DirectRpcHandlerAddOnBase implements IServiceAddOn {
 	 * @see IServiceAddOn.init
 	 */
 	public init(moduleName: string = null): Promise<void> {
-		this._rpcHandler.name = moduleName;
+		this._rpcHandler.module = moduleName;
+		this._rpcHandler.name = this._configProvider.get(SvcS.SERVICE_SLUG);
 		this._rpcHandler.port = this._configProvider.get(RpcS.RPC_HANDLER_PORT);
 		this._rpcHandler.init();
 		this.handleRequests();
