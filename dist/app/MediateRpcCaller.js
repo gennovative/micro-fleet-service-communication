@@ -61,22 +61,27 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
             const correlationId = shortid.generate(), replyTo = `response.${moduleName}.${action}@${correlationId}`, conn = this._msgBrokerConn;
             conn.subscribe(replyTo)
                 .then(() => {
+                let token;
                 let onMessage = (msg) => __awaiter(this, void 0, void 0, function* () {
+                    clearTimeout(token);
                     // We got what we want, stop consuming.
                     yield conn.unsubscribe(replyTo);
                     yield conn.stopListen();
-                    resolve(msg.data);
+                    let response = msg.data;
+                    if (response.isSuccess) {
+                        resolve(response);
+                    }
+                    else {
+                        reject(this.rebuildError(response.payload));
+                    }
                 });
                 // In case this request never has response.
-                let token = setTimeout(() => {
+                token = setTimeout(() => {
                     this._emitter && this._emitter.removeListener(correlationId, onMessage);
                     this._msgBrokerConn && conn.unsubscribe(replyTo).catch(() => { });
                     reject(new back_lib_common_util_1.MinorException('Response waiting timeout'));
                 }, this.timeout);
-                this._emitter.once(correlationId, msg => {
-                    clearTimeout(token);
-                    onMessage(msg);
-                });
+                this._emitter.once(correlationId, onMessage);
                 return conn.listen((msg) => {
                     // Announce that we've got a response with this correlationId.
                     this._emitter.emit(msg.properties.correlationId, msg);

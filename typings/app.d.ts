@@ -3,8 +3,7 @@
 declare module 'back-lib-service-communication/dist/app/RpcCommon' {
 	/// <reference types="node" />
 	import { EventEmitter } from 'events';
-	import { ActionFactory } from 'back-lib-common-util';
-	import { IDependencyContainer } from 'back-lib-common-util';
+	import { IDependencyContainer, ActionFactory } from 'back-lib-common-util';
 	export interface IRpcRequest extends Json {
 	    from: string;
 	    to: string;
@@ -14,7 +13,7 @@ declare module 'back-lib-service-communication/dist/app/RpcCommon' {
 	    isSuccess: boolean;
 	    from: string;
 	    to: string;
-	    data: any;
+	    payload: any;
 	}
 	export interface IRpcCaller {
 	    /**
@@ -53,6 +52,10 @@ declare module 'back-lib-service-communication/dist/app/RpcCommon' {
 	     * A name used in "from" and "to" request property.
 	     */
 	    name: string;
+	    /**
+	     * A name used to construct subscription topic.
+	     */
+	    module: string;
 	    /**
 	     * Sets up this RPC handler with specified `param`. Each implementation class requires
 	     * different kinds of `param`.
@@ -97,6 +100,7 @@ declare module 'back-lib-service-communication/dist/app/RpcCommon' {
 	     */
 	    onError(handler: (err) => void): void;
 	    protected emitError(err: any): void;
+	    protected rebuildError(payload: any): any;
 	}
 	export abstract class RpcHandlerBase {
 	    protected _depContainer: IDependencyContainer;
@@ -104,6 +108,10 @@ declare module 'back-lib-service-communication/dist/app/RpcCommon' {
 	     * @see IRpcHandler.name
 	     */
 	    name: string;
+	    /**
+	     * @see IRpcHandler.module
+	     */
+	    module: string;
 	    protected _emitter: EventEmitter;
 	    constructor(_depContainer: IDependencyContainer);
 	    /**
@@ -111,7 +119,8 @@ declare module 'back-lib-service-communication/dist/app/RpcCommon' {
 	     */
 	    onError(handler: (err) => void): void;
 	    protected emitError(err: any): void;
-	    protected createResponse(isSuccess: any, data: any, replyTo: string): IRpcResponse;
+	    protected createResponse(isSuccess: any, payload: any, replyTo: string): IRpcResponse;
+	    protected createError(rawError: any): any;
 	}
 
 }

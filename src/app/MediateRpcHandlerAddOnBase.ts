@@ -26,7 +26,8 @@ export abstract class MediateRpcHandlerAddOnBase implements IServiceAddOn {
 	 * @see IServiceAddOn.init
 	 */
 	public init(moduleName: string = null): Promise<void> {
-		this._rpcHandler.name = moduleName;
+		this._rpcHandler.module = moduleName;
+		this._rpcHandler.name = this._configProvider.get(S.SERVICE_SLUG);
 		this._rpcHandler.init();
 		this.handleRequests();
 		return this._rpcHandler.start();

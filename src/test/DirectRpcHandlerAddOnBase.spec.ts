@@ -11,7 +11,8 @@ chai.use(spies);
 const expect = chai.expect;
 
 
-const MODULE_NAME = 'testModule',
+const SERVICE_SLUG = 'test-service',
+	MODULE_NAME = 'testModule',
 	HANDLER_PORT = 30000;
 
 class MockConfigProvider implements IConfigurationProvider {
@@ -37,7 +38,11 @@ class MockConfigProvider implements IConfigurationProvider {
 	}
 
 	public get(key: string): number & boolean & string {
-		return <any>(key == RpcS.RPC_HANDLER_PORT ? HANDLER_PORT : null);
+		switch (key) {
+			case RpcS.RPC_HANDLER_PORT: return <any>HANDLER_PORT;
+			case SvcS.SERVICE_SLUG: return <any>SERVICE_SLUG;
+			default: return null;
+		}
 	}
 
 	public async fetch(): Promise<boolean> {
@@ -105,7 +110,8 @@ describe('DirectRpcHandlerAddOnBase', () => {
 			await addon.init();
 
 			// Assert
-			expect(addon['_rpcHandler'].name).to.equal(MODULE_NAME);
+			expect(addon['_rpcHandler'].module).to.equal(MODULE_NAME);
+			expect(addon['_rpcHandler'].name).to.equal(SERVICE_SLUG);
 			expect(addon['_rpcHandler'].port).to.equal(HANDLER_PORT);
 
 			await addon.dispose();

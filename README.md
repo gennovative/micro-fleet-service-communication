@@ -22,7 +22,8 @@ See more examples and usage guide in unit test.
 
 ### 0.2.0
 - Moved **MessageBrokerAddOn**, **DirectRpcHandlerAddOnBase** and **MediateRpcHandlerAddOnBase** from `back-lib-foundation`.
-- RPC Handlers take module name as their names, instead of service slug.
+- RPC Handlers have module name and service name.
+- RPC Callers rebuild exception object received from handlers.
 - Test coverage: 85%
 
 ### 0.1.0

@@ -13,7 +13,8 @@ chai.use(spies);
 const expect = chai.expect;
 
 
-const MODULE_NAME = 'testModule';
+const SERVICE_SLUG = 'test-service',
+	MODULE_NAME = 'testModule';
 
 
 class MockConfigProvider implements IConfigurationProvider {
@@ -39,7 +40,10 @@ class MockConfigProvider implements IConfigurationProvider {
 	}
 
 	public get(key: string): number & boolean & string {
-		return null;
+		switch (key) {
+			case SvcS.SERVICE_SLUG: return <any>SERVICE_SLUG;
+			default: return null;
+		}
 	}
 
 	public async fetch(): Promise<boolean> {
@@ -176,7 +180,8 @@ describe('MediateRpcHandlerAddOnBase', () => {
 			await addon.init();
 
 			// Assert
-			expect(addon['_rpcHandler'].name).to.equal(MODULE_NAME);
+			expect(addon['_rpcHandler'].module).to.equal(MODULE_NAME);
+			expect(addon['_rpcHandler'].name).to.equal(SERVICE_SLUG);
 		});
 	}); // END describe 'init'
 

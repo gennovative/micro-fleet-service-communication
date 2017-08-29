@@ -1,8 +1,24 @@
 import { EventEmitter } from 'events';
-import { ActionFactory } from 'back-lib-common-util';
-
 import * as express from 'express-serve-static-core';
-import { injectable, IDependencyContainer, Guard, CriticalException } from 'back-lib-common-util';
+
+import { injectable, IDependencyContainer, Guard,
+	ActionFactory, MinorException, Exception, InternalErrorException } from 'back-lib-common-util';
+import { ValidationError } from 'back-lib-common-contracts';
+
+/* istanbul ignore else */
+if (!global['ValidationError']) {
+	global['ValidationError'] = ValidationError;
+}
+
+/* istanbul ignore else */
+if (!global['MinorException']) {
+	global['MinorException'] = MinorException;
+}
+
+/* istanbul ignore else */
+if (!global['InternalErrorException']) {
+	global['InternalErrorException'] = InternalErrorException;
+}
 
 // Interface - Service contract
 
@@ -16,7 +32,7 @@ export interface IRpcResponse extends Json {
 	isSuccess: boolean;
 	from: string;
 	to: string;
-	data: any;
+	payload: any;
 }
 
 // Interface - RPC caller and handler
@@ -66,6 +82,11 @@ export interface IRpcHandler {
 	 * A name used in "from" and "to" request property.
 	 */
 	name: string;
+
+	/**
+	 * A name used to construct subscription topic.
+	 */
+	module: string;
 	
 	/**
 	 * Sets up this RPC handler with specified `param`. Each implementation class requires
@@ -151,6 +172,17 @@ export abstract class RpcCallerBase {
 	protected emitError(err): void {
 		this._emitter.emit('error', err);
 	}
+
+	protected rebuildError(payload) {
+		if (payload.type) {
+			// Expect response.payload.type = MinorException | ValidationError
+			return new global[payload.type](payload.message);
+		} else {
+			let ex = new MinorException(payload.message);
+			ex.stack = payload.stack;
+			return ex;
+		}
+	}
 }
 
 @injectable()
@@ -160,6 +192,11 @@ export abstract class RpcHandlerBase {
 	 * @see IRpcHandler.name
 	 */
 	public name: string;
+
+	/**
+	 * @see IRpcHandler.module
+	 */
+	public module: string;
 
 	protected _emitter: EventEmitter;
 
@@ -182,12 +219,35 @@ export abstract class RpcHandlerBase {
 		this._emitter.emit('error', err);
 	}
 
-	protected createResponse(isSuccess, data, replyTo: string): IRpcResponse {
+	protected createResponse(isSuccess, payload, replyTo: string): IRpcResponse {
 		return {
 			isSuccess,
 			from: this.name,
 			to: replyTo,
-			data
+			payload
 		};
+	}
+
+	protected createError(rawError) {
+		// TODO: Should log this unexpected error.
+		let errObj: any = {};
+		if (rawError instanceof MinorException) {
+			// If this is a minor error, or the action method sends this error
+			// back to caller on purpose.
+			errObj.type = rawError.name;
+			errObj.message = rawError.message;
+			errObj.detail = rawError['details'];
+		} else if ((rawError instanceof Error) || (rawError instanceof Exception)) {
+			// If error is an uncaught Exception/Error object, that means the action method
+			// has a problem. We should not send it back to caller.
+			errObj.type = 'InternalErrorException';
+			errObj.message = rawError.message;
+			this.emitError(rawError);
+		} else {
+			let ex = new MinorException(rawError + '');
+			errObj.type = 'InternalErrorException';
+			this.emitError(ex.message);
+		}
+		return errObj;
 	}
 }

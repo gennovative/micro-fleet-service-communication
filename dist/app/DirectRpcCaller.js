@@ -65,7 +65,7 @@ let HttpRpcCaller = class HttpRpcCaller extends rpc.RpcCallerBase {
             timeout: this.timeout
         };
         return this._requestMaker(options)
-            .catch(rawResponse => Promise.reject(rawResponse.error));
+            .catch(rawResponse => Promise.reject(this.rebuildError(rawResponse.error)));
     }
 };
 HttpRpcCaller = __decorate([

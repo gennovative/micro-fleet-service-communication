@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { expect } from 'chai';
-import { MinorException } from 'back-lib-common-util';
+import { MinorException, InternalErrorException } from 'back-lib-common-util';
 
 import { MessageBrokerRpcCaller, IMessage,
 	TopicMessageBrokerConnector, IRpcRequest, IRpcResponse } from '../app';
@@ -103,6 +103,7 @@ describe('MessageBrokerRpcCaller', function() {
 
 			// This is the topic that caller should make
 			let topic = `request.${HANDLER_MODULE}.${ACTION}`;
+			caller.init();
 
 			handlerMbConn.subscribe(topic)
 				.then(() => handlerMbConn.listen((msg: IMessage) => {
@@ -131,6 +132,7 @@ describe('MessageBrokerRpcCaller', function() {
 
 			// This is the topic that caller should make
 			let topic = `request.${HANDLER_MODULE}.${ACTION}`;
+			caller.init();
 
 			handlerMbConn.subscribe(topic)
 				.then(() => {
@@ -138,13 +140,13 @@ describe('MessageBrokerRpcCaller', function() {
 						let request: IRpcRequest = msg.data,
 							props = msg.properties,
 							response: IRpcResponse = {
-							isSuccess: false,
-							from: request.to,
-							to: request.from,
-							data: {
-								text: TEXT
-							}
-						};
+								isSuccess: true,
+								from: request.to,
+								to: request.from,
+								payload: {
+									text: TEXT
+								}
+							};
 						handlerMbConn.publish(props.replyTo, response, { correlationId: props.correlationId });
 					});
 				}).then(() => {
@@ -156,13 +158,53 @@ describe('MessageBrokerRpcCaller', function() {
 					expect(res).to.be.not.null;
 					expect(res.from).to.equal(HANDLER_MODULE);
 					expect(res.to).to.equal(CALLER_MODULE);
-					expect(res.data.text).to.equal(TEXT);
-					console.warn('Got and checked response!');
+					expect(res.payload.text).to.equal(TEXT);
 					done();
 				})
 				.catch(err => {
 					console.error(err);
 					expect(err).not.to.exist;
+				});
+		});
+
+		it('Should reject when response says it unsuccessful.', (done) => {
+			// Arrange
+			const ACTION = 'echo',
+				ERROR_MSG = 'errrrorrrr';
+
+			// This is the topic that caller should make
+			let topic = `request.${HANDLER_MODULE}.${ACTION}`;
+			caller.init();
+
+			handlerMbConn.subscribe(topic)
+				.then(() => {
+					return handlerMbConn.listen((msg: IMessage) => {
+						let request: IRpcRequest = msg.data,
+							props = msg.properties,
+							response: IRpcResponse = {
+								isSuccess: false,
+								from: request.to,
+								to: request.from,
+								payload: {
+									type: 'InternalErrorException',
+									message: ERROR_MSG
+								}
+							};
+						handlerMbConn.publish(props.replyTo, response, { correlationId: props.correlationId });
+					});
+				}).then(() => {
+					// Act
+					return caller.call(HANDLER_MODULE, ACTION);
+				})
+				.then((res: IRpcResponse) => {
+					// Assert
+					expect(res).not.to.exist;
+				})
+				.catch(err => {
+					console.error(err);
+					expect(err).to.be.instanceOf(InternalErrorException);
+					expect(err.message).to.equal(ERROR_MSG);
+					done();
 				});
 		});
 
@@ -173,6 +215,7 @@ describe('MessageBrokerRpcCaller', function() {
 
 			// This is the topic that caller should make
 			let topic = `request.${HANDLER_MODULE}.${ACTION}`;
+			caller.init();
 
 			handlerMbConn.subscribe(topic)
 				.then(() => {
@@ -213,6 +256,7 @@ describe('MessageBrokerRpcCaller', function() {
 			let topic = `request.${HANDLER_MODULE}.${ACTION}`;
 			callerMbConn.messageExpiredIn = CALLER_QUEUE_TTL;
 			caller.timeout = CALLER_TIMEOUT;
+			caller.init();
 
 			// Step 1: Caller sends a request, waits in CALLER_TIMEOUT millisecs,
 			// 		then stops waiting for response.

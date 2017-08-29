@@ -74,6 +74,6 @@ export class HttpRpcCaller
 			};
 
 		return this._requestMaker(options)
-			.catch(rawResponse => Promise.reject(rawResponse.error));
+			.catch(rawResponse => Promise.reject(this.rebuildError(rawResponse.error)));
 	}
 }
