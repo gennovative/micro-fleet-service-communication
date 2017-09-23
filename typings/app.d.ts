@@ -4,12 +4,12 @@ declare module 'back-lib-service-communication/dist/app/RpcCommon' {
 	/// <reference types="node" />
 	import { EventEmitter } from 'events';
 	import { IDependencyContainer, ActionFactory } from 'back-lib-common-util';
-	export interface IRpcRequest extends Json {
+	export interface IRpcRequest {
 	    from: string;
 	    to: string;
 	    payload: any;
 	}
-	export interface IRpcResponse extends Json {
+	export interface IRpcResponse {
 	    isSuccess: boolean;
 	    from: string;
 	    to: string;
@@ -226,12 +226,12 @@ declare module 'back-lib-service-communication/dist/app/DirectRpcHandlerAddOnBas
 }
 declare module 'back-lib-service-communication/dist/app/Types' {
 	export class Types {
-	    static readonly BROKER_ADDON: symbol;
-	    static readonly DIRECT_RPC_CALLER: symbol;
-	    static readonly DIRECT_RPC_HANDLER: symbol;
-	    static readonly MEDIATE_RPC_CALLER: symbol;
-	    static readonly MEDIATE_RPC_HANDLER: symbol;
-	    static readonly MSG_BROKER_CONNECTOR: symbol;
+	    static readonly BROKER_ADDON: string;
+	    static readonly DIRECT_RPC_CALLER: string;
+	    static readonly DIRECT_RPC_HANDLER: string;
+	    static readonly MEDIATE_RPC_CALLER: string;
+	    static readonly MEDIATE_RPC_HANDLER: string;
+	    static readonly MSG_BROKER_CONNECTOR: string;
 	}
 
 }
@@ -337,10 +337,10 @@ declare module 'back-lib-service-communication/dist/app/MessageBrokerConnector' 
 	    /**
 	     * Sends `message` to the broker and label the message with `topic`.
 	     * @param {string} topic - A name to label the message with. Should be in format "xxx.yyy.zzz".
-	     * @param {string | Json | JsonArray} payload - A message to send to broker.
+	     * @param {any} payload - A message to send to broker.
 	     * @param {IPublishOptions} options - Options to add to message properties.
 	     */
-	    publish(topic: string, payload: string | Json | JsonArray, options?: IPublishOptions): Promise<void>;
+	    publish(topic: string, payload: any, options?: IPublishOptions): Promise<void>;
 	    /**
 	     * Listens to messages whose label matches `matchingPattern`.
 	     * @param {string} matchingPattern - Pattern to match with message label. Should be in format "xx.*" or "xx.#.#".
@@ -406,7 +406,7 @@ declare module 'back-lib-service-communication/dist/app/MessageBrokerConnector' 
 	    /**
 	     * @see IMessageBrokerConnector.publish
 	     */
-	    publish(topic: string, payload: string | Json | JsonArray, options?: IPublishOptions): Promise<void>;
+	    publish(topic: string, payload: any, options?: IPublishOptions): Promise<void>;
 	    /**
 	     * @see IMessageBrokerConnector.subscribe
 	     */

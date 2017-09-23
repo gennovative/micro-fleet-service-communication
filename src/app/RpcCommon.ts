@@ -22,13 +22,13 @@ if (!global['InternalErrorException']) {
 
 // Interface - Service contract
 
-export interface IRpcRequest extends Json {
+export interface IRpcRequest {
 	from: string;
 	to: string;
 	payload: any;
 }
 
-export interface IRpcResponse extends Json {
+export interface IRpcResponse {
 	isSuccess: boolean;
 	from: string;
 	to: string;
