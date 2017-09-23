@@ -2,7 +2,7 @@
 
 import { RpcSettingKeys as RpcS, SvcSettingKeys as SvcS } from 'back-lib-common-constants';
 import { IConfigurationProvider } from 'back-lib-common-contracts';
-import { inject, injectable, Guard } from 'back-lib-common-util';
+import { inject, injectable, unmanaged, Guard } from 'back-lib-common-util';
 
 import { IDirectRpcHandler } from './DirectRpcHandler';
 
@@ -14,8 +14,8 @@ import { IDirectRpcHandler } from './DirectRpcHandler';
 export abstract class DirectRpcHandlerAddOnBase implements IServiceAddOn {
 
 	constructor(
-		protected _configProvider: IConfigurationProvider,
-		protected _rpcHandler: IDirectRpcHandler
+		@unmanaged() protected _configProvider: IConfigurationProvider,
+		@unmanaged() protected _rpcHandler: IDirectRpcHandler
 	) {
 		Guard.assertArgDefined('_configProvider', _configProvider);
 		Guard.assertArgDefined('_rpcHandler', _rpcHandler);

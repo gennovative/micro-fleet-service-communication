@@ -20,6 +20,9 @@ See more examples and usage guide in unit test.
 ---
 ## VERSIONS
 
+## 0.2.1
+- Decorated **MediateRpcHandlerAddOnBase**, **DirectRpcHandlerAddOnBase** with `@unmanaged` annotation.
+
 ### 0.2.0
 - Moved **MessageBrokerAddOn**, **DirectRpcHandlerAddOnBase** and **MediateRpcHandlerAddOnBase** from `back-lib-foundation`.
 - RPC Handlers have module name and service name.

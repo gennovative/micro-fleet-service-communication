@@ -35,6 +35,14 @@ gulp.task('clean', function() {
 
 
 /**
+ * Removes nested `typings` folder to avoid "Duplicate Identifier" error.
+ */
+gulp.task('dedup', function () {
+	return del.sync(['node_modules/**/node_modules/**/typings']);
+});
+
+
+/**
  * Checks coding convention.
  */
 const LINT_FILES = ['src/**/*.ts', '!node_modules/**/*.*'];
