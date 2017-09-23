@@ -2,7 +2,7 @@ import { IConnectionOptions } from '../app';
 
 export default {
 	handler: <IConnectionOptions> {
-		hostAddress: 'localhost',
+		hostAddress: 'firstidea.lan',
 		username: 'firstidea',
 		password: 'gennova',
 		queue: 'first-handler', // Queue for handler, 
@@ -11,7 +11,7 @@ export default {
 		exchange: 'first-infras'
 	},
 	caller: <IConnectionOptions> {
-		hostAddress: 'localhost',
+		hostAddress: 'firstidea.lan',
 		username: 'firstidea',
 		password: 'gennova',
 		queue: '', // Caller must use anonymous queue to receive responses

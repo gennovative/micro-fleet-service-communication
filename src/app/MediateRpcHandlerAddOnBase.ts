@@ -1,6 +1,6 @@
 import { SvcSettingKeys as S } from 'back-lib-common-constants';
 import { IConfigurationProvider } from 'back-lib-common-contracts';
-import { inject, injectable, Guard } from 'back-lib-common-util';
+import { inject, injectable, unmanaged, Guard } from 'back-lib-common-util';
 
 import { IMediateRpcHandler } from './MediateRpcHandler';
 
@@ -14,8 +14,8 @@ export abstract class MediateRpcHandlerAddOnBase implements IServiceAddOn {
 	protected abstract controllerIdentifier: string | symbol;
 
 	constructor(
-		protected _configProvider: IConfigurationProvider,
-		protected _rpcHandler: IMediateRpcHandler
+		@unmanaged() protected _configProvider: IConfigurationProvider,
+		@unmanaged() protected _rpcHandler: IMediateRpcHandler
 	) {
 		Guard.assertArgDefined('_configProvider', _configProvider);
 		Guard.assertArgDefined('_rpcHandler', _rpcHandler);
