@@ -128,10 +128,10 @@ export interface IMessageBrokerConnector {
 	/**
 	 * Sends `message` to the broker and label the message with `topic`.
 	 * @param {string} topic - A name to label the message with. Should be in format "xxx.yyy.zzz".
-	 * @param {string | Json | JsonArray} payload - A message to send to broker.
+	 * @param {any} payload - A message to send to broker.
 	 * @param {IPublishOptions} options - Options to add to message properties.
 	 */
-	publish(topic: string, payload: string | Json | JsonArray, options?: IPublishOptions): Promise<void>;
+	publish(topic: string, payload: any, options?: IPublishOptions): Promise<void>;
 
 	/**
 	 * Listens to messages whose label matches `matchingPattern`.
@@ -383,7 +383,7 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 	/**
 	 * @see IMessageBrokerConnector.publish
 	 */
-	public async publish(topic: string, payload: string | Json | JsonArray, options?: IPublishOptions): Promise<void> {
+	public async publish(topic: string, payload: any, options?: IPublishOptions): Promise<void> {
 		Guard.assertArgNotEmpty('topic', topic);
 		Guard.assertArgNotEmpty('message', payload);
 		this.assertConnection();
