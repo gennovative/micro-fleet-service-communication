@@ -20,6 +20,9 @@ See more examples and usage guide in unit test.
 ---
 ## VERSIONS
 
+## 0.2.2
+- Moved `global` types to `global.gennova`.
+
 ## 0.2.1
 - Decorated **MediateRpcHandlerAddOnBase**, **DirectRpcHandlerAddOnBase** with `@unmanaged` annotation.
 

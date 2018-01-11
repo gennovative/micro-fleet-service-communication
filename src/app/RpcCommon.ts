@@ -5,19 +5,36 @@ import { injectable, IDependencyContainer, Guard,
 	ActionFactory, MinorException, Exception, InternalErrorException } from 'back-lib-common-util';
 import { ValidationError } from 'back-lib-common-contracts';
 
+let descriptor = {
+	writable: false,
+	enumerable: false,
+	configurable: false,
+	value: null
+};
+
+if (!global.gennova) {
+	descriptor.value = {};
+	Object.defineProperty(global, 'gennova', descriptor);
+}
+
+let gennova = global.gennova;
+
 /* istanbul ignore else */
-if (!global['ValidationError']) {
-	global['ValidationError'] = ValidationError;
+if (!gennova['ValidationError']) {
+	descriptor.value = ValidationError;
+	Object.defineProperty(gennova, 'ValidationError', descriptor);
 }
 
 /* istanbul ignore else */
-if (!global['MinorException']) {
-	global['MinorException'] = MinorException;
+if (!gennova['MinorException']) {
+	descriptor.value = MinorException;
+	Object.defineProperty(gennova, 'MinorException', descriptor);
 }
 
 /* istanbul ignore else */
-if (!global['InternalErrorException']) {
-	global['InternalErrorException'] = InternalErrorException;
+if (!gennova['InternalErrorException']) {
+	descriptor.value = MinorException;
+	Object.defineProperty(gennova, 'InternalErrorException', InternalErrorException);
 }
 
 // Interface - Service contract
@@ -176,7 +193,7 @@ export abstract class RpcCallerBase {
 	protected rebuildError(payload) {
 		if (payload.type) {
 			// Expect response.payload.type = MinorException | ValidationError
-			return new global[payload.type](payload.message);
+			return new global.gennova[payload.type](payload.message);
 		} else {
 			let ex = new MinorException(payload.message);
 			ex.stack = payload.stack;

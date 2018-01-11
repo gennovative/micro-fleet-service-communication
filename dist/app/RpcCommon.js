@@ -12,17 +12,31 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const events_1 = require("events");
 const back_lib_common_util_1 = require("back-lib-common-util");
 const back_lib_common_contracts_1 = require("back-lib-common-contracts");
+let descriptor = {
+    writable: false,
+    enumerable: false,
+    configurable: false,
+    value: null
+};
+if (!global.gennova) {
+    descriptor.value = {};
+    Object.defineProperty(global, 'gennova', descriptor);
+}
+let gennova = global.gennova;
 /* istanbul ignore else */
-if (!global['ValidationError']) {
-    global['ValidationError'] = back_lib_common_contracts_1.ValidationError;
+if (!gennova['ValidationError']) {
+    descriptor.value = back_lib_common_contracts_1.ValidationError;
+    Object.defineProperty(gennova, 'ValidationError', descriptor);
 }
 /* istanbul ignore else */
-if (!global['MinorException']) {
-    global['MinorException'] = back_lib_common_util_1.MinorException;
+if (!gennova['MinorException']) {
+    descriptor.value = back_lib_common_util_1.MinorException;
+    Object.defineProperty(gennova, 'MinorException', descriptor);
 }
 /* istanbul ignore else */
-if (!global['InternalErrorException']) {
-    global['InternalErrorException'] = back_lib_common_util_1.InternalErrorException;
+if (!gennova['InternalErrorException']) {
+    descriptor.value = back_lib_common_util_1.MinorException;
+    Object.defineProperty(gennova, 'InternalErrorException', back_lib_common_util_1.InternalErrorException);
 }
 // RPC Base classes
 let RpcCallerBase = class RpcCallerBase {
@@ -61,7 +75,7 @@ let RpcCallerBase = class RpcCallerBase {
     rebuildError(payload) {
         if (payload.type) {
             // Expect response.payload.type = MinorException | ValidationError
-            return new global[payload.type](payload.message);
+            return new global.gennova[payload.type](payload.message);
         }
         else {
             let ex = new back_lib_common_util_1.MinorException(payload.message);
@@ -128,5 +142,3 @@ RpcHandlerBase = __decorate([
     __metadata("design:paramtypes", [Object])
 ], RpcHandlerBase);
 exports.RpcHandlerBase = RpcHandlerBase;
-
-//# sourceMappingURL=RpcCommon.js.map
