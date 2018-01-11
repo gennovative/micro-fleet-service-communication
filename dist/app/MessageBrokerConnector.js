@@ -462,5 +462,3 @@ TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = __decorate([
 ], TopicMessageBrokerConnector);
 exports.TopicMessageBrokerConnector = TopicMessageBrokerConnector;
 var TopicMessageBrokerConnector_1;
-
-//# sourceMappingURL=MessageBrokerConnector.js.map

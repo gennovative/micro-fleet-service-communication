@@ -9,5 +9,3 @@ Types.MEDIATE_RPC_CALLER = 'service-communication.IMediateRpcCaller';
 Types.MEDIATE_RPC_HANDLER = 'service-communication.IMediateRpcHandler';
 Types.MSG_BROKER_CONNECTOR = 'service-communication.IMessageBrokerConnector';
 exports.Types = Types;
-
-//# sourceMappingURL=Types.js.map
