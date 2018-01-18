@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import * as chai from 'chai';
 import * as spies from 'chai-spies';
 import * as express from 'express';
-import * as requestMaker from 'request-promise-native';
+import * as requestMaker from 'request-promise';
 import { inject, injectable, DependencyContainer, MinorException, Exception,
 	InternalErrorException } from 'back-lib-common-util';
 

@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 
-import * as request from 'request-promise-native';
+import * as request from 'request-promise';
 
 import { injectable, Guard } from 'back-lib-common-util';
 
@@ -26,7 +26,7 @@ export class HttpRpcCaller
 
 	constructor() {
 		super();
-		this._requestMaker = request;
+		this._requestMaker = <any>request;
 	}
 
 	public get baseAddress(): string {

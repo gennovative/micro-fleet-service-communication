@@ -17,7 +17,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const request = require("request-promise-native");
+const request = require("request-promise");
 const back_lib_common_util_1 = require("back-lib-common-util");
 const rpc = require("./RpcCommon");
 let HttpRpcCaller = class HttpRpcCaller extends rpc.RpcCallerBase {

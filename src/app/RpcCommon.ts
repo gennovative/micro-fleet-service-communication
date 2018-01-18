@@ -33,8 +33,8 @@ if (!gennova['MinorException']) {
 
 /* istanbul ignore else */
 if (!gennova['InternalErrorException']) {
-	descriptor.value = MinorException;
-	Object.defineProperty(gennova, 'InternalErrorException', InternalErrorException);
+	descriptor.value = InternalErrorException;
+	Object.defineProperty(gennova, 'InternalErrorException', descriptor);
 }
 
 // Interface - Service contract
