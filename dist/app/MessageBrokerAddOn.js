@@ -58,3 +58,5 @@ MessageBrokerAddOn = __decorate([
     __metadata("design:paramtypes", [Object, Object])
 ], MessageBrokerAddOn);
 exports.MessageBrokerAddOn = MessageBrokerAddOn;
+
+//# sourceMappingURL=MessageBrokerAddOn.js.map

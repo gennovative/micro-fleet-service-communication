@@ -60,3 +60,5 @@ MediateRpcHandlerAddOnBase = __decorate([
     __metadata("design:paramtypes", [Object, Object])
 ], MediateRpcHandlerAddOnBase);
 exports.MediateRpcHandlerAddOnBase = MediateRpcHandlerAddOnBase;
+
+//# sourceMappingURL=MediateRpcHandlerAddOnBase.js.map

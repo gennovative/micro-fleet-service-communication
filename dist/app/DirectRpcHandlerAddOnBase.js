@@ -61,3 +61,5 @@ DirectRpcHandlerAddOnBase = __decorate([
     __metadata("design:paramtypes", [Object, Object])
 ], DirectRpcHandlerAddOnBase);
 exports.DirectRpcHandlerAddOnBase = DirectRpcHandlerAddOnBase;
+
+//# sourceMappingURL=DirectRpcHandlerAddOnBase.js.map
