@@ -35,8 +35,8 @@ if (!gennova['MinorException']) {
 }
 /* istanbul ignore else */
 if (!gennova['InternalErrorException']) {
-    descriptor.value = back_lib_common_util_1.MinorException;
-    Object.defineProperty(gennova, 'InternalErrorException', back_lib_common_util_1.InternalErrorException);
+    descriptor.value = back_lib_common_util_1.InternalErrorException;
+    Object.defineProperty(gennova, 'InternalErrorException', descriptor);
 }
 // RPC Base classes
 let RpcCallerBase = class RpcCallerBase {

@@ -2,7 +2,6 @@ import 'reflect-metadata';
 import { expect } from 'chai';
 import * as express from 'express';
 import * as bodyParser from 'body-parser';
-import * as requestMaker from 'request-promise-native';
 import { MinorException, Exception } from 'back-lib-common-util';
 
 import { HttpRpcCaller, ExpressRpcHandler, IDirectRpcHandler, IDirectRpcCaller,
