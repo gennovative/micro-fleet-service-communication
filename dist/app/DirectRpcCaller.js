@@ -73,3 +73,5 @@ HttpRpcCaller = __decorate([
     __metadata("design:paramtypes", [])
 ], HttpRpcCaller);
 exports.HttpRpcCaller = HttpRpcCaller;
+
+//# sourceMappingURL=DirectRpcCaller.js.map
