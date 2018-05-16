@@ -1,14 +1,13 @@
-# Gennova backend service communication library
+# Micro Fleet - Backend Service Communication
 
 Belongs to Micro Fleet framework, provides methods for microservices to communicate with each other.
 
-See more examples and usage guide in unit test.
+See more examples and usage guide in unit tests.
 
 ## INSTALLATION
 
 - Stable version: `npm i @micro-fleet/service-communication`
 - Edge (development) version: `npm i git://github.com/gennovative/micro-fleet-service-communication.git`
-
 
 ## DEVELOPMENT
 

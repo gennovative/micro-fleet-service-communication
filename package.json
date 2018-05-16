@@ -6,7 +6,7 @@
   },
   "license": "MIT",
   "private": false,
-  "version": "0.2.2-rc.1",
+  "version": "0.2.2",
   "description": "Provides methods for microservices to communicate with each other.",
   "main": "./dist/app/index.js",
   "types": "./typings/app.d.ts",
