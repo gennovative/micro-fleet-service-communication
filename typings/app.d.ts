@@ -1,6 +1,6 @@
 /// <reference path="./global.d.ts" />
 
-declare module 'back-lib-service-communication/dist/app/RpcCommon' {
+declare module '@micro-fleet/service-communication/dist/app/RpcCommon' {
 	/// <reference types="node" />
 	import { EventEmitter } from 'events';
 	import { IDependencyContainer, ActionFactory } from '@micro-fleet/common-util';
@@ -124,8 +124,8 @@ declare module 'back-lib-service-communication/dist/app/RpcCommon' {
 	}
 
 }
-declare module 'back-lib-service-communication/dist/app/DirectRpcCaller' {
-	import * as rpc from 'back-lib-service-communication/dist/app/RpcCommon';
+declare module '@micro-fleet/service-communication/dist/app/DirectRpcCaller' {
+	import * as rpc from '@micro-fleet/service-communication/dist/app/RpcCommon';
 	export interface IDirectRpcCaller extends rpc.IRpcCaller {
 	    /**
 	     * IP address or host name including port number.
@@ -152,11 +152,11 @@ declare module 'back-lib-service-communication/dist/app/DirectRpcCaller' {
 	}
 
 }
-declare module 'back-lib-service-communication/dist/app/DirectRpcHandler' {
+declare module '@micro-fleet/service-communication/dist/app/DirectRpcHandler' {
 	/// <reference types="express" />
 	import * as express from 'express';
 	import { IDependencyContainer, ActionFactory } from '@micro-fleet/common-util';
-	import * as rpc from 'back-lib-service-communication/dist/app/RpcCommon';
+	import * as rpc from '@micro-fleet/service-communication/dist/app/RpcCommon';
 	export interface ExpressRpcHandlerInitOptions {
 	    expressApp: express.Express;
 	    expressRouter: express.Router;
@@ -198,9 +198,9 @@ declare module 'back-lib-service-communication/dist/app/DirectRpcHandler' {
 	    	}
 
 }
-declare module 'back-lib-service-communication/dist/app/DirectRpcHandlerAddOnBase' {
+declare module '@micro-fleet/service-communication/dist/app/DirectRpcHandlerAddOnBase' {
 	import { IConfigurationProvider } from '@micro-fleet/common-contracts';
-	import { IDirectRpcHandler } from 'back-lib-service-communication/dist/app/DirectRpcHandler';
+	import { IDirectRpcHandler } from '@micro-fleet/service-communication/dist/app/DirectRpcHandler';
 	/**
 	 * Base class for DirectRpcAddOn.
 	 */
@@ -224,7 +224,7 @@ declare module 'back-lib-service-communication/dist/app/DirectRpcHandlerAddOnBas
 	}
 
 }
-declare module 'back-lib-service-communication/dist/app/Types' {
+declare module '@micro-fleet/service-communication/dist/app/Types' {
 	export class Types {
 	    static readonly BROKER_ADDON: string;
 	    static readonly DIRECT_RPC_CALLER: string;
@@ -235,7 +235,7 @@ declare module 'back-lib-service-communication/dist/app/Types' {
 	}
 
 }
-declare module 'back-lib-service-communication/dist/app/MessageBrokerConnector' {
+declare module '@micro-fleet/service-communication/dist/app/MessageBrokerConnector' {
 	import * as amqp from 'amqplib';
 	export type MessageHandleFunction = (msg: IMessage, ack?: () => void, nack?: () => void) => void;
 	export interface IMessage {
@@ -426,9 +426,9 @@ declare module 'back-lib-service-communication/dist/app/MessageBrokerConnector' 
 	    	    	    	    	    	    	    	    	    	    	    	    	    	    	}
 
 }
-declare module 'back-lib-service-communication/dist/app/MediateRpcCaller' {
-	import { IMessageBrokerConnector } from 'back-lib-service-communication/dist/app/MessageBrokerConnector';
-	import * as rpc from 'back-lib-service-communication/dist/app/RpcCommon';
+declare module '@micro-fleet/service-communication/dist/app/MediateRpcCaller' {
+	import { IMessageBrokerConnector } from '@micro-fleet/service-communication/dist/app/MessageBrokerConnector';
+	import * as rpc from '@micro-fleet/service-communication/dist/app/RpcCommon';
 	export interface IMediateRpcCaller extends rpc.IRpcCaller {
 	}
 	export class MessageBrokerRpcCaller extends rpc.RpcCallerBase implements IMediateRpcCaller {
@@ -448,10 +448,10 @@ declare module 'back-lib-service-communication/dist/app/MediateRpcCaller' {
 	}
 
 }
-declare module 'back-lib-service-communication/dist/app/MediateRpcHandler' {
+declare module '@micro-fleet/service-communication/dist/app/MediateRpcHandler' {
 	import { IDependencyContainer, ActionFactory } from '@micro-fleet/common-util';
-	import { IMessageBrokerConnector } from 'back-lib-service-communication/dist/app/MessageBrokerConnector';
-	import * as rpc from 'back-lib-service-communication/dist/app/RpcCommon';
+	import { IMessageBrokerConnector } from '@micro-fleet/service-communication/dist/app/MessageBrokerConnector';
+	import * as rpc from '@micro-fleet/service-communication/dist/app/RpcCommon';
 	export interface IMediateRpcHandler extends rpc.IRpcHandler {
 	    /**
 	     * @override IRpcHandler.handle to return Promise<void>
@@ -487,9 +487,9 @@ declare module 'back-lib-service-communication/dist/app/MediateRpcHandler' {
 	    	}
 
 }
-declare module 'back-lib-service-communication/dist/app/MediateRpcHandlerAddOnBase' {
+declare module '@micro-fleet/service-communication/dist/app/MediateRpcHandlerAddOnBase' {
 	import { IConfigurationProvider } from '@micro-fleet/common-contracts';
-	import { IMediateRpcHandler } from 'back-lib-service-communication/dist/app/MediateRpcHandler';
+	import { IMediateRpcHandler } from '@micro-fleet/service-communication/dist/app/MediateRpcHandler';
 	/**
 	 * Base class for MediateRpcAddOn.
 	 */
@@ -514,9 +514,9 @@ declare module 'back-lib-service-communication/dist/app/MediateRpcHandlerAddOnBa
 	}
 
 }
-declare module 'back-lib-service-communication/dist/app/MessageBrokerAddOn' {
+declare module '@micro-fleet/service-communication/dist/app/MessageBrokerAddOn' {
 	import { IConfigurationProvider } from '@micro-fleet/common-contracts';
-	import { IMessageBrokerConnector } from 'back-lib-service-communication/dist/app/MessageBrokerConnector';
+	import { IMessageBrokerConnector } from '@micro-fleet/service-communication/dist/app/MessageBrokerConnector';
 	export class MessageBrokerAddOn implements IServiceAddOn {
 	    	    	    constructor(_configProvider: IConfigurationProvider, _msgBrokerCnn: IMessageBrokerConnector);
 	    /**
@@ -534,16 +534,16 @@ declare module 'back-lib-service-communication/dist/app/MessageBrokerAddOn' {
 	}
 
 }
-declare module 'back-lib-service-communication' {
-	export * from 'back-lib-service-communication/dist/app/RpcCommon';
-	export * from 'back-lib-service-communication/dist/app/DirectRpcCaller';
-	export * from 'back-lib-service-communication/dist/app/DirectRpcHandler';
-	export * from 'back-lib-service-communication/dist/app/DirectRpcHandlerAddOnBase';
-	export * from 'back-lib-service-communication/dist/app/MediateRpcCaller';
-	export * from 'back-lib-service-communication/dist/app/MediateRpcHandler';
-	export * from 'back-lib-service-communication/dist/app/MediateRpcHandlerAddOnBase';
-	export * from 'back-lib-service-communication/dist/app/MessageBrokerAddOn';
-	export * from 'back-lib-service-communication/dist/app/MessageBrokerConnector';
-	export * from 'back-lib-service-communication/dist/app/Types';
+declare module '@micro-fleet/service-communication' {
+	export * from '@micro-fleet/service-communication/dist/app/RpcCommon';
+	export * from '@micro-fleet/service-communication/dist/app/DirectRpcCaller';
+	export * from '@micro-fleet/service-communication/dist/app/DirectRpcHandler';
+	export * from '@micro-fleet/service-communication/dist/app/DirectRpcHandlerAddOnBase';
+	export * from '@micro-fleet/service-communication/dist/app/MediateRpcCaller';
+	export * from '@micro-fleet/service-communication/dist/app/MediateRpcHandler';
+	export * from '@micro-fleet/service-communication/dist/app/MediateRpcHandlerAddOnBase';
+	export * from '@micro-fleet/service-communication/dist/app/MessageBrokerAddOn';
+	export * from '@micro-fleet/service-communication/dist/app/MessageBrokerConnector';
+	export * from '@micro-fleet/service-communication/dist/app/Types';
 
 }
