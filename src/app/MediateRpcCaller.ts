@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 
 import * as shortid from 'shortid';
-import { injectable, inject, IDependencyContainer, Guard, MinorException } from 'back-lib-common-util';
+import { injectable, inject, IDependencyContainer, Guard, MinorException } from '@micro-fleet/common-util';
 
 import { Types as T } from './Types';
 import { IMessageBrokerConnector, IMessage } from './MessageBrokerConnector';

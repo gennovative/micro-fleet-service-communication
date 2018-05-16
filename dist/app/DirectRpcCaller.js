@@ -18,7 +18,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const request = require("request-promise");
-const back_lib_common_util_1 = require("back-lib-common-util");
+const common_util_1 = require("@micro-fleet/common-util");
 const rpc = require("./RpcCommon");
 let HttpRpcCaller = class HttpRpcCaller extends rpc.RpcCallerBase {
     constructor() {
@@ -50,9 +50,9 @@ let HttpRpcCaller = class HttpRpcCaller extends rpc.RpcCallerBase {
      * @see IRpcCaller.call
      */
     call(moduleName, action, params) {
-        back_lib_common_util_1.Guard.assertArgDefined('moduleName', moduleName);
-        back_lib_common_util_1.Guard.assertArgDefined('action', action);
-        back_lib_common_util_1.Guard.assertIsDefined(this._baseAddress, 'Base URL must be set!');
+        common_util_1.Guard.assertArgDefined('moduleName', moduleName);
+        common_util_1.Guard.assertArgDefined('action', action);
+        common_util_1.Guard.assertIsDefined(this._baseAddress, 'Base URL must be set!');
         let request = {
             from: this.name,
             to: moduleName,
@@ -69,7 +69,7 @@ let HttpRpcCaller = class HttpRpcCaller extends rpc.RpcCallerBase {
     }
 };
 HttpRpcCaller = __decorate([
-    back_lib_common_util_1.injectable(),
+    common_util_1.injectable(),
     __metadata("design:paramtypes", [])
 ], HttpRpcCaller);
 exports.HttpRpcCaller = HttpRpcCaller;

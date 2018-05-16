@@ -4,7 +4,7 @@ import * as express from 'express';
 import * as bodyParser from 'body-parser';
 
 import { injectable, inject, IDependencyContainer, Guard, Exception, HandlerContainer,
-	ActionFactory, HandlerDetails, Types as CmT } from 'back-lib-common-util';
+	ActionFactory, HandlerDetails, Types as CmT } from '@micro-fleet/common-util';
 
 import * as rpc from './RpcCommon';
 

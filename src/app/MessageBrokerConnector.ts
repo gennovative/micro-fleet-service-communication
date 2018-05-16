@@ -5,7 +5,7 @@ import * as amqp from 'amqplib';
 import * as _ from 'lodash';
 
 import { injectable, Exception, CriticalException, MinorException,
-	Guard } from 'back-lib-common-util';
+	Guard } from '@micro-fleet/common-util';
 
 
 export type MessageHandleFunction = (msg: IMessage, ack?: () => void, nack?: () => void) => void;

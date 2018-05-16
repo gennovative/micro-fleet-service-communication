@@ -1,13 +1,14 @@
 import * as chai from 'chai';
 import * as spies from 'chai-spies';
 
-import { RpcSettingKeys as RpcS, SvcSettingKeys as SvcS } from 'back-lib-common-constants';
-import { IConfigurationProvider, Types as ConT } from 'back-lib-common-contracts';
-import { injectable, inject, Guard, DependencyContainer } from 'back-lib-common-util';
+import { IConfigurationProvider, Types as ConT, constants } from '@micro-fleet/common-contracts';
+import { injectable, inject, Guard, DependencyContainer } from '@micro-fleet/common-util';
 import { IMediateRpcHandler, IRpcRequest, IMessageBrokerConnector,
 	IConnectionOptions, IPublishOptions, MessageHandleFunction,
 	MediateRpcHandlerAddOnBase, MessageBrokerRpcHandler,
 	Types as ComT } from '../app';
+
+const { RpcSettingKeys: RpcS, SvcSettingKeys: SvcS } = constants;
 
 chai.use(spies);
 const expect = chai.expect;

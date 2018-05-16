@@ -20,15 +20,15 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const back_lib_common_util_1 = require("back-lib-common-util");
+const common_util_1 = require("@micro-fleet/common-util");
 const Types_1 = require("./Types");
 const rpc = require("./RpcCommon");
 let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandlerBase {
     constructor(depContainer, _msgBrokerConn) {
         super(depContainer);
         this._msgBrokerConn = _msgBrokerConn;
-        back_lib_common_util_1.Guard.assertArgDefined('_msgBrokerConn', _msgBrokerConn);
-        this._container = back_lib_common_util_1.HandlerContainer.instance;
+        common_util_1.Guard.assertArgDefined('_msgBrokerConn', _msgBrokerConn);
+        this._container = common_util_1.HandlerContainer.instance;
         this._container.dependencyContainer = depContainer;
     }
     /**
@@ -58,8 +58,8 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
      */
     handle(actions, dependencyIdentifier, actionFactory) {
         return __awaiter(this, void 0, void 0, function* () {
-            back_lib_common_util_1.Guard.assertIsDefined(this.name, '`name` property is required.');
-            back_lib_common_util_1.Guard.assertIsDefined(this.module, '`module` property is required.');
+            common_util_1.Guard.assertIsDefined(this.name, '`name` property is required.');
+            common_util_1.Guard.assertIsDefined(this.module, '`module` property is required.');
             actions = Array.isArray(actions) ? actions : [actions];
             return Promise.all(actions.map(a => {
                 this._container.register(a, dependencyIdentifier, actionFactory);
@@ -84,7 +84,7 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
                     output.catch(reject); // Catch async exceptions.
                 }
             }
-            catch (err) {
+            catch (err) { // Catch normal exceptions.
                 reject(err);
             }
         }))
@@ -97,13 +97,14 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
             // nack(); // Disable this, because we use auto-ack.
             return this._msgBrokerConn.publish(replyTo, this.createResponse(false, errObj, request.from), { correlationId });
         })
+            // Catch error thrown by `createError()`
             .catch(this.emitError.bind(this));
     }
 };
 MessageBrokerRpcHandler = __decorate([
-    back_lib_common_util_1.injectable(),
-    __param(0, back_lib_common_util_1.inject(back_lib_common_util_1.Types.DEPENDENCY_CONTAINER)),
-    __param(1, back_lib_common_util_1.inject(Types_1.Types.MSG_BROKER_CONNECTOR)),
+    common_util_1.injectable(),
+    __param(0, common_util_1.inject(common_util_1.Types.DEPENDENCY_CONTAINER)),
+    __param(1, common_util_1.inject(Types_1.Types.MSG_BROKER_CONNECTOR)),
     __metadata("design:paramtypes", [Object, Object])
 ], MessageBrokerRpcHandler);
 exports.MessageBrokerRpcHandler = MessageBrokerRpcHandler;

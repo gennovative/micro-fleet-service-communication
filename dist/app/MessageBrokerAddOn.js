@@ -12,29 +12,29 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const back_lib_common_constants_1 = require("back-lib-common-constants");
-const back_lib_common_contracts_1 = require("back-lib-common-contracts");
-const back_lib_common_util_1 = require("back-lib-common-util");
+const common_contracts_1 = require("@micro-fleet/common-contracts");
+const common_util_1 = require("@micro-fleet/common-util");
 const Types_1 = require("./Types");
+const { MbSettingKeys: S } = common_contracts_1.constants;
 let MessageBrokerAddOn = class MessageBrokerAddOn {
     constructor(_configProvider, _msgBrokerCnn) {
         this._configProvider = _configProvider;
         this._msgBrokerCnn = _msgBrokerCnn;
-        back_lib_common_util_1.Guard.assertArgDefined('_configProvider', _configProvider);
-        back_lib_common_util_1.Guard.assertArgDefined('_msgBrokerCnn', _msgBrokerCnn);
+        common_util_1.Guard.assertArgDefined('_configProvider', _configProvider);
+        common_util_1.Guard.assertArgDefined('_msgBrokerCnn', _msgBrokerCnn);
     }
     /**
      * @see IServiceAddOn.init
      */
     init() {
         let cfgAdt = this._configProvider, opts = {
-            hostAddress: cfgAdt.get(back_lib_common_constants_1.MbSettingKeys.MSG_BROKER_HOST),
-            username: cfgAdt.get(back_lib_common_constants_1.MbSettingKeys.MSG_BROKER_USERNAME),
-            password: cfgAdt.get(back_lib_common_constants_1.MbSettingKeys.MSG_BROKER_PASSWORD),
-            exchange: cfgAdt.get(back_lib_common_constants_1.MbSettingKeys.MSG_BROKER_EXCHANGE),
-            queue: cfgAdt.get(back_lib_common_constants_1.MbSettingKeys.MSG_BROKER_QUEUE),
-            reconnectDelay: cfgAdt.get(back_lib_common_constants_1.MbSettingKeys.MSG_BROKER_RECONN_TIMEOUT),
-            messageExpiredIn: cfgAdt.get(back_lib_common_constants_1.MbSettingKeys.MSG_BROKER_RECONN_TIMEOUT),
+            hostAddress: cfgAdt.get(S.MSG_BROKER_HOST),
+            username: cfgAdt.get(S.MSG_BROKER_USERNAME),
+            password: cfgAdt.get(S.MSG_BROKER_PASSWORD),
+            exchange: cfgAdt.get(S.MSG_BROKER_EXCHANGE),
+            queue: cfgAdt.get(S.MSG_BROKER_QUEUE),
+            reconnectDelay: cfgAdt.get(S.MSG_BROKER_RECONN_TIMEOUT),
+            messageExpiredIn: cfgAdt.get(S.MSG_BROKER_RECONN_TIMEOUT),
         };
         return this._msgBrokerCnn.connect(opts);
     }
@@ -52,9 +52,9 @@ let MessageBrokerAddOn = class MessageBrokerAddOn {
     }
 };
 MessageBrokerAddOn = __decorate([
-    back_lib_common_util_1.injectable(),
-    __param(0, back_lib_common_util_1.inject(back_lib_common_contracts_1.Types.CONFIG_PROVIDER)),
-    __param(1, back_lib_common_util_1.inject(Types_1.Types.MSG_BROKER_CONNECTOR)),
+    common_util_1.injectable(),
+    __param(0, common_util_1.inject(common_contracts_1.Types.CONFIG_PROVIDER)),
+    __param(1, common_util_1.inject(Types_1.Types.MSG_BROKER_CONNECTOR)),
     __metadata("design:paramtypes", [Object, Object])
 ], MessageBrokerAddOn);
 exports.MessageBrokerAddOn = MessageBrokerAddOn;

@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import * as chai from 'chai';
 import * as spies from 'chai-spies';
 import * as shortid from 'shortid';
-import { injectable, DependencyContainer, MinorException } from 'back-lib-common-util';
+import { injectable, DependencyContainer, MinorException } from '@micro-fleet/common-util';
 
 import { MessageBrokerRpcHandler, IMessage, IMessageBrokerConnector, IMediateRpcHandler,
 	TopicMessageBrokerConnector, IRpcRequest, IRpcResponse } from '../app';

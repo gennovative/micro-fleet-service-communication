@@ -1,9 +1,10 @@
-import { MbSettingKeys as S } from 'back-lib-common-constants';
-import { IConfigurationProvider, Types as ConT } from 'back-lib-common-contracts';
-import { injectable, inject, Guard } from 'back-lib-common-util';
+import { IConfigurationProvider, Types as ConT, constants } from '@micro-fleet/common-contracts';
+import { injectable, inject, Guard } from '@micro-fleet/common-util';
 
 import { IMessageBrokerConnector, IConnectionOptions} from './MessageBrokerConnector';
 import { Types as T } from './Types';
+
+const { MbSettingKeys: S } = constants;
 
 
 @injectable()

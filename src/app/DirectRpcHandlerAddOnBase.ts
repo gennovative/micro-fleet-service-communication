@@ -1,10 +1,9 @@
-/// <reference types="back-lib-common-constants" />
-
-import { RpcSettingKeys as RpcS, SvcSettingKeys as SvcS } from 'back-lib-common-constants';
-import { IConfigurationProvider } from 'back-lib-common-contracts';
-import { inject, injectable, unmanaged, Guard } from 'back-lib-common-util';
+import { IConfigurationProvider, constants } from '@micro-fleet/common-contracts';
+import { inject, injectable, unmanaged, Guard } from '@micro-fleet/common-util';
 
 import { IDirectRpcHandler } from './DirectRpcHandler';
+
+const { RpcSettingKeys: RpcS, SvcSettingKeys: SvcS } = constants;
 
 
 /**

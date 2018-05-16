@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { expect } from 'chai';
 import * as express from 'express';
 import * as bodyParser from 'body-parser';
-import { MinorException, Exception } from 'back-lib-common-util';
+import { MinorException, Exception } from '@micro-fleet/common-util';
 
 import { HttpRpcCaller, ExpressRpcHandler, IDirectRpcHandler, IDirectRpcCaller,
 	IRpcRequest, IRpcResponse } from '../app';

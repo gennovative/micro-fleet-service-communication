@@ -1,5 +1,5 @@
 import { injectable, inject, IDependencyContainer, Guard, HandlerContainer,
-	ActionFactory, HandlerDetails, Exception, Types as CmT } from 'back-lib-common-util';
+	ActionFactory, HandlerDetails, Exception, Types as CmT } from '@micro-fleet/common-util';
 
 import { Types as T } from './Types';
 import { IMessageBrokerConnector, IMessage, MessageHandleFunction } from './MessageBrokerConnector';

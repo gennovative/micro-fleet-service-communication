@@ -2,7 +2,7 @@ import { EventEmitter } from 'events';
 
 import * as request from 'request-promise';
 
-import { injectable, Guard } from 'back-lib-common-util';
+import { injectable, Guard } from '@micro-fleet/common-util';
 
 import * as rpc from './RpcCommon';
 

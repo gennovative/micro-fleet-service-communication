@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import * as shortid from 'shortid';
-import { injectable, DependencyContainer } from 'back-lib-common-util';
+import { injectable, DependencyContainer } from '@micro-fleet/common-util';
 
 import { MessageBrokerRpcHandler, IMessage,
 	TopicMessageBrokerConnector, IRpcRequest, IRpcResponse } from '../app';

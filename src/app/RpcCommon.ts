@@ -2,8 +2,8 @@ import { EventEmitter } from 'events';
 import * as express from 'express-serve-static-core';
 
 import { injectable, IDependencyContainer, Guard,
-	ActionFactory, MinorException, Exception, InternalErrorException } from 'back-lib-common-util';
-import { ValidationError } from 'back-lib-common-contracts';
+	ActionFactory, MinorException, Exception, InternalErrorException } from '@micro-fleet/common-util';
+import { ValidationError } from '@micro-fleet/common-contracts';
 
 let descriptor = {
 	writable: false,

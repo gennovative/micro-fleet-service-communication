@@ -14,13 +14,13 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express = require("express");
 const bodyParser = require("body-parser");
-const back_lib_common_util_1 = require("back-lib-common-util");
+const common_util_1 = require("@micro-fleet/common-util");
 const rpc = require("./RpcCommon");
 let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rpc.RpcHandlerBase {
     constructor(depContainer) {
         super(depContainer);
         this._port = 30000;
-        this._container = back_lib_common_util_1.HandlerContainer.instance;
+        this._container = common_util_1.HandlerContainer.instance;
         this._container.dependencyContainer = depContainer;
     }
     get port() {
@@ -35,9 +35,9 @@ let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rp
      * @see IDirectRpcHandler.init
      */
     init(param) {
-        back_lib_common_util_1.Guard.assertIsFalsey(this._router, 'This RPC Caller is already initialized!');
-        back_lib_common_util_1.Guard.assertIsTruthy(this.name, '`name` property must be set!');
-        back_lib_common_util_1.Guard.assertIsTruthy(this.module, '`module` property must be set!');
+        common_util_1.Guard.assertIsFalsey(this._router, 'This RPC Caller is already initialized!');
+        common_util_1.Guard.assertIsTruthy(this.name, '`name` property must be set!');
+        common_util_1.Guard.assertIsTruthy(this.module, '`module` property must be set!');
         let app;
         app = this._app = (param && param.expressApp)
             ? param.expressApp
@@ -71,10 +71,10 @@ let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rp
      * @see IRpcHandler.handle
      */
     handle(actions, dependencyIdentifier, actionFactory) {
-        back_lib_common_util_1.Guard.assertIsDefined(this._router, '`init` method must be called first!');
+        common_util_1.Guard.assertIsDefined(this._router, '`init` method must be called first!');
         actions = Array.isArray(actions) ? actions : [actions];
         for (let a of actions) {
-            back_lib_common_util_1.Guard.assertIsMatch(ExpressRpcHandler_1.URL_TESTER, a, `Route "${a}" is not URL-safe!`);
+            common_util_1.Guard.assertIsMatch(ExpressRpcHandler_1.URL_TESTER, a, `Route "${a}" is not URL-safe!`);
             this._container.register(a, dependencyIdentifier, actionFactory);
             this._router.post(`/${a}`, this.onRequest.bind(this));
         }
@@ -90,7 +90,7 @@ let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rp
                     output.catch(reject); // Catch async exceptions.
                 }
             }
-            catch (err) {
+            catch (err) { // Catch normal exceptions.
                 reject(err);
             }
         }))
@@ -101,6 +101,7 @@ let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rp
             let statusCode = 500, errObj = this.createError(error);
             res.status(statusCode).send(this.createResponse(false, errObj, request.from));
         })
+            // Catch error thrown by `createError()`
             .catch(this.emitError.bind(this));
     }
 };
@@ -110,8 +111,8 @@ ExpressRpcHandler.URL_TESTER = (function () {
     return regexp;
 })();
 ExpressRpcHandler = ExpressRpcHandler_1 = __decorate([
-    back_lib_common_util_1.injectable(),
-    __param(0, back_lib_common_util_1.inject(back_lib_common_util_1.Types.DEPENDENCY_CONTAINER)),
+    common_util_1.injectable(),
+    __param(0, common_util_1.inject(common_util_1.Types.DEPENDENCY_CONTAINER)),
     __metadata("design:paramtypes", [Object])
 ], ExpressRpcHandler);
 exports.ExpressRpcHandler = ExpressRpcHandler;

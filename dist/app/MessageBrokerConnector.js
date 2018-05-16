@@ -21,7 +21,7 @@ const events_1 = require("events");
 const shortid = require("shortid");
 const amqp = require("amqplib");
 const _ = require("lodash");
-const back_lib_common_util_1 = require("back-lib-common-util");
+const common_util_1 = require("@micro-fleet/common-util");
 let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMessageBrokerConnector {
     constructor() {
         this._subscribedPatterns = [];
@@ -41,7 +41,7 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
      */
     set queue(name) {
         if (this._queueBound) {
-            throw new back_lib_common_util_1.MinorException('Cannot change queue after binding!');
+            throw new common_util_1.MinorException('Cannot change queue after binding!');
         }
         this._queue = name || `auto-gen-${shortid.generate()}`;
     }
@@ -56,7 +56,7 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
      */
     set messageExpiredIn(val) {
         if (this._queueBound) {
-            throw new back_lib_common_util_1.MinorException('Cannot change message expiration after queue has been bound!');
+            throw new common_util_1.MinorException('Cannot change message expiration after queue has been bound!');
         }
         this._messageExpiredIn = (val >= 0) ? val : 0; // Unlimited
     }
@@ -141,7 +141,7 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
         return __awaiter(this, void 0, void 0, function* () {
             this.assertConnection();
             if (this.isListening) {
-                throw new back_lib_common_util_1.MinorException('Must stop listening before deleting queue');
+                throw new common_util_1.MinorException('Must stop listening before deleting queue');
             }
             try {
                 let ch = yield this._consumeChanPrm;
@@ -172,7 +172,7 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
      */
     listen(onMessage, noAck = true) {
         return __awaiter(this, void 0, void 0, function* () {
-            back_lib_common_util_1.Guard.assertArgFunction('onMessage', onMessage);
+            common_util_1.Guard.assertArgFunction('onMessage', onMessage);
             this.assertConnection();
             try {
                 let ch = yield this._consumeChanPrm;
@@ -212,8 +212,8 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
      */
     publish(topic, payload, options) {
         return __awaiter(this, void 0, void 0, function* () {
-            back_lib_common_util_1.Guard.assertArgNotEmpty('topic', topic);
-            back_lib_common_util_1.Guard.assertArgNotEmpty('message', payload);
+            common_util_1.Guard.assertArgNotEmpty('topic', topic);
+            common_util_1.Guard.assertArgNotEmpty('message', payload);
             this.assertConnection();
             try {
                 if (!this._publishChanPrm) {
@@ -235,7 +235,7 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
      */
     subscribe(matchingPattern) {
         return __awaiter(this, void 0, void 0, function* () {
-            back_lib_common_util_1.Guard.assertArgNotEmpty('matchingPattern', matchingPattern);
+            common_util_1.Guard.assertArgNotEmpty('matchingPattern', matchingPattern);
             this.assertConnection();
             try {
                 let channelPromise = this._consumeChanPrm;
@@ -286,8 +286,8 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
         this._emitter.on('error', handler);
     }
     assertConnection() {
-        back_lib_common_util_1.Guard.assertIsDefined(this._connectionPrm, 'Connection to message broker is not established!');
-        back_lib_common_util_1.Guard.assertIsTruthy(this._isConnected || this._isConnecting, 'Connection to message broker is not established or has been disconnected!');
+        common_util_1.Guard.assertIsDefined(this._connectionPrm, 'Connection to message broker is not established!');
+        common_util_1.Guard.assertIsTruthy(this._isConnected || this._isConnecting, 'Connection to message broker is not established or has been disconnected!');
     }
     createConnection(credentials, options) {
         return this._connectionPrm = amqp.connect(`amqp://${credentials}${options.hostAddress}`)
@@ -411,11 +411,11 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
         return channelPromise.then(ch => ch.unbindQueue(this._queue, this._exchange, matchingPattern));
     }
     handleError(err, message) {
-        if (err instanceof back_lib_common_util_1.Exception) {
+        if (err instanceof common_util_1.Exception) {
             // If this is already a wrapped exception.
             return Promise.reject(err);
         }
-        return Promise.reject(new back_lib_common_util_1.CriticalException(`${message}: ${err}`));
+        return Promise.reject(new common_util_1.CriticalException(`${message}: ${err}`));
     }
     moreSub(pattern) {
         if (!this._subscribedPatterns.includes(pattern)) {
@@ -457,7 +457,7 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
 };
 TopicMessageBrokerConnector.CHANNEL_RECREATE_DELAY = 100; // Millisecs
 TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = __decorate([
-    back_lib_common_util_1.injectable(),
+    common_util_1.injectable(),
     __metadata("design:paramtypes", [])
 ], TopicMessageBrokerConnector);
 exports.TopicMessageBrokerConnector = TopicMessageBrokerConnector;

@@ -4,7 +4,7 @@ import * as spies from 'chai-spies';
 import * as express from 'express';
 import * as requestMaker from 'request-promise';
 import { inject, injectable, DependencyContainer, MinorException, Exception,
-	InternalErrorException } from 'back-lib-common-util';
+	InternalErrorException } from '@micro-fleet/common-util';
 
 import { ExpressRpcHandler, IDirectRpcHandler, IRpcRequest, IRpcResponse } from '../app';
 

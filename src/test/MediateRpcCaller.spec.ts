@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { expect } from 'chai';
-import { MinorException, InternalErrorException } from 'back-lib-common-util';
+import { MinorException, InternalErrorException } from '@micro-fleet/common-util';
 
 import { MessageBrokerRpcCaller, IMessage,
 	TopicMessageBrokerConnector, IRpcRequest, IRpcResponse } from '../app';

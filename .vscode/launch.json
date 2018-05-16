@@ -7,17 +7,36 @@
 		{
 			"type": "node",
 			"request": "launch",
-			"name": "Mocha Tests",
-			"program": "${workspaceRoot}/node_modules/mocha/bin/_mocha",
+			"name": "Launch Program",
+			"program": "${workspaceRoot}\\dist\\app\\index.js",
 			"args": [
-				"-u",
-				"tdd",
-				"--timeout",
-				"999999",
-				"--colors",
-				"${workspaceRoot}/dist/test"
 			],
-			"internalConsoleOptions": "openOnSessionStart"
+			"cwd": "${workspaceRoot}",
+			"outFiles": [],
+			"sourceMaps": true
+		},
+		{
+			"type": "node",
+			"request": "launch",
+			"name": "Mocha test",
+			"program": "${workspaceRoot}\\node_modules\\mocha\\bin\\_mocha",
+			"args": [
+				".\\dist\\test\\**\\*.js"
+			],
+			// Automatically stop program after launch.
+			"stopOnEntry": false,
+			// Workspace relative or absolute path to the runtime executable to be used. Default is the runtime executable on the PATH.
+			"runtimeExecutable": null,
+			"cwd": "${workspaceRoot}",
+			"outFiles": [],
+			"sourceMaps": true
+		},
+		{
+			"type": "node",
+			"request": "attach",
+			"name": "Attach to Process",
+			"port": 5858,
+			"outFiles": []
 		}
 	]
 }

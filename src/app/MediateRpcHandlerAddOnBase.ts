@@ -1,9 +1,9 @@
-import { SvcSettingKeys as S } from 'back-lib-common-constants';
-import { IConfigurationProvider } from 'back-lib-common-contracts';
-import { inject, injectable, unmanaged, Guard } from 'back-lib-common-util';
+import { IConfigurationProvider, constants } from '@micro-fleet/common-contracts';
+import { inject, injectable, unmanaged, Guard } from '@micro-fleet/common-util';
 
 import { IMediateRpcHandler } from './MediateRpcHandler';
 
+const { SvcSettingKeys: S } = constants;
 
 /**
  * Base class for MediateRpcAddOn.

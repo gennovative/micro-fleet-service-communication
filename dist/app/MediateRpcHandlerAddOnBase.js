@@ -12,8 +12,9 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const back_lib_common_constants_1 = require("back-lib-common-constants");
-const back_lib_common_util_1 = require("back-lib-common-util");
+const common_contracts_1 = require("@micro-fleet/common-contracts");
+const common_util_1 = require("@micro-fleet/common-util");
+const { SvcSettingKeys: S } = common_contracts_1.constants;
 /**
  * Base class for MediateRpcAddOn.
  */
@@ -21,15 +22,15 @@ let MediateRpcHandlerAddOnBase = class MediateRpcHandlerAddOnBase {
     constructor(_configProvider, _rpcHandler) {
         this._configProvider = _configProvider;
         this._rpcHandler = _rpcHandler;
-        back_lib_common_util_1.Guard.assertArgDefined('_configProvider', _configProvider);
-        back_lib_common_util_1.Guard.assertArgDefined('_rpcHandler', _rpcHandler);
+        common_util_1.Guard.assertArgDefined('_configProvider', _configProvider);
+        common_util_1.Guard.assertArgDefined('_rpcHandler', _rpcHandler);
     }
     /**
      * @see IServiceAddOn.init
      */
     init(moduleName = null) {
         this._rpcHandler.module = moduleName;
-        this._rpcHandler.name = this._configProvider.get(back_lib_common_constants_1.SvcSettingKeys.SERVICE_SLUG);
+        this._rpcHandler.name = this._configProvider.get(S.SERVICE_SLUG);
         this._rpcHandler.init();
         this.handleRequests();
         return this._rpcHandler.start();
@@ -54,9 +55,9 @@ let MediateRpcHandlerAddOnBase = class MediateRpcHandlerAddOnBase {
     }
 };
 MediateRpcHandlerAddOnBase = __decorate([
-    back_lib_common_util_1.injectable(),
-    __param(0, back_lib_common_util_1.unmanaged()),
-    __param(1, back_lib_common_util_1.unmanaged()),
+    common_util_1.injectable(),
+    __param(0, common_util_1.unmanaged()),
+    __param(1, common_util_1.unmanaged()),
     __metadata("design:paramtypes", [Object, Object])
 ], MediateRpcHandlerAddOnBase);
 exports.MediateRpcHandlerAddOnBase = MediateRpcHandlerAddOnBase;

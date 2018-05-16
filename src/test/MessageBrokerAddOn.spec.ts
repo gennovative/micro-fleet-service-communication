@@ -1,11 +1,12 @@
 import * as chai from 'chai';
 import * as spies from 'chai-spies';
 
-import { MbSettingKeys as S } from 'back-lib-common-constants';
-import { IConfigurationProvider } from 'back-lib-common-contracts';
+import { IConfigurationProvider, constants } from '@micro-fleet/common-contracts';
 
 import { IMessageBrokerConnector, IConnectionOptions, IPublishOptions,
 	MessageHandleFunction, MessageBrokerAddOn } from '../app';
+
+const { MbSettingKeys: S } = constants;
 
 
 chai.use(spies);

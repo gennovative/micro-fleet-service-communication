@@ -21,14 +21,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const shortid = require("shortid");
-const back_lib_common_util_1 = require("back-lib-common-util");
+const common_util_1 = require("@micro-fleet/common-util");
 const Types_1 = require("./Types");
 const rpc = require("./RpcCommon");
 let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerBase {
     constructor(_msgBrokerConn) {
         super();
         this._msgBrokerConn = _msgBrokerConn;
-        back_lib_common_util_1.Guard.assertArgDefined('_msgBrokerConn', _msgBrokerConn);
+        common_util_1.Guard.assertArgDefined('_msgBrokerConn', _msgBrokerConn);
         this._msgBrokerConn.queue = ''; // Make sure we only use temporary unique queue.
     }
     /**
@@ -53,8 +53,8 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
      * @see IRpcCaller.call
      */
     call(moduleName, action, params) {
-        back_lib_common_util_1.Guard.assertArgDefined('moduleName', moduleName);
-        back_lib_common_util_1.Guard.assertArgDefined('action', action);
+        common_util_1.Guard.assertArgDefined('moduleName', moduleName);
+        common_util_1.Guard.assertArgDefined('action', action);
         return new Promise((resolve, reject) => {
             // There are many requests to same `requestTopic` and they listen to same `responseTopic`,
             // A request only cares about a response with same `correlationId`.
@@ -79,7 +79,7 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
                 token = setTimeout(() => {
                     this._emitter && this._emitter.removeListener(correlationId, onMessage);
                     this._msgBrokerConn && conn.unsubscribe(replyTo).catch(() => { });
-                    reject(new back_lib_common_util_1.MinorException('Response waiting timeout'));
+                    reject(new common_util_1.MinorException('Response waiting timeout'));
                 }, this.timeout);
                 this._emitter.once(correlationId, onMessage);
                 return conn.listen((msg) => {
@@ -97,14 +97,14 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
                 return this._msgBrokerConn.publish(`request.${moduleName}.${action}`, request, { correlationId, replyTo });
             })
                 .catch(err => {
-                reject(new back_lib_common_util_1.MinorException(`RPC error: ${err}`));
+                reject(new common_util_1.MinorException(`RPC error: ${err}`));
             });
         });
     }
 };
 MessageBrokerRpcCaller = __decorate([
-    back_lib_common_util_1.injectable(),
-    __param(0, back_lib_common_util_1.inject(Types_1.Types.MSG_BROKER_CONNECTOR)),
+    common_util_1.injectable(),
+    __param(0, common_util_1.inject(Types_1.Types.MSG_BROKER_CONNECTOR)),
     __metadata("design:paramtypes", [Object])
 ], MessageBrokerRpcCaller);
 exports.MessageBrokerRpcCaller = MessageBrokerRpcCaller;

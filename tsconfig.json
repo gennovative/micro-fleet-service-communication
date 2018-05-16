@@ -9,6 +9,6 @@
 		"removeComments": false,
 		"noImplicitAny": false,
 		"allowSyntheticDefaultImports": true,
-		"lib": ["es2016", "dom"]
+		"lib": ["es2016"]
 	}
 }
