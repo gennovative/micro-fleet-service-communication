@@ -1,6 +1,7 @@
-.vscode
+**/.nyc_output
+**/.vscode
 **/node_modules
 **/*.log
-coverage
-dist/test
-dist/**/*.map
+**/coverage
+**/dist/test
+**/dist/**/*.map

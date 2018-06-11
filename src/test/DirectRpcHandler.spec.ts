@@ -182,7 +182,7 @@ describe('ExpressDirectRpcHandler', () => {
 
 		it('Should add a route path in case action name is resolved by factory.', done => {
 			// Arrange
-			const ACTION = 'deconst eProduct';
+			const ACTION = 'deleteProduct';
 
 			depContainer.bind<NormalProductController>(CONTROLLER_NORM, NormalProductController);
 
@@ -208,7 +208,7 @@ describe('ExpressDirectRpcHandler', () => {
 						done();
 					})
 					.catch(rawResponse => {
-						console.error(rawResponse.error);
+						console.error(rawResponse.error || rawResponse);
 					});
 				});
 		});
