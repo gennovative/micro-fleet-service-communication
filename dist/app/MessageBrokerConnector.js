@@ -8,14 +8,6 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 var TopicMessageBrokerConnector_1;
 "use strict";
@@ -97,189 +89,171 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
     /**
      * @see IMessageBrokerConnector.disconnect
      */
-    disconnect() {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                if (!this._connectionPrm || (!this._isConnected && !this._isConnecting)) {
-                    return Promise.resolve();
-                }
-                let ch, promises = [];
-                if (this._consumeChanPrm) {
-                    ch = yield this._consumeChanPrm;
-                    ch.removeAllListeners();
-                    // Close consuming channel
-                    promises.push(ch.close());
-                }
-                if (this._publishChanPrm) {
-                    ch = yield this._publishChanPrm;
-                    ch.removeAllListeners();
-                    // Close publishing channel
-                    promises.push(ch.close());
-                }
-                // Make sure all channels are closed before we close connection.
-                // Otherwise we will have dangling channels until application shuts down.
-                yield Promise.all(promises);
-                if (this._connectionPrm) {
-                    let conn = yield this._connectionPrm;
-                    conn.removeAllListeners();
-                    // Close connection, causing all temp queues to be deleted.
-                    return conn.close();
-                }
+    async disconnect() {
+        try {
+            if (!this._connectionPrm || (!this._isConnected && !this._isConnecting)) {
+                return Promise.resolve();
             }
-            catch (err) {
-                return this.handleError(err, 'Connection closing error');
+            let ch, promises = [];
+            if (this._consumeChanPrm) {
+                ch = await this._consumeChanPrm;
+                ch.removeAllListeners();
+                // Close consuming channel
+                promises.push(ch.close());
             }
-            finally {
-                this._connectionPrm = null;
-                this._publishChanPrm = null;
-                this._consumeChanPrm = null;
+            if (this._publishChanPrm) {
+                ch = await this._publishChanPrm;
+                ch.removeAllListeners();
+                // Close publishing channel
+                promises.push(ch.close());
             }
-        });
+            // Make sure all channels are closed before we close connection.
+            // Otherwise we will have dangling channels until application shuts down.
+            await Promise.all(promises);
+            if (this._connectionPrm) {
+                let conn = await this._connectionPrm;
+                conn.removeAllListeners();
+                // Close connection, causing all temp queues to be deleted.
+                return conn.close();
+            }
+        }
+        catch (err) {
+            return this.handleError(err, 'Connection closing error');
+        }
+        finally {
+            this._connectionPrm = null;
+            this._publishChanPrm = null;
+            this._consumeChanPrm = null;
+        }
     }
     /**
      * @see IMessageBrokerConnector.deleteQueue
      */
-    deleteQueue() {
-        return __awaiter(this, void 0, void 0, function* () {
-            this.assertConnection();
-            if (this.isListening) {
-                throw new common_1.MinorException('Must stop listening before deleting queue');
-            }
-            try {
-                let ch = yield this._consumeChanPrm;
-                yield ch.deleteQueue(this.queue);
-            }
-            catch (err) {
-                return this.handleError(err, 'Queue deleting failed');
-            }
-        });
+    async deleteQueue() {
+        this.assertConnection();
+        if (this.isListening) {
+            throw new common_1.MinorException('Must stop listening before deleting queue');
+        }
+        try {
+            let ch = await this._consumeChanPrm;
+            await ch.deleteQueue(this.queue);
+        }
+        catch (err) {
+            return this.handleError(err, 'Queue deleting failed');
+        }
     }
     /**
      * @see IMessageBrokerConnector.emptyQueue
      */
-    emptyQueue() {
-        return __awaiter(this, void 0, void 0, function* () {
-            this.assertConnection();
-            try {
-                let ch = yield this._consumeChanPrm, result = yield ch.purgeQueue(this.queue);
-                return result.messageCount;
-            }
-            catch (err) {
-                return this.handleError(err, 'Queue emptying failed');
-            }
-        });
+    async emptyQueue() {
+        this.assertConnection();
+        try {
+            let ch = await this._consumeChanPrm, result = await ch.purgeQueue(this.queue);
+            return result.messageCount;
+        }
+        catch (err) {
+            return this.handleError(err, 'Queue emptying failed');
+        }
     }
     /**
      * @see IMessageBrokerConnector.listen
      */
-    listen(onMessage, noAck = true) {
-        return __awaiter(this, void 0, void 0, function* () {
-            common_1.Guard.assertArgFunction('onMessage', onMessage);
-            this.assertConnection();
-            try {
-                let ch = yield this._consumeChanPrm;
-                let conResult = yield ch.consume(this.queue, (msg) => {
-                    let ack = () => ch.ack(msg), nack = () => ch.nack(msg);
-                    onMessage(this.parseMessage(msg), ack, nack);
-                }, { noAck });
-                this._consumerTag = conResult.consumerTag;
-            }
-            catch (err) {
-                return this.handleError(err, 'Error when start listening');
-            }
-        });
+    async listen(onMessage, noAck = true) {
+        common_1.Guard.assertArgFunction('onMessage', onMessage);
+        this.assertConnection();
+        try {
+            let ch = await this._consumeChanPrm;
+            let conResult = await ch.consume(this.queue, (msg) => {
+                let ack = () => ch.ack(msg), nack = () => ch.nack(msg);
+                onMessage(this.parseMessage(msg), ack, nack);
+            }, { noAck });
+            this._consumerTag = conResult.consumerTag;
+        }
+        catch (err) {
+            return this.handleError(err, 'Error when start listening');
+        }
     }
     /**
      * @see IMessageBrokerConnector.stopListen
      */
-    stopListen() {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (!this.isListening) {
-                return Promise.resolve();
-            }
-            this.assertConnection();
-            try {
-                let ch = yield this._consumeChanPrm;
-                // onMessage callback will never be called again.
-                yield ch.cancel(this._consumerTag);
-                this._consumerTag = null;
-            }
-            catch (err) {
-                return this.handleError(err, 'Error when stop listening');
-            }
-        });
+    async stopListen() {
+        if (!this.isListening) {
+            return Promise.resolve();
+        }
+        this.assertConnection();
+        try {
+            let ch = await this._consumeChanPrm;
+            // onMessage callback will never be called again.
+            await ch.cancel(this._consumerTag);
+            this._consumerTag = null;
+        }
+        catch (err) {
+            return this.handleError(err, 'Error when stop listening');
+        }
     }
     /**
      * @see IMessageBrokerConnector.publish
      */
-    publish(topic, payload, options) {
-        return __awaiter(this, void 0, void 0, function* () {
-            common_1.Guard.assertArgNotEmpty('topic', topic);
-            common_1.Guard.assertArgNotEmpty('message', payload);
-            this.assertConnection();
-            try {
-                if (!this._publishChanPrm) {
-                    // Create a new publishing channel if there is not already, and from now on we publish to this only channel.
-                    this._publishChanPrm = this.createPublishChannel();
-                }
-                let ch = yield this._publishChanPrm;
-                let [msg, opts] = this.buildMessage(payload, options);
-                // We publish to exchange, then the exchange will route to appropriate consuming queue.
-                ch.publish(this._exchange, topic, msg, opts);
+    async publish(topic, payload, options) {
+        common_1.Guard.assertArgNotEmpty('topic', topic);
+        common_1.Guard.assertArgNotEmpty('message', payload);
+        this.assertConnection();
+        try {
+            if (!this._publishChanPrm) {
+                // Create a new publishing channel if there is not already, and from now on we publish to this only channel.
+                this._publishChanPrm = this.createPublishChannel();
             }
-            catch (err) {
-                return this.handleError(err, 'Publishing error');
-            }
-        });
+            let ch = await this._publishChanPrm;
+            let [msg, opts] = this.buildMessage(payload, options);
+            // We publish to exchange, then the exchange will route to appropriate consuming queue.
+            ch.publish(this._exchange, topic, msg, opts);
+        }
+        catch (err) {
+            return this.handleError(err, 'Publishing error');
+        }
     }
     /**
      * @see IMessageBrokerConnector.subscribe
      */
-    subscribe(matchingPattern) {
-        return __awaiter(this, void 0, void 0, function* () {
-            common_1.Guard.assertArgNotEmpty('matchingPattern', matchingPattern);
-            this.assertConnection();
-            try {
-                let channelPromise = this._consumeChanPrm;
-                if (!channelPromise) {
-                    // Create a new consuming channel if there is not already, and from now on we listen to this only channel.
-                    channelPromise = this._consumeChanPrm = this.createConsumeChannel();
-                }
-                // The consuming channel should bind to only one queue, but that queue can be routed with multiple keys.
-                yield this.bindQueue(yield channelPromise, matchingPattern);
-                this.moreSub(matchingPattern);
+    async subscribe(matchingPattern) {
+        common_1.Guard.assertArgNotEmpty('matchingPattern', matchingPattern);
+        this.assertConnection();
+        try {
+            let channelPromise = this._consumeChanPrm;
+            if (!channelPromise) {
+                // Create a new consuming channel if there is not already, and from now on we listen to this only channel.
+                channelPromise = this._consumeChanPrm = this.createConsumeChannel();
             }
-            catch (err) {
-                return this.handleError(err, 'Subscription error');
-            }
-        });
+            // The consuming channel should bind to only one queue, but that queue can be routed with multiple keys.
+            await this.bindQueue(await channelPromise, matchingPattern);
+            this.moreSub(matchingPattern);
+        }
+        catch (err) {
+            return this.handleError(err, 'Subscription error');
+        }
     }
     /**
      * @see IMessageBrokerConnector.unsubscribe
      */
-    unsubscribe(matchingPattern) {
-        return __awaiter(this, void 0, void 0, function* () {
-            this.assertConnection();
-            try {
-                if (!this._consumeChanPrm) {
-                    return;
-                }
-                this.lessSub(matchingPattern);
-                let ch = yield this._consumeChanPrm;
-                yield ch.unbindQueue(this._queue, this._exchange, matchingPattern);
+    async unsubscribe(matchingPattern) {
+        this.assertConnection();
+        try {
+            if (!this._consumeChanPrm) {
+                return;
             }
-            catch (err) {
-                return this.handleError(err, `Failed to unsubscribe pattern "${matchingPattern}"`);
-            }
-        });
+            this.lessSub(matchingPattern);
+            let ch = await this._consumeChanPrm;
+            await ch.unbindQueue(this._queue, this._exchange, matchingPattern);
+        }
+        catch (err) {
+            return this.handleError(err, `Failed to unsubscribe pattern "${matchingPattern}"`);
+        }
     }
     /**
      * @see IMessageBrokerConnector.unsubscribeAll
      */
-    unsubscribeAll() {
-        return __awaiter(this, void 0, void 0, function* () {
-            return Promise.all(this._subscribedPatterns.map(this.unsubscribe.bind(this)));
-        });
+    async unsubscribeAll() {
+        return Promise.all(this._subscribedPatterns.map(this.unsubscribe.bind(this)));
     }
     /**
      * @see IMessageBrokerConnector.onError
@@ -334,80 +308,72 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
                 .then(() => this.createPublishChannel());
         }
     }
-    createConsumeChannel() {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.createChannel()
-                .then(ch => {
-                ch.once('close', () => {
-                    let oldCh = this._consumeChanPrm;
-                    // Delay a little bit to see if underlying connection is still alive
-                    setTimeout(() => {
-                        // If connection has reset and already created new channels
-                        if (this._consumeChanPrm !== oldCh) {
-                            return;
-                        }
-                        this._consumeChanPrm = this.createConsumeChannel();
-                    }, TopicMessageBrokerConnector_1.CHANNEL_RECREATE_DELAY);
-                });
-                return ch;
+    async createConsumeChannel() {
+        return this.createChannel()
+            .then(ch => {
+            ch.once('close', () => {
+                let oldCh = this._consumeChanPrm;
+                // Delay a little bit to see if underlying connection is still alive
+                setTimeout(() => {
+                    // If connection has reset and already created new channels
+                    if (this._consumeChanPrm !== oldCh) {
+                        return;
+                    }
+                    this._consumeChanPrm = this.createConsumeChannel();
+                }, TopicMessageBrokerConnector_1.CHANNEL_RECREATE_DELAY);
             });
+            return ch;
         });
     }
-    createPublishChannel() {
-        return __awaiter(this, void 0, void 0, function* () {
-            return this.createChannel()
-                .then(ch => {
-                ch.once('close', () => {
-                    let oldCh = this._publishChanPrm;
-                    // Delay a little bit to see if underlying connection is still alive
-                    setTimeout(() => {
-                        // If connection has reset and already created new channels
-                        if (this._publishChanPrm !== oldCh) {
-                            return;
-                        }
-                        this._publishChanPrm = this.createPublishChannel();
-                    }, TopicMessageBrokerConnector_1.CHANNEL_RECREATE_DELAY);
-                });
-                return ch;
+    async createPublishChannel() {
+        return this.createChannel()
+            .then(ch => {
+            ch.once('close', () => {
+                let oldCh = this._publishChanPrm;
+                // Delay a little bit to see if underlying connection is still alive
+                setTimeout(() => {
+                    // If connection has reset and already created new channels
+                    if (this._publishChanPrm !== oldCh) {
+                        return;
+                    }
+                    this._publishChanPrm = this.createPublishChannel();
+                }, TopicMessageBrokerConnector_1.CHANNEL_RECREATE_DELAY);
             });
+            return ch;
         });
     }
-    createChannel() {
-        return __awaiter(this, void 0, void 0, function* () {
-            const EXCHANGE_TYPE = 'topic';
-            try {
-                let conn = yield this._connectionPrm, ch = yield conn.createChannel();
-                // Tell message broker to create an exchange with this name if there's not any already.
-                // Setting exchange as "durable" means the exchange with same name will be re-created after the message broker restarts,
-                // but all queues and waiting messages will be lost.
-                yield ch.assertExchange(this._exchange, EXCHANGE_TYPE, { durable: true });
-                ch.on('error', (err) => {
-                    this._emitter.emit('error', err);
-                });
-                return ch;
-            }
-            catch (err) {
-                return this.handleError(err, 'Channel creation error');
-            }
-        });
+    async createChannel() {
+        const EXCHANGE_TYPE = 'topic';
+        try {
+            let conn = await this._connectionPrm, ch = await conn.createChannel();
+            // Tell message broker to create an exchange with this name if there's not any already.
+            // Setting exchange as "durable" means the exchange with same name will be re-created after the message broker restarts,
+            // but all queues and waiting messages will be lost.
+            await ch.assertExchange(this._exchange, EXCHANGE_TYPE, { durable: true });
+            ch.on('error', (err) => {
+                this._emitter.emit('error', err);
+            });
+            return ch;
+        }
+        catch (err) {
+            return this.handleError(err, 'Channel creation error');
+        }
     }
-    bindQueue(channel, matchingPattern) {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                let queue = this.queue, isTempQueue = (queue.indexOf('auto-gen') == 0);
-                // Setting queue as "exclusive" to delete the temp queue when connection closes.
-                yield channel.assertQueue(queue, {
-                    exclusive: isTempQueue,
-                    messageTtl: this.messageExpiredIn,
-                    autoDelete: true
-                });
-                yield channel.bindQueue(queue, this._exchange, matchingPattern);
-                this._queueBound = true;
-            }
-            catch (err) {
-                return this.handleError(err, 'Queue binding error');
-            }
-        });
+    async bindQueue(channel, matchingPattern) {
+        try {
+            let queue = this.queue, isTempQueue = (queue.indexOf('auto-gen') == 0);
+            // Setting queue as "exclusive" to delete the temp queue when connection closes.
+            await channel.assertQueue(queue, {
+                exclusive: isTempQueue,
+                messageTtl: this.messageExpiredIn,
+                autoDelete: true
+            });
+            await channel.bindQueue(queue, this._exchange, matchingPattern);
+            this._queueBound = true;
+        }
+        catch (err) {
+            return this.handleError(err, 'Queue binding error');
+        }
     }
     handleError(err, message) {
         if (err instanceof common_1.Exception) {

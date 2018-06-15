@@ -11,14 +11,6 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const shortid = require("shortid");
 const common_1 = require("@micro-fleet/common");
@@ -42,12 +34,9 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
     /**
      * @see IRpcCaller.dispose
      */
-    dispose() {
-        const _super = name => super[name];
-        return __awaiter(this, void 0, void 0, function* () {
-            yield _super("dispose").call(this);
-            this._msgBrokerConn = null;
-        });
+    async dispose() {
+        await super.dispose();
+        this._msgBrokerConn = null;
     }
     /**
      * @see IRpcCaller.call
@@ -62,11 +51,11 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
             conn.subscribe(replyTo)
                 .then(() => {
                 let token;
-                let onMessage = (msg) => __awaiter(this, void 0, void 0, function* () {
+                let onMessage = async (msg) => {
                     clearTimeout(token);
                     // We got what we want, stop consuming.
-                    yield conn.unsubscribe(replyTo);
-                    yield conn.stopListen();
+                    await conn.unsubscribe(replyTo);
+                    await conn.stopListen();
                     let response = msg.data;
                     if (response.isSuccess) {
                         resolve(response);
@@ -74,7 +63,7 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
                     else {
                         reject(this.rebuildError(response.payload));
                     }
-                });
+                };
                 // In case this request never has response.
                 token = setTimeout(() => {
                     this._emitter && this._emitter.removeListener(correlationId, onMessage);
