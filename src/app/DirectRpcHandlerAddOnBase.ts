@@ -12,6 +12,8 @@ const { RpcSettingKeys: RpcS, SvcSettingKeys: SvcS } = constants;
 @injectable()
 export abstract class DirectRpcHandlerAddOnBase implements IServiceAddOn {
 
+	public abstract name: string;
+
 	constructor(
 		@unmanaged() protected _configProvider: IConfigurationProvider,
 		@unmanaged() protected _rpcHandler: IDirectRpcHandler

@@ -11,6 +11,8 @@ const { SvcSettingKeys: S } = constants;
 @injectable()
 export abstract class MediateRpcHandlerAddOnBase implements IServiceAddOn {
 
+	public abstract name: string;
+
 	protected abstract controllerIdentifier: string | symbol;
 
 	constructor(

@@ -19,6 +19,7 @@ let MessageBrokerAddOn = class MessageBrokerAddOn {
     constructor(_configProvider, _msgBrokerCnn) {
         this._configProvider = _configProvider;
         this._msgBrokerCnn = _msgBrokerCnn;
+        this.name = 'MessageBrokerAddOn';
         common_1.Guard.assertArgDefined('_configProvider', _configProvider);
         common_1.Guard.assertArgDefined('_msgBrokerCnn', _msgBrokerCnn);
     }

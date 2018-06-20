@@ -10,6 +10,8 @@ const { MbSettingKeys: S } = constants;
 @injectable()
 export class MessageBrokerAddOn implements IServiceAddOn {
 
+	public readonly name: string = 'MessageBrokerAddOn';
+
 	constructor(
 		@inject(ConT.CONFIG_PROVIDER) private _configProvider: IConfigurationProvider,
 		@inject(T.MSG_BROKER_CONNECTOR) private _msgBrokerCnn: IMessageBrokerConnector

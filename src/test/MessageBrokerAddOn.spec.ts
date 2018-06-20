@@ -13,6 +13,8 @@ const expect = chai.expect;
 
 class MockConfigAddOn implements IConfigurationProvider {
 
+	public readonly name: string = 'MockConfigAddOn';
+
 	get enableRemote(): boolean {
 		return true;
 	}

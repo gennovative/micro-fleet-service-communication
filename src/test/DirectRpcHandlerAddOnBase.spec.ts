@@ -15,7 +15,9 @@ const SERVICE_SLUG = 'test-service',
 	HANDLER_PORT = 30000;
 
 class MockConfigProvider implements IConfigurationProvider {
-	
+
+	public readonly name: string = 'MockConfigProvider';
+
 	get enableRemote(): boolean {
 		return true;
 	}
@@ -52,6 +54,8 @@ class MockConfigProvider implements IConfigurationProvider {
 
 @injectable()
 class CustomAddOn extends DirectRpcHandlerAddOnBase {
+
+	public readonly name: string = 'CustomAddOn';
 
 	constructor(
 		@inject(ConT.CONFIG_PROVIDER) configProvider: IConfigurationProvider,

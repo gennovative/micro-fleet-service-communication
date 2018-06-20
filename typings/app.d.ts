@@ -205,6 +205,7 @@ declare module '@micro-fleet/service-communication/dist/app/DirectRpcHandlerAddO
 	export abstract class DirectRpcHandlerAddOnBase implements IServiceAddOn {
 	    protected _configProvider: IConfigurationProvider;
 	    protected _rpcHandler: IDirectRpcHandler;
+	    abstract name: string;
 	    constructor(_configProvider: IConfigurationProvider, _rpcHandler: IDirectRpcHandler);
 	    /**
 	     * @see IServiceAddOn.init
@@ -494,6 +495,7 @@ declare module '@micro-fleet/service-communication/dist/app/MediateRpcHandlerAdd
 	export abstract class MediateRpcHandlerAddOnBase implements IServiceAddOn {
 	    protected _configProvider: IConfigurationProvider;
 	    protected _rpcHandler: IMediateRpcHandler;
+	    abstract name: string;
 	    protected abstract controllerIdentifier: string | symbol;
 	    constructor(_configProvider: IConfigurationProvider, _rpcHandler: IMediateRpcHandler);
 	    /**
@@ -516,7 +518,8 @@ declare module '@micro-fleet/service-communication/dist/app/MessageBrokerAddOn' 
 	import { IConfigurationProvider } from '@micro-fleet/common';
 	import { IMessageBrokerConnector } from '@micro-fleet/service-communication/dist/app/MessageBrokerConnector';
 	export class MessageBrokerAddOn implements IServiceAddOn {
-	    	    	    constructor(_configProvider: IConfigurationProvider, _msgBrokerCnn: IMessageBrokerConnector);
+	    	    	    readonly name: string;
+	    constructor(_configProvider: IConfigurationProvider, _msgBrokerCnn: IMessageBrokerConnector);
 	    /**
 	     * @see IServiceAddOn.init
 	     */

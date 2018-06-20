@@ -19,7 +19,9 @@ const SERVICE_SLUG = 'test-service',
 
 
 class MockConfigProvider implements IConfigurationProvider {
-	
+
+	public readonly name: string = 'MockConfigProvider';
+
 	get enableRemote(): boolean {
 		return true;
 	}
@@ -107,6 +109,8 @@ class MockMbConnector implements IMessageBrokerConnector {
 
 @injectable()
 class CustomAddOn extends MediateRpcHandlerAddOnBase {
+
+	public readonly name: string = 'CustomAddOn';
 
 	protected controllerIdentifier: string | symbol;
 
