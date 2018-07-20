@@ -11,7 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const request = require("request-promise");
 const common_1 = require("@micro-fleet/common");
-const rpc = require("./RpcCommon");
+const rpc = require("../RpcCommon");
 let HttpRpcCaller = class HttpRpcCaller extends rpc.RpcCallerBase {
     constructor() {
         super();

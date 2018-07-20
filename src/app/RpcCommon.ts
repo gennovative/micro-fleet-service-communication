@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 
-import { injectable, IDependencyContainer, Guard,
-	ActionFactory, MinorException, Exception, InternalErrorException,
+import { injectable, IDependencyContainer,
+	MinorException, Exception, InternalErrorException,
 	ValidationError } from '@micro-fleet/common';
 
 const descriptor = {
@@ -91,7 +91,7 @@ export interface IRpcCaller {
 }
 
 
-export type RpcControllerFunction = (requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest) => any;
+export type RpcHandlerFunction = (requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest) => any;
 
 export interface IRpcHandler {
 	/**
@@ -102,7 +102,7 @@ export interface IRpcHandler {
 	/**
 	 * A name used to construct subscription topic.
 	 */
-	module: string;
+	// module: string;
 	
 	/**
 	 * Sets up this RPC handler with specified `param`. Each implementation class requires
@@ -115,7 +115,8 @@ export interface IRpcHandler {
 	 * calls instance's `action` method. If `customAction` is specified, 
 	 * calls instance's `customAction` instead.
 	 */
-	handle(action: string | string[], dependencyIdentifier: string | symbol, actionFactory?: ActionFactory): any;
+	handle(module: string, actionName: string, handler: RpcHandlerFunction): void;
+	// handle(action: string, module: string | symbol, actionFactory?: ActionFactory): any;
 
 	/**
 	 * Registers a listener to handle errors.
@@ -212,13 +213,12 @@ export abstract class RpcHandlerBase {
 	/**
 	 * @see IRpcHandler.module
 	 */
-	public module: string;
+	// public module: string;
 
 	protected _emitter: EventEmitter;
 
 
-	constructor(protected _depContainer: IDependencyContainer) {
-		Guard.assertArgDefined('_depContainer', _depContainer);
+	constructor(protected _depContainer?: IDependencyContainer) {
 		this._emitter = new EventEmitter();
 	}
 
@@ -252,7 +252,7 @@ export abstract class RpcHandlerBase {
 			// back to caller on purpose.
 			errObj.type = rawError.name;
 			errObj.message = rawError.message;
-			errObj.detail = rawError['details'];
+			errObj.details = rawError['details'];
 		} else if ((rawError instanceof Error) || (rawError instanceof Exception)) {
 			// If error is an uncaught Exception/Error object, that means the action method
 			// has a problem. We should not send it back to caller.

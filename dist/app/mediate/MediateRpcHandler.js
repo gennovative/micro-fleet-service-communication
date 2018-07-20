@@ -13,21 +13,19 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const common_1 = require("@micro-fleet/common");
-const Types_1 = require("./Types");
-const rpc = require("./RpcCommon");
+const Types_1 = require("../Types");
+const rpc = require("../RpcCommon");
 let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandlerBase {
-    constructor(depContainer, _msgBrokerConn) {
-        super(depContainer);
+    constructor(_msgBrokerConn) {
+        super();
         this._msgBrokerConn = _msgBrokerConn;
         common_1.Guard.assertArgDefined('_msgBrokerConn', _msgBrokerConn);
-        this._container = common_1.HandlerContainer.instance;
-        this._container.dependencyContainer = depContainer;
     }
     /**
      * @see IRpcHandler.init
      */
     init(params) {
-        this._msgBrokerConn && this._msgBrokerConn.onError(err => this.emitError(err));
+        this._msgBrokerConn.onError(err => this.emitError(err));
     }
     /**
      * @see IRpcHandler.start
@@ -48,28 +46,44 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
     /**
      * @see IMediateRpcHandler.handle
      */
-    async handle(actions, dependencyIdentifier, actionFactory) {
+    async handle(moduleName, actionName, handler) {
         common_1.Guard.assertIsDefined(this.name, '`name` property is required.');
-        common_1.Guard.assertIsDefined(this.module, '`module` property is required.');
-        actions = Array.isArray(actions) ? actions : [actions];
-        return Promise.all(actions.map(a => {
-            this._container.register(a, dependencyIdentifier, actionFactory);
-            return this._msgBrokerConn.subscribe(`request.${this.module}.${a}`);
-        }));
+        const key = `${moduleName}.${actionName}`;
+        if (this._handlers.has(key)) {
+            console.warn(`MediateRpcHandler Warning: Override existing subscription key ${key}`);
+        }
+        this._handlers.set(key, handler);
+        return this._msgBrokerConn.subscribe(`request.${key}`);
+        // return <any>Promise.all(
+        // 	actions.map(a => {
+        // 		this._container.register(a, dependencyIdentifier, actionFactory);
+        // 	})
+        // );
     }
     /**
      * @see IMediateRpcHandler.handleCRUD
      */
-    handleCRUD(dependencyIdentifier, actionFactory) {
-        return this.handle(['countAll', 'create', 'delete', 'find', 'patch', 'update'], dependencyIdentifier, actionFactory);
-    }
+    // public handleCRUD(dependencyIdentifier: string, actionFactory?: ActionFactory): Promise<void> {
+    // 	return this.handle(
+    // 		['countAll', 'create', 'delete', 'find', 'patch', 'update'],
+    // 		dependencyIdentifier, actionFactory
+    // 	);
+    // }
     onMessage(msg) {
-        let action = msg.raw.fields.routingKey.match(/[^\.]+$/)[0], request = msg.data, correlationId = msg.properties.correlationId, replyTo = msg.properties.replyTo;
+        const request = msg.data;
+        const correlationId = msg.properties.correlationId;
+        const replyTo = msg.properties.replyTo;
         (new Promise((resolve, reject) => {
-            let actionFn = this._container.resolve(action);
+            // Extract "module.action" out of "request.module.action"
+            const routingKey = msg.raw.fields.routingKey;
+            const key = routingKey.match(/[^\.]+\.[^\.]+$/)[0];
             try {
+                if (!this._handlers.has(key)) {
+                    throw new common_1.MinorException(`No handlers for request ${routingKey}`);
+                }
+                const actionFn = this._handlers.get(key);
                 // Execute controller's action
-                let output = actionFn(request.payload, resolve, reject, request);
+                const output = actionFn(request.payload, resolve, reject, request);
                 if (output instanceof Promise) {
                     output.catch(reject); // Catch async exceptions.
                 }
@@ -93,9 +107,8 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
 };
 MessageBrokerRpcHandler = __decorate([
     common_1.injectable(),
-    __param(0, common_1.inject(common_1.Types.DEPENDENCY_CONTAINER)),
-    __param(1, common_1.inject(Types_1.Types.MSG_BROKER_CONNECTOR)),
-    __metadata("design:paramtypes", [Object, Object])
+    __param(0, common_1.inject(Types_1.Types.MSG_BROKER_CONNECTOR)),
+    __metadata("design:paramtypes", [Object])
 ], MessageBrokerRpcHandler);
 exports.MessageBrokerRpcHandler = MessageBrokerRpcHandler;
 //# sourceMappingURL=MediateRpcHandler.js.map

@@ -14,8 +14,8 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const shortid = require("shortid");
 const common_1 = require("@micro-fleet/common");
-const Types_1 = require("./Types");
-const rpc = require("./RpcCommon");
+const Types_1 = require("../Types");
+const rpc = require("../RpcCommon");
 let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerBase {
     constructor(_msgBrokerConn) {
         super();

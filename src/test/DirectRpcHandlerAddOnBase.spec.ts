@@ -2,7 +2,7 @@ import * as chai from 'chai';
 import * as spies from 'chai-spies';
 
 import { IConfigurationProvider, Types as ConT, constants, Maybe,
-	injectable, inject, DependencyContainer } from '@micro-fleet/common';
+	injectable, inject, /*DependencyContainer*/ } from '@micro-fleet/common';
 import { IDirectRpcHandler, ExpressRpcHandler,
 	DirectRpcHandlerAddOnBase, Types as ComT } from '../app';
 
@@ -90,20 +90,20 @@ class CustomAddOn extends DirectRpcHandlerAddOnBase {
 	 */
 	protected handleRequests(): void {
 		super.handleRequests();
-		this._rpcHandler.handle('add', '');
+		// this._rpcHandler.handle('add', '');
 	}
 }
 
 
-let depContainer: DependencyContainer,
-	handler: IDirectRpcHandler,
+// let depContainer: DependencyContainer;
+let handler: IDirectRpcHandler,
 	addon: CustomAddOn;
 
 describe('DirectRpcHandlerAddOnBase', () => {
 
 	beforeEach(() => {
-		depContainer = new DependencyContainer();
-		handler = new ExpressRpcHandler(depContainer);
+		// depContainer = new DependencyContainer();
+		handler = new ExpressRpcHandler();
 		addon = new CustomAddOn(new MockConfigProvider(), handler);
 	});
 
@@ -113,7 +113,6 @@ describe('DirectRpcHandlerAddOnBase', () => {
 			await addon.init();
 
 			// Assert
-			expect(addon['_rpcHandler'].module).to.equal(MODULE_NAME);
 			expect(addon['_rpcHandler'].name).to.equal(SERVICE_SLUG);
 			expect(addon['_rpcHandler'].port).to.equal(HANDLER_PORT);
 

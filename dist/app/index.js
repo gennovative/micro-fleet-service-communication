@@ -4,12 +4,12 @@ function __export(m) {
 }
 Object.defineProperty(exports, "__esModule", { value: true });
 __export(require("./RpcCommon"));
-__export(require("./DirectRpcCaller"));
-__export(require("./DirectRpcHandler"));
-__export(require("./DirectRpcHandlerAddOnBase"));
-__export(require("./MediateRpcCaller"));
-__export(require("./MediateRpcHandler"));
-__export(require("./MediateRpcHandlerAddOnBase"));
+__export(require("./direct/DirectRpcCaller"));
+__export(require("./direct/DirectRpcHandler"));
+__export(require("./direct/DirectRpcHandlerAddOnBase"));
+__export(require("./mediate/MediateRpcCaller"));
+__export(require("./mediate/MediateRpcHandler"));
+__export(require("./mediate/MediateRpcHandlerAddOnBase"));
 __export(require("./MessageBrokerAddOn"));
 __export(require("./MessageBrokerConnector"));
 __export(require("./Types"));

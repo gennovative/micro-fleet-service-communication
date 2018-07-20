@@ -91,7 +91,6 @@ exports.RpcCallerBase = RpcCallerBase;
 let RpcHandlerBase = class RpcHandlerBase {
     constructor(_depContainer) {
         this._depContainer = _depContainer;
-        common_1.Guard.assertArgDefined('_depContainer', _depContainer);
         this._emitter = new events_1.EventEmitter();
     }
     /**
@@ -119,7 +118,7 @@ let RpcHandlerBase = class RpcHandlerBase {
             // back to caller on purpose.
             errObj.type = rawError.name;
             errObj.message = rawError.message;
-            errObj.detail = rawError['details'];
+            errObj.details = rawError['details'];
         }
         else if ((rawError instanceof Error) || (rawError instanceof common_1.Exception)) {
             // If error is an uncaught Exception/Error object, that means the action method

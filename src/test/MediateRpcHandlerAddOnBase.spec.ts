@@ -2,7 +2,7 @@ import * as chai from 'chai';
 import * as spies from 'chai-spies';
 
 import { IConfigurationProvider, Types as ConT, constants, Maybe,
-	injectable, inject, DependencyContainer } from '@micro-fleet/common';
+	injectable, inject, /*DependencyContainer*/ } from '@micro-fleet/common';
 import { IMediateRpcHandler, IMessageBrokerConnector,
 	IConnectionOptions, IPublishOptions, MessageHandleFunction,
 	MediateRpcHandlerAddOnBase, MessageBrokerRpcHandler,
@@ -148,13 +148,13 @@ class CustomAddOn extends MediateRpcHandlerAddOnBase {
 	 */
 	protected handleRequests(): void {
 		super.handleRequests();
-		this._rpcHandler.handle('add', '');
+		// this._rpcHandler.handle('add', '');
 	}
 }
 
 
 let connector: IMessageBrokerConnector,
-	depContainer: DependencyContainer,
+	// depContainer: DependencyContainer,
 	handler: IMediateRpcHandler,
 	addon: CustomAddOn;
 
@@ -162,8 +162,8 @@ describe('MediateRpcHandlerAddOnBase', () => {
 
 	beforeEach(() => {
 		connector = new MockMbConnector();
-		depContainer = new DependencyContainer();
-		handler = new MessageBrokerRpcHandler(depContainer, connector);
+		// depContainer = new DependencyContainer();
+		handler = new MessageBrokerRpcHandler(connector);
 		addon = new CustomAddOn(new MockConfigProvider(), handler);
 	});
 
@@ -173,7 +173,7 @@ describe('MediateRpcHandlerAddOnBase', () => {
 			await addon.init();
 
 			// Assert
-			expect(addon['_rpcHandler'].module).to.equal(MODULE_NAME);
+			// expect(addon['_rpcHandler'].module).to.equal(MODULE_NAME);
 			expect(addon['_rpcHandler'].name).to.equal(SERVICE_SLUG);
 		});
 	}); // END describe 'init'

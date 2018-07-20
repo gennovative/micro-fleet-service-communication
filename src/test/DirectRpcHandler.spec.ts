@@ -3,63 +3,22 @@ import * as chai from 'chai';
 import * as spies from 'chai-spies';
 import * as express from 'express';
 import * as requestMaker from 'request-promise';
-import { injectable, DependencyContainer, MinorException } from '@micro-fleet/common';
+import { MinorException } from '@micro-fleet/common';
 
-import { ExpressRpcHandler, IRpcRequest, IRpcResponse } from '../app';
+import { ExpressRpcHandler, IRpcRequest, IRpcResponse, 
+	RpcHandlerFunction } from '../app';
 
 chai.use(spies);
 const expect = chai.expect;
 
 
-const MODULE = 'TestModule',
-	NAME = 'TestHandler',
-	CONTROLLER_NORM = Symbol('NormalProductController'),
-	CONTROLLER_ERR = Symbol('ErrorProductController'),
-	SUCCESS_ADD_PRODUCT = 'addProductOk',
-	SUCCESS_DEL_PRODUCT = 'removeOk',
-	ERROR_ADD_PRODUCT = 'addProductError',
-	ERROR_DEL_PRODUCT = 'removeException',
-	ERROR_EDIT_PRODUCT = 'editError'
-	;
+const NAME = 'TestHandler';
 
-@injectable()
-class NormalProductController {
-	public addProduct(requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest): void {
-		resolve(SUCCESS_ADD_PRODUCT);
-		// console.log('Product added!');
-	}
 
-	public remove(requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest): void {
-		resolve(SUCCESS_DEL_PRODUCT);
-		// console.log('Product deleted!');
-	}
-
-	public echo(requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest): void {
-		resolve(requestPayload['text']);
-	}
-}
-
-@injectable()
-class ErrorProductController {
-	public addProduct(requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest): void {
-		reject(ERROR_ADD_PRODUCT);
-		// console.log('Product adding failed!');
-	}
-
-	public edit(requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest): void {
-		// console.log('Product editing failed!');
-		throw new Error(ERROR_EDIT_PRODUCT);
-	}
-
-	public remove(requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest): Promise<any> {
-		return new Promise((resolve, reject) => {
-			// console.log('Product deleting failed!');
-			throw new MinorException(ERROR_DEL_PRODUCT);
-		});
-	}
-}
-
-describe('ExpressDirectRpcHandler', () => {
+describe('ExpressDirectRpcHandler', function () {
+	this.timeout(5000);
+	// this.timeout(60000); // For debugging
+	/*
 	describe('init', () => {
 		it('Should use provided express and router instances', () => {
 			// Arrange
@@ -68,12 +27,9 @@ describe('ExpressDirectRpcHandler', () => {
 				router = express.Router();
 
 			// Act
-			handler.module = MODULE;
+			// handler.module = MODULE;
 			handler.name = NAME;
-			handler.init({
-				expressApp: app,
-				expressRouter: router
-			});
+			handler.init();
 
 			// Assert
 			expect(handler['_app']).to.equal(app);
@@ -85,37 +41,34 @@ describe('ExpressDirectRpcHandler', () => {
 			const handler = new ExpressRpcHandler(new DependencyContainer());
 
 			// Act
-			handler.module = MODULE;
+			// handler.module = MODULE;
 			handler.name = NAME;
 			handler.init();
 
 			// Assert
-			const  app: express.Express = handler['_app'];
+			const app: express.Express = handler['_app'];
 			expect(app._router.stack).to.be.not.null;
 
-			const  router = app._router.stack.find((entry: any) => entry.name == 'router');
+			const router = app._router.stack.find((entry: any) => entry.name == 'router');
 			expect(router).to.be.not.null;
 
 			expect(`/${MODULE}`).to.match(router.regexp);
 			expect(`/${handler.module}`).to.match(router.regexp);
 		});
 	});
+	//*/
 
 	describe('start', () => {
 		it('Should raise error if problems occur', done => {
 			// Arrange
-			const  handler = new ExpressRpcHandler(new DependencyContainer()),
+			const handler = new ExpressRpcHandler(),
 				app = express();
 
-				handler.module = MODULE;
-				handler.name = NAME;
-			handler.init({
-				expressApp: app,
-				expressRouter: express.Router()
-			});
+			handler.name = NAME;
+			handler.init();
 
 			// Start this server to make a port conflict
-			const  server = app.listen(handler.port, () => {
+			const server = app.listen(handler.port, () => {
 
 				handler.onError(err => {
 					// Assert
@@ -130,136 +83,141 @@ describe('ExpressDirectRpcHandler', () => {
 	});
 
 	describe('handle', () => {
-		let depContainer: DependencyContainer,
-			handler: ExpressRpcHandler;
+		let handler: ExpressRpcHandler;
 
 		beforeEach(() => {
-			depContainer = new DependencyContainer();
-			handler = new ExpressRpcHandler(depContainer);
-			handler.module = MODULE;
+			handler = new ExpressRpcHandler();
 			handler.name = NAME;
 			handler.init();
 		});
 
 		afterEach(async () => {
-			depContainer.dispose();
 			await handler.dispose();
 		});
 
-		it('Should add a route path in case action name is same with method name.', done => {
-			// Arrange
-			const ACTION = 'addProduct';
+		it('Should add a router for each module name.', () => {
+			// Arrange 1
+			const accountModule = 'accounts';
+			const createAction = 'create';
+			const editAction = 'edit';
+			const doCreate = () => { };
+			const doEdit = () => { };
 
-			depContainer.bind<NormalProductController>(CONTROLLER_NORM, NormalProductController);
+			// Act 1
+			handler.handle(accountModule, createAction, doCreate);
+			handler.handle(accountModule, editAction, doEdit);
 
-			// Act
-			handler.handle(ACTION, CONTROLLER_NORM);
+			// Assert 1
+			let routers: Map<string, express.Router> = handler['_routers'];
+			let router: express.Router;
+			expect(routers.has(accountModule)).to.be.true;
+			router = routers.get(accountModule);
+			expect(router.stack.length).to.equal(2);
+			expect(router.stack[0].route.path).to.equal(`/${createAction}`);
+			expect(router.stack[1].route.path).to.equal(`/${editAction}`);
 
-			// Assert
-			const  router: express.Router = handler['_router'];
-			expect(router.stack[0].route.path).to.equal(`/${ACTION}`);
+			// Arrange 2
+			const productModule = 'products';
+			const deleteAction = 'delete';
+			const doDelete = () => { };
 
-			handler.start()
-				.then(() => {
-					const  options: requestMaker.Options = {
-						method: 'POST',
-						uri: `http://localhost:${handler.port}/${MODULE}/${ACTION}`,
-						body: {},
-						json: true
-					};
+			// Act 2
+			handler.handle(productModule, deleteAction, doDelete);
 
-					requestMaker(options).then((res: IRpcResponse) => {
-						expect(res.from).to.equal(NAME);
-						expect(res.payload).to.equal(SUCCESS_ADD_PRODUCT);
-						done();
-					})
-					.catch(rawResponse => {
-						console.error(rawResponse.error);
-						expect(rawResponse.error).not.to.exist;
-					});
-				});
-		});
-
-		it('Should add a route path in case action name is resolved by factory.', done => {
-			// Arrange
-			const ACTION = 'deleteProduct';
-
-			depContainer.bind<NormalProductController>(CONTROLLER_NORM, NormalProductController);
-
-			// Act
-			const  router: express.Router = handler['_router'];
-			handler.handle(ACTION, CONTROLLER_NORM, (controller: NormalProductController) => controller.remove.bind(controller));
-
-			// Assert
-			expect(router.stack[0].route.path).to.equal(`/${ACTION}`);
-
-			handler.start()
-				.then(() => {
-					const  options = {
-						method: 'POST',
-						uri: `http://localhost:${handler.port}/${MODULE}/${ACTION}`,
-						body: {},
-						json: true
-					};
-
-					requestMaker(options).then((res: IRpcResponse) => {
-						expect(res.from).to.equal(NAME);
-						expect(res.payload).to.equal(SUCCESS_DEL_PRODUCT);
-						done();
-					})
-					.catch(rawResponse => {
-						console.error(rawResponse.error || rawResponse);
-					});
-				});
+			// Assert 2
+			expect(routers.size).to.equal(2);
+			expect(routers.has(productModule)).to.be.true;
+			router = routers.get(productModule);
+			expect(router.stack.length).to.equal(1);
+			expect(router.stack[0].route.path).to.equal(`/${deleteAction}`);
 		});
 
 		it('Should parse and pass request parameters to action method.', done => {
 			// Arrange
-			const ACTION = 'echo',
-				TEXT = 'echo...echooooo';
-
-			depContainer.bind<NormalProductController>(CONTROLLER_NORM, NormalProductController);
+			const text = 'echo...echooooo';
+			const moduleName = 'accounts';
+			const createAction = 'create';
+			const createHandler: RpcHandlerFunction = (payload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest) => {
+				expect(payload.text).to.equal(text);
+				expect(rawRequest.payload.text).to.equal(text);
+				expect(rawRequest.to).to.equal(moduleName);
+				resolve();
+				done();
+			};
+				
 
 			// Act
-			handler.handle(ACTION, CONTROLLER_NORM);
+			handler.handle(moduleName, createAction, createHandler);
 
 			// Assert
 			handler.start()
 				.then(() => {
-					const  request: IRpcRequest = {
+					const request: IRpcRequest = {
 						from: '',
-						to: MODULE,
-						payload: {
-							text: TEXT
-						}
-					},
-					options = {
+						to: moduleName,
+						payload: { text }
+					};
+					const options = {
 						method: 'POST',
-						uri: `http://localhost:${handler.port}/${MODULE}/${ACTION}`,
+						uri: `http://localhost:${handler.port}/${moduleName}/${createAction}`,
 						body: request,
 						json: true
 					};
 
+					requestMaker(options)
+						.catch(rawResponse => {
+							console.error(rawResponse.error);
+							expect(true, 'Request should be successful!').to.be.false;
+						});
+				});
+		});
+
+		it('Should respond with expected result', done => {
+			// Arrange
+			const moduleName = 'accounts';
+			const createAction = 'create';
+			const port = 10000;
+			const result: any = {
+				text: 'successsss'
+			};
+			const createHandler: RpcHandlerFunction = (payload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest) => {
+				resolve(result);
+			};
+
+			// Act
+			handler.port = port;
+			handler.handle(moduleName, createAction, createHandler);
+
+			handler.start()
+				.then(() => {
+					const options = {
+						method: 'POST',
+						uri: `http://localhost:${port}/${moduleName}/${createAction}`,
+						body: {},
+						json: true
+					};
+
 					requestMaker(options).then((res: IRpcResponse) => {
-						expect(res.payload).to.equal(TEXT);
+						expect(res.payload).to.deep.equal(result);
 						done();
 					})
 					.catch(rawResponse => {
-						console.error(rawResponse.error);
 						expect(true, 'Request should be successful!').to.be.false;
 					});
 				});
 		});
 
-		it('Should respond with status 500 and InternalErrorException if controller rejects a string.', done => {
+		it('Should emit error and respond with status 500 and InternalErrorException if handler rejects with non-MinorException.', done => {
 			// Arrange
-			const ACTION = 'addProduct',
-				spy = chai.spy();
-
-			depContainer.bind<ErrorProductController>(CONTROLLER_ERR, ErrorProductController);
+			const moduleName = 'accounts';
+			const createAction = 'create';
+			const spy = chai.spy();
+			const createHandler: RpcHandlerFunction = (payload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest) => {
+				reject('An error string');
+			};
 
 			// Act
-			handler.handle(ACTION, CONTROLLER_ERR);
+			handler.handle(moduleName, createAction, createHandler);
 
 			// Assert
 			handler.onError(err => {
@@ -269,9 +227,9 @@ describe('ExpressDirectRpcHandler', () => {
 
 			handler.start()
 				.then(() => {
-					const  options = {
+					const options = {
 						method: 'POST',
-						uri: `http://localhost:${handler.port}/${MODULE}/${ACTION}`,
+						uri: `http://localhost:${handler.port}/${moduleName}/${createAction}`,
 						body: {},
 						json: true
 					};
@@ -288,21 +246,31 @@ describe('ExpressDirectRpcHandler', () => {
 				});
 		});
 
-		it('Should respond with status 500 and exception object if controller throws Exception.', done => {
+		it('Should not emit error but respond with status 500 and exception object if handler throws MinorException.', done => {
 			// Arrange
-			const ACTION = 'deleteProduct';
-
-			depContainer.bind<ErrorProductController>(CONTROLLER_ERR, ErrorProductController);
+			const moduleName = 'products';
+			const deleteAction = 'delete';
+			const errMsg = 'removeException';
+			const spy = chai.spy();
+			const deleteHandler: RpcHandlerFunction = (payload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest) => {
+				throw new MinorException(errMsg);
+			};
 
 			// Act
-			handler.handle(ACTION, CONTROLLER_ERR, (controller: ErrorProductController) => controller.remove.bind(controller));
+			handler.handle(moduleName, deleteAction, deleteHandler);
+
+			// Assert
+			handler.onError(err => {
+				expect(err).to.exist;
+				spy();
+			});
 
 			// Assert
 			handler.start()
 				.then(() => {
 					const options = {
 						method: 'POST',
-						uri: `http://localhost:${handler.port}/${MODULE}/${ACTION}`,
+						uri: `http://localhost:${handler.port}/${moduleName}/${deleteAction}`,
 						body: {},
 						json: true
 					};
@@ -315,21 +283,25 @@ describe('ExpressDirectRpcHandler', () => {
 						// If status 500 or request error.
 						expect(rawResponse.statusCode).to.equal(500);
 						expect(rawResponse.error.payload.type).to.equal('MinorException');
-						expect(rawResponse.error.payload.message).to.equal(ERROR_DEL_PRODUCT);
+						expect(rawResponse.error.payload.message).to.equal(errMsg);
+						expect(spy).to.be.called.exactly(0);
 						done();
 					});
 				});
 		});
 
-		it('Should respond with status 500 and InternalErrorException if controller throws Error.', done => {
+		it('Should not emit error but respond with status 500 and exception object if handler returns a promise which rejects with MinorException.', done => {
 			// Arrange
-			const ACTION = 'editProduct',
-				spy = chai.spy();
-
-			depContainer.bind<ErrorProductController>(CONTROLLER_ERR, ErrorProductController);
+			const moduleName = 'products';
+			const deleteAction = 'delete';
+			const errMsg = 'removeException';
+			const spy = chai.spy();
+			const deleteHandler: RpcHandlerFunction = (payload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest) => {
+				return Promise.reject(new MinorException(errMsg));
+			};
 
 			// Act
-			handler.handle(ACTION, CONTROLLER_ERR, (controller: ErrorProductController) => controller.edit.bind(controller));
+			handler.handle(moduleName, deleteAction, deleteHandler);
 
 			// Assert
 			handler.onError(err => {
@@ -337,11 +309,12 @@ describe('ExpressDirectRpcHandler', () => {
 				spy();
 			});
 
+			// Assert
 			handler.start()
 				.then(() => {
 					const options = {
 						method: 'POST',
-						uri: `http://localhost:${handler.port}/${MODULE}/${ACTION}`,
+						uri: `http://localhost:${handler.port}/${moduleName}/${deleteAction}`,
 						body: {},
 						json: true
 					};
@@ -353,24 +326,28 @@ describe('ExpressDirectRpcHandler', () => {
 					.catch(rawResponse => {
 						// If status 500 or request error.
 						expect(rawResponse.statusCode).to.equal(500);
-						expect(rawResponse.error.payload.type).to.equal('InternalErrorException');
-						expect(spy).to.be.called.once;
+						expect(rawResponse.error.payload.type).to.equal('MinorException');
+						expect(rawResponse.error.payload.message).to.equal(errMsg);
+						expect(spy).to.be.called.exactly(0);
 						done();
 					});
 				});
 		});
-		
-		it('Should respond with status 500 and InternalErrorException if registered controller cannot be resolved.', done => {
-			// Arrange
-			const ACTION = 'addProduct',
-				spy = chai.spy();
 
-			// Intentionally not binding controller
-			//depContainer.bind<NormalProductController>(CONTROLLER_NORM, NormalProductController);
+		it('Should emit error and respond with status 500 and InternalErrorException if handler  throws Error.', done => {
+			// Arrange
+			const moduleName = 'products';
+			const editAction = 'edit';
+			const errMsg = 'editError';
+			const spy = chai.spy();
+			const editHandler: RpcHandlerFunction = (payload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest) => {
+				throw new Error(errMsg);
+			};
 
 			// Act
-			handler.handle(ACTION, CONTROLLER_NORM);
+			handler.handle(moduleName, editAction, editHandler);
 
+			// Assert
 			handler.onError(err => {
 				expect(err).to.exist;
 				spy();
@@ -378,67 +355,19 @@ describe('ExpressDirectRpcHandler', () => {
 
 			handler.start()
 				.then(() => {
-					const request: IRpcRequest = {
-						from: '',
-						to: MODULE,
-						payload: {}
-					},
-					options = {
+					const options = {
 						method: 'POST',
-						uri: `http://localhost:${handler.port}/${MODULE}/${ACTION}`,
-						body: request,
+						uri: `http://localhost:${handler.port}/${moduleName}/${editAction}`,
+						body: {},
 						json: true
 					};
 
-					requestMaker(options).then(() => {
+					requestMaker(options).then((res: IRpcResponse) => {
 						// If status 200
-						expect(true, 'Request should NOT be successful!').to.be.false;
+						expect(res, 'Request should NOT be successful!').not.to.exist;
 					})
 					.catch(rawResponse => {
-						// Assert
-						expect(rawResponse.statusCode).to.equal(500);
-						expect(rawResponse.error.payload.type).to.equal('InternalErrorException');
-						expect(spy).to.be.called.once;
-						done();
-					});
-				});
-		});
-
-		it('Should respond with status 500 and InternalErrorException if specified action does not exist in controller.', done => {
-			// Arrange
-			const UNEXIST_ACTION = 'editProduct',
-				spy = chai.spy();
-
-			depContainer.bind<NormalProductController>(CONTROLLER_NORM, NormalProductController);
-
-			// Act
-			handler.handle(UNEXIST_ACTION, CONTROLLER_NORM);
-
-			handler.onError(err => {
-				expect(err).to.exist;
-				spy();
-			});
-
-			handler.start()
-				.then(() => {
-					const request: IRpcRequest = {
-							from: '',
-							to: MODULE,
-							payload: {}
-						},
-						options = {
-							method: 'POST',
-							uri: `http://localhost:${handler.port}/${MODULE}/${UNEXIST_ACTION}`,
-							body: request,
-							json: true
-						};
-
-					requestMaker(options).then(() => {
-						// If status 200
-						expect(true, 'Request should NOT be successful!').to.be.false;
-					})
-					.catch(rawResponse => {
-						// Assert
+						// If status 500 or request error.
 						expect(rawResponse.statusCode).to.equal(500);
 						expect(rawResponse.error.payload.type).to.equal('InternalErrorException');
 						expect(spy).to.be.called.once;

@@ -28,7 +28,7 @@ let DirectRpcHandlerAddOnBase = class DirectRpcHandlerAddOnBase {
      * @see IServiceAddOn.init
      */
     init(moduleName = null) {
-        this._rpcHandler.module = moduleName;
+        // this._rpcHandler.module = moduleName;
         this._rpcHandler.name = this._configProvider.get(SvcS.SERVICE_SLUG).value;
         this._rpcHandler.port = this._configProvider.get(RpcS.RPC_HANDLER_PORT).value;
         this._rpcHandler.init();

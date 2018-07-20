@@ -48,7 +48,7 @@ describe.skip('MediateRpcHandler', function() {
 		depContainer = new DependencyContainer();
 		callerMbConn = new TopicMessageBrokerConnector();
 		handlerMbConn = new TopicMessageBrokerConnector();
-		handler = new MessageBrokerRpcHandler(depContainer, handlerMbConn);
+		handler = new MessageBrokerRpcHandler(handlerMbConn);
 
 		handlerMbConn.onError((err) => {
 				console.error('Handler error:\n' + JSON.stringify(err));
@@ -77,13 +77,17 @@ describe.skip('MediateRpcHandler', function() {
 
 	it('Should handle requests as much as it could.', (done) => {
 		// Arrange
+			const moduleName = 'accounts';
+			const createAction = 'create';
+			const doCreate = () => { };
 		const ACTION = 'echo',
 			TEXT = 'eeeechooooo';
 		
 		depContainer.bind<NormalProductController>(CONTROLLER_NORM, NormalProductController);
 
 		// Act
-		handler.handle(ACTION, CONTROLLER_NORM);
+		handler.handle(moduleName, createAction, doCreate);
+		// handler.handle(ACTION, CONTROLLER_NORM);
 
 		// Assert
 		let replyTo = `response.${MODULE}.${ACTION}`,
