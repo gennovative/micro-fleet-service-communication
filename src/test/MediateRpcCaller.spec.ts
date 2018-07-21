@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { expect } from 'chai';
 import { MinorException, InternalErrorException } from '@micro-fleet/common';
 
-import { MessageBrokerRpcCaller, IMessage,
+import { MessageBrokerRpcCaller, BrokerMessage,
 	TopicMessageBrokerConnector, IRpcRequest, IRpcResponse } from '../app';
 
 import rabbitOpts from './rabbit-options';
@@ -106,7 +106,7 @@ describe('MessageBrokerRpcCaller', function() {
 			caller.init();
 
 			handlerMbConn.subscribe(topic)
-				.then(() => handlerMbConn.listen((msg: IMessage) => {
+				.then(() => handlerMbConn.listen((msg: BrokerMessage) => {
 					const request: IRpcRequest = msg.data;
 				
 					// Assert
@@ -136,7 +136,7 @@ describe('MessageBrokerRpcCaller', function() {
 
 			handlerMbConn.subscribe(topic)
 				.then(() => {
-					return handlerMbConn.listen((msg: IMessage) => {
+					return handlerMbConn.listen((msg: BrokerMessage) => {
 						const request: IRpcRequest = msg.data,
 							props = msg.properties,
 							response: IRpcResponse = {
@@ -178,7 +178,7 @@ describe('MessageBrokerRpcCaller', function() {
 
 			handlerMbConn.subscribe(topic)
 				.then(() => {
-					return handlerMbConn.listen((msg: IMessage) => {
+					return handlerMbConn.listen((msg: BrokerMessage) => {
 						const request: IRpcRequest = msg.data,
 							props = msg.properties,
 							response: IRpcResponse = {
@@ -198,10 +198,10 @@ describe('MessageBrokerRpcCaller', function() {
 				})
 				.then((res: IRpcResponse) => {
 					// Assert
+					console.error(res);
 					expect(res).not.to.exist;
 				})
 				.catch(err => {
-					console.error(err);
 					expect(err).to.be.instanceOf(InternalErrorException);
 					expect(err.message).to.equal(ERROR_MSG);
 					done();
@@ -218,7 +218,7 @@ describe('MessageBrokerRpcCaller', function() {
 
 			handlerMbConn.subscribe(topic)
 				.then(() => {
-					return handlerMbConn.listen((msg: IMessage) => {
+					return handlerMbConn.listen((msg: BrokerMessage) => {
 						expect(true, 'Should NOT get any request!').to.be.false;
 					});
 				}).then(() => {
@@ -265,7 +265,7 @@ describe('MessageBrokerRpcCaller', function() {
 			let replyTo: string;
 			handlerMbConn.subscribe(topic)
 				.then(() => {
-					return handlerMbConn.listen((msg: IMessage) => {
+					return handlerMbConn.listen((msg: BrokerMessage) => {
 						expect(msg).to.exist;
 						replyTo = msg.properties.replyTo;
 						// Step 2

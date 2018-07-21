@@ -18,46 +18,7 @@ const NAME = 'TestHandler';
 describe('ExpressDirectRpcHandler', function () {
 	this.timeout(5000);
 	// this.timeout(60000); // For debugging
-	/*
-	describe('init', () => {
-		it('Should use provided express and router instances', () => {
-			// Arrange
-			const handler = new ExpressRpcHandler(new DependencyContainer()),
-				app = express(),
-				router = express.Router();
-
-			// Act
-			// handler.module = MODULE;
-			handler.name = NAME;
-			handler.init();
-
-			// Assert
-			expect(handler['_app']).to.equal(app);
-			expect(handler['_router']).to.equal(router);
-		});
-
-		it('Should use `name` property to init Router', () => {
-			// Arrange
-			const handler = new ExpressRpcHandler(new DependencyContainer());
-
-			// Act
-			// handler.module = MODULE;
-			handler.name = NAME;
-			handler.init();
-
-			// Assert
-			const app: express.Express = handler['_app'];
-			expect(app._router.stack).to.be.not.null;
-
-			const router = app._router.stack.find((entry: any) => entry.name == 'router');
-			expect(router).to.be.not.null;
-
-			expect(`/${MODULE}`).to.match(router.regexp);
-			expect(`/${handler.module}`).to.match(router.regexp);
-		});
-	});
-	//*/
-
+	
 	describe('start', () => {
 		it('Should raise error if problems occur', done => {
 			// Arrange
@@ -259,13 +220,11 @@ describe('ExpressDirectRpcHandler', function () {
 			// Act
 			handler.handle(moduleName, deleteAction, deleteHandler);
 
-			// Assert
+			// Assert: No error thrown
 			handler.onError(err => {
-				expect(err).to.exist;
 				spy();
 			});
 
-			// Assert
 			handler.start()
 				.then(() => {
 					const options = {
@@ -280,6 +239,7 @@ describe('ExpressDirectRpcHandler', function () {
 						expect(res, 'Request should NOT be successful!').not.to.exist;
 					})
 					.catch(rawResponse => {
+						// Assert: Falsey response is returned
 						// If status 500 or request error.
 						expect(rawResponse.statusCode).to.equal(500);
 						expect(rawResponse.error.payload.type).to.equal('MinorException');
@@ -334,7 +294,7 @@ describe('ExpressDirectRpcHandler', function () {
 				});
 		});
 
-		it('Should emit error and respond with status 500 and InternalErrorException if handler  throws Error.', done => {
+		it('Should emit error and respond with status 500 and InternalErrorException if handler throws Error.', done => {
 			// Arrange
 			const moduleName = 'products';
 			const editAction = 'edit';

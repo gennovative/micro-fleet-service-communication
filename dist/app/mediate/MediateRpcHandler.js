@@ -24,14 +24,15 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
     /**
      * @see IRpcHandler.init
      */
-    init(params) {
+    init() {
+        this._handlers = new Map();
         this._msgBrokerConn.onError(err => this.emitError(err));
     }
     /**
      * @see IRpcHandler.start
      */
     start() {
-        return this._msgBrokerConn.listen(this.onMessage.bind(this));
+        return this._msgBrokerConn.listen(this.onMessage.bind(this), false);
     }
     /**
      * @see IRpcHandler.dispose
@@ -54,36 +55,27 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
         }
         this._handlers.set(key, handler);
         return this._msgBrokerConn.subscribe(`request.${key}`);
-        // return <any>Promise.all(
-        // 	actions.map(a => {
-        // 		this._container.register(a, dependencyIdentifier, actionFactory);
-        // 	})
-        // );
     }
-    /**
-     * @see IMediateRpcHandler.handleCRUD
-     */
-    // public handleCRUD(dependencyIdentifier: string, actionFactory?: ActionFactory): Promise<void> {
-    // 	return this.handle(
-    // 		['countAll', 'create', 'delete', 'find', 'patch', 'update'],
-    // 		dependencyIdentifier, actionFactory
-    // 	);
-    // }
-    onMessage(msg) {
+    onMessage(msg, ack, nack) {
+        const routingKey = msg.raw.fields.routingKey;
+        const key = routingKey.match(/[^\.]+\.[^\.]+$/)[0];
+        if (!this._handlers.has(key)) {
+            // Although we nack this message and re-queue it, it will come back
+            // if it's not handled by any other service. And we jut keep nack-ing
+            // it until the message expires.
+            nack();
+            return console.warn(`No handlers for request ${routingKey}`);
+        }
+        ack();
         const request = msg.data;
         const correlationId = msg.properties.correlationId;
         const replyTo = msg.properties.replyTo;
         (new Promise((resolve, reject) => {
             // Extract "module.action" out of "request.module.action"
-            const routingKey = msg.raw.fields.routingKey;
-            const key = routingKey.match(/[^\.]+\.[^\.]+$/)[0];
             try {
-                if (!this._handlers.has(key)) {
-                    throw new common_1.MinorException(`No handlers for request ${routingKey}`);
-                }
                 const actionFn = this._handlers.get(key);
                 // Execute controller's action
-                const output = actionFn(request.payload, resolve, reject, request);
+                const output = actionFn(request.payload, resolve, reject, request, msg);
                 if (output instanceof Promise) {
                     output.catch(reject); // Catch async exceptions.
                 }

@@ -1,54 +1,26 @@
 import 'reflect-metadata';
 import * as shortid from 'shortid';
-import { injectable, DependencyContainer } from '@micro-fleet/common';
 
-import { MessageBrokerRpcHandler, IMessage,
-	TopicMessageBrokerConnector, IRpcRequest } from '../app';
+import { MessageBrokerRpcHandler, BrokerMessage,
+	TopicMessageBrokerConnector, IRpcRequest, RpcHandlerFunction } from '../app';
 
 import rabbitOpts from './rabbit-options';
 
 
-const MODULE = 'TestHandler',
-	CONTROLLER_NORM = Symbol('NormalProductController'),
-	SUCCESS_ADD_PRODUCT = 'addProductOk',
-	SUCCESS_DEL_PRODUCT = 'removeOk';
+const NAME = 'TestHandler';
 
-
-@injectable()
-class NormalProductController {
-	public addProduct(request: IRpcRequest, resolve: PromiseResolveFn, reject: PromiseRejectFn): void {
-		resolve(SUCCESS_ADD_PRODUCT);
-		console.log('Product added!');
-	}
-
-	public remove(request: IRpcRequest, resolve: PromiseResolveFn, reject: PromiseRejectFn): void {
-		resolve(SUCCESS_DEL_PRODUCT);
-		console.log('Product deleted!');
-	}
-
-	public echo(request: IRpcRequest, resolve: PromiseResolveFn, reject: PromiseRejectFn): void {
-		resolve(request.payload['text']);
-	}
-}
-
-
-let depContainer: DependencyContainer,
-	handlerMbConn: TopicMessageBrokerConnector,
+let handlerMbConn: TopicMessageBrokerConnector,
 	callerMbConn: TopicMessageBrokerConnector,
-	handler: MessageBrokerRpcHandler;
+	rpcHandler: MessageBrokerRpcHandler;
 
 describe.skip('MediateRpcHandler', function() {
 	// Disable timeout to let stress test run forever.
 	this.timeout(0);
 
-	// MediateRpcHandler.spec.js
-	// MessageBrokerAdapter.js
-
 	beforeEach(done => {
-		depContainer = new DependencyContainer();
 		callerMbConn = new TopicMessageBrokerConnector();
 		handlerMbConn = new TopicMessageBrokerConnector();
-		handler = new MessageBrokerRpcHandler(handlerMbConn);
+		rpcHandler = new MessageBrokerRpcHandler(handlerMbConn);
 
 		handlerMbConn.onError((err) => {
 				console.error('Handler error:\n' + JSON.stringify(err));
@@ -58,54 +30,55 @@ describe.skip('MediateRpcHandler', function() {
 				console.error('Caller error:\n' + JSON.stringify(err));
 			});
 
-			handler.name = MODULE;
+			rpcHandler.name = NAME;
 			Promise.all([
 				handlerMbConn.connect(rabbitOpts.handler),
 				callerMbConn.connect(rabbitOpts.caller)
 			])
+			.then(() => rpcHandler.init())
 			.then(() => { done(); });
 	});
 
 	afterEach(done => {
-		depContainer.dispose();
 		Promise.all([
-				handlerMbConn.disconnect(),
-				callerMbConn.disconnect()
-			])
+			handlerMbConn.disconnect(),
+			callerMbConn.disconnect()
+		])
 		.then(() => { done(); });
 	});
 
 	it('Should handle requests as much as it could.', (done) => {
 		// Arrange
-			const moduleName = 'accounts';
-			const createAction = 'create';
-			const doCreate = () => { };
-		const ACTION = 'echo',
-			TEXT = 'eeeechooooo';
+		const moduleName = 'accounts';
+		const createAction = 'create';
+		const correlationId = shortid.generate();
+		const result: any = {
+			text: 'successsss'
+		};
+		const createHandler: RpcHandlerFunction = (payload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest) => {
+			resolve(result);
+		};
 		
-		depContainer.bind<NormalProductController>(CONTROLLER_NORM, NormalProductController);
-
 		// Act
-		handler.handle(moduleName, createAction, doCreate);
-		// handler.handle(ACTION, CONTROLLER_NORM);
+		rpcHandler.handle(moduleName, createAction, createHandler);
 
 		// Assert
-		let replyTo = `response.${MODULE}.${ACTION}`,
-			start: number, end: number;
+		const replyTo = `response.${moduleName}.${createAction}@${correlationId}`;
+		let start: number, end: number;
 		
 		callerMbConn.subscribe(replyTo)
 			.then(() => {
-				return handlerMbConn.listen((msg: IMessage) => {
+				return handlerMbConn.listen((msg: BrokerMessage) => {
 					end = new Date().getTime();
 					console.log(`Response after ${end - start}ms`);
 				});
-			}).then(() => {
+			})
+			.then(() => rpcHandler.start())
+			.then(() => {
 				let req: IRpcRequest = {
-					from: MODULE,
+					from: moduleName,
 					to: '',
-					payload: {
-						text: TEXT
-					}
+					payload: {}
 				};
 
 				const SENDING_GAP = 100; //ms
@@ -113,7 +86,8 @@ describe.skip('MediateRpcHandler', function() {
 					// Manually publish request.
 					start = new Date().getTime();
 					console.log('Request');
-					callerMbConn.publish(`request.${MODULE}.${ACTION}`, req, { correlationId: shortid.generate(), replyTo });
+					const topic = `request.${moduleName}.${createAction}`;
+					callerMbConn.publish(topic, req, { correlationId, replyTo });
 				}, SENDING_GAP); // END setInterval
 			});
 

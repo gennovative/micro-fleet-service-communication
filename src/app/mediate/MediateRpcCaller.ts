@@ -2,7 +2,7 @@ import * as shortid from 'shortid';
 import { injectable, inject, Guard, MinorException } from '@micro-fleet/common';
 
 import { Types as T } from '../Types';
-import { IMessageBrokerConnector, IMessage } from '../MessageBrokerConnector';
+import { IMessageBrokerConnector, BrokerMessage } from '../MessageBrokerConnector';
 import * as rpc from '../RpcCommon';
 
 
@@ -58,7 +58,7 @@ export class MessageBrokerRpcCaller
 			conn.subscribe(replyTo)
 				.then(() => {
 					let token: NodeJS.Timer;
-					let onMessage = async (msg: IMessage) => {
+					let onMessage = async (msg: BrokerMessage) => {
 						clearTimeout(token);
 						// We got what we want, stop consuming.
 						await conn.unsubscribe(replyTo);
@@ -81,7 +81,7 @@ export class MessageBrokerRpcCaller
 
 					this._emitter.once(correlationId, onMessage);
 
-					return conn.listen((msg: IMessage) => {
+					return conn.listen((msg: BrokerMessage) => {
 						// Announce that we've got a response with this correlationId.
 						this._emitter.emit(msg.properties.correlationId, msg);
 					});

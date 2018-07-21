@@ -129,7 +129,7 @@ export class ExpressRpcHandler
 				// const depId = `${this._instanceUid}::module`;
 				// const actionFn = this._container.resolve(actionName, depId);
 				try {
-					const output: any = handler(request.payload, resolve, reject, request);
+					const output: any = handler(request.payload, resolve, reject, request, req);
 					if (output instanceof Promise) {
 						output.catch(reject); // Catch async exceptions.
 					}

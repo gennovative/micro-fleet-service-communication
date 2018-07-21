@@ -1,7 +1,7 @@
-import { injectable, inject, Guard, MinorException } from '@micro-fleet/common';
+import { injectable, inject, Guard } from '@micro-fleet/common';
 
 import { Types as T } from '../Types';
-import { IMessageBrokerConnector, IMessage } from '../MessageBrokerConnector';
+import { IMessageBrokerConnector, BrokerMessage } from '../MessageBrokerConnector';
 import * as rpc from '../RpcCommon';
 
 
@@ -35,7 +35,8 @@ export class MessageBrokerRpcHandler
 	/**
 	 * @see IRpcHandler.init
 	 */
-	public init(params?: any): void {
+	public init(): void {
+		this._handlers = new Map<string, rpc.RpcHandlerFunction>();
 		this._msgBrokerConn.onError(err => this.emitError(err));
 	}
 
@@ -43,7 +44,7 @@ export class MessageBrokerRpcHandler
 	 * @see IRpcHandler.start
 	 */
 	public start(): Promise<void> {
-		return this._msgBrokerConn.listen(this.onMessage.bind(this));
+		return this._msgBrokerConn.listen(this.onMessage.bind(this), false);
 	}
 
 	/**
@@ -68,41 +69,31 @@ export class MessageBrokerRpcHandler
 		}
 		this._handlers.set(key, handler);
 		return this._msgBrokerConn.subscribe(`request.${key}`);
-		// return <any>Promise.all(
-		// 	actions.map(a => {
-		// 		this._container.register(a, dependencyIdentifier, actionFactory);
-		// 	})
-		// );
 	}
 
-	/**
-	 * @see IMediateRpcHandler.handleCRUD
-	 */
-	// public handleCRUD(dependencyIdentifier: string, actionFactory?: ActionFactory): Promise<void> {
-	// 	return this.handle(
-	// 		['countAll', 'create', 'delete', 'find', 'patch', 'update'],
-	// 		dependencyIdentifier, actionFactory
-	// 	);
-	// }
 
+	private onMessage(msg: BrokerMessage, ack: Function, nack: Function): void {
+		const routingKey: string = msg.raw.fields.routingKey;
+		const key: string = routingKey.match(/[^\.]+\.[^\.]+$/)[0];
+		if (!this._handlers.has(key)) {
+			// Although we nack this message and re-queue it, it will come back
+			// if it's not handled by any other service. And we jut keep nack-ing
+			// it until the message expires.
+			nack();
+			return console.warn(`No handlers for request ${routingKey}`);
+		}
+		ack();
 
-	private onMessage(msg: IMessage): void {
 		const request: rpc.IRpcRequest = msg.data;
 		const correlationId = msg.properties.correlationId;
 		const replyTo: string = msg.properties.replyTo;
-		
+
 		(new Promise((resolve, reject) => {
 			// Extract "module.action" out of "request.module.action"
-			const routingKey: string = msg.raw.fields.routingKey;
-			const key: string = routingKey.match(/[^\.]+\.[^\.]+$/)[0];
 			try {
-				if (!this._handlers.has(key)) {
-					throw new MinorException(`No handlers for request ${routingKey}`);
-				}
-
 				const actionFn = this._handlers.get(key);
 				// Execute controller's action
-				const output: any = actionFn(request.payload, resolve, reject, request);
+				const output: any = actionFn(request.payload, resolve, reject, request, msg);
 				if (output instanceof Promise) {
 					output.catch(reject); // Catch async exceptions.
 				}

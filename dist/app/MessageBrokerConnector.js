@@ -164,7 +164,7 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
         try {
             let ch = await this._consumeChanPrm;
             let conResult = await ch.consume(this.queue, (msg) => {
-                let ack = () => ch.ack(msg), nack = () => ch.nack(msg);
+                let ack = () => ch.ack(msg), nack = () => ch.nack(msg, false, true);
                 onMessage(this.parseMessage(msg), ack, nack);
             }, { noAck });
             this._consumerTag = conResult.consumerTag;

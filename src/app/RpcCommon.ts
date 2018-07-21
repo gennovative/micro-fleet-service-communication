@@ -91,7 +91,7 @@ export interface IRpcCaller {
 }
 
 
-export type RpcHandlerFunction = (requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest) => any;
+export type RpcHandlerFunction = (requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rpcRequest: IRpcRequest, rawMessage: any) => any;
 
 export interface IRpcHandler {
 	/**

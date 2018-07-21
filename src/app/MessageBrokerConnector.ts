@@ -8,22 +8,22 @@ import { injectable, Exception, CriticalException, MinorException,
 	Guard } from '@micro-fleet/common';
 
 
-export type MessageHandleFunction = (msg: IMessage, ack?: () => void, nack?: () => void) => void;
+export type MessageHandleFunction = (msg: BrokerMessage, ack?: () => void, nack?: () => void) => void;
 
-export interface IMessage {
+export type BrokerMessage = {
 	data: any;
 	raw: amqp.Message;
-	properties?: IPublishOptions;
-}
+	properties?: MessageBrokerPublishOptions;
+};
 
-export interface IPublishOptions {
+export type MessageBrokerPublishOptions = {
 	contentType?: 'text/plain' | 'application/json';
 	contentEncoding?: string;
 	correlationId?: string;
 	replyTo?: string;
-}
+};
 
-export interface IConnectionOptions {
+export type MessageBrokerConnectionOptions = {
 	/**
 	 * IP address or host name where message broker is located.
 	 */
@@ -61,7 +61,7 @@ export interface IConnectionOptions {
 	 * Milliseconds to expire messages arriving in the queue.
 	 */
 	messageExpiredIn?: number;
-}
+};
 
 export interface IMessageBrokerConnector {
 
@@ -88,9 +88,9 @@ export interface IMessageBrokerConnector {
 
 	/**
 	 * Creates a connection to message broker engine.
-	 * @param {IConnectionOptions} options
+	 * @param {MessageBrokerConnectionOptions} options
 	 */
-	connect(options: IConnectionOptions): Promise<void>;
+	connect(options: MessageBrokerConnectionOptions): Promise<void>;
 	
 	/**
 	 * Closes all channels and the connection.
@@ -129,9 +129,9 @@ export interface IMessageBrokerConnector {
 	 * Sends `message` to the broker and label the message with `topic`.
 	 * @param {string} topic - A name to label the message with. Should be in format "xxx.yyy.zzz".
 	 * @param {any} payload - A message to send to broker.
-	 * @param {IPublishOptions} options - Options to add to message properties.
+	 * @param {MessageBrokerPublishOptions} options - Options to add to message properties.
 	 */
-	publish(topic: string, payload: any, options?: IPublishOptions): Promise<void>;
+	publish(topic: string, payload: any, options?: MessageBrokerPublishOptions): Promise<void>;
 
 	/**
 	 * Listens to messages whose label matches `matchingPattern`.
@@ -235,7 +235,7 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 	/**
 	 * @see IMessageBrokerConnector.connect
 	 */
-	public connect(options: IConnectionOptions): Promise<void> {
+	public connect(options: MessageBrokerConnectionOptions): Promise<void> {
 		let credentials = '';
 		
 		this._exchange = options.exchange;
@@ -350,7 +350,7 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 			let conResult = await ch.consume(this.queue,
 				(msg: amqp.Message) => {
 					let ack = () => ch.ack(msg),
-						nack = () => ch.nack(msg);
+						nack = () => ch.nack(msg, false, true);
 
 					onMessage(this.parseMessage(msg), ack, nack);
 				}, 
@@ -383,7 +383,7 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 	/**
 	 * @see IMessageBrokerConnector.publish
 	 */
-	public async publish(topic: string, payload: any, options?: IPublishOptions): Promise<void> {
+	public async publish(topic: string, payload: any, options?: MessageBrokerPublishOptions): Promise<void> {
 		Guard.assertArgNotEmpty('topic', topic);
 		Guard.assertArgNotEmpty('message', payload);
 		this.assertConnection();
@@ -467,7 +467,7 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 			'Connection to message broker is not established or has been disconnected!');
 	}
 
-	private createConnection(credentials: string, options: IConnectionOptions): Promise<amqp.Connection> {
+	private createConnection(credentials: string, options: MessageBrokerConnectionOptions): Promise<amqp.Connection> {
 		return this._connectionPrm = <any>amqp.connect(`amqp://${credentials}${options.hostAddress}`)
 			.then((conn: amqp.Connection) => {
 				this._isConnected = true;
@@ -486,7 +486,7 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 			});
 	}
 
-	private reconnect(credentials: string, options: IConnectionOptions): void {
+	private reconnect(credentials: string, options: MessageBrokerConnectionOptions): void {
 		this._isConnecting = true;
 		this._connectionPrm = new Promise<amqp.Connection>((resolve, reject) => {
 			setTimeout(() => {
@@ -614,7 +614,7 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 		}
 	}
 
-	private buildMessage(payload: string | Json | JsonArray, options?: IPublishOptions): Array<any> {
+	private buildMessage(payload: string | Json | JsonArray, options?: MessageBrokerPublishOptions): Array<any> {
 		let msg: string;
 		options = options || {};
 
@@ -629,8 +629,8 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 		return [Buffer.from(msg), options];
 	}
 
-	private parseMessage(raw: amqp.Message): IMessage {
-		let msg: Partial<IMessage> = {
+	private parseMessage(raw: amqp.Message): BrokerMessage {
+		let msg: Partial<BrokerMessage> = {
 			raw,
 			properties: raw.properties || {}
 		};
@@ -641,6 +641,6 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 			msg.data = JSON.parse(<any>raw.content);
 		}
 
-		return <IMessage>msg;
+		return <BrokerMessage>msg;
 	}
 }

@@ -1,7 +1,7 @@
 import { IConfigurationProvider, Types as ConT, constants, injectable,
 	inject, Guard } from '@micro-fleet/common';
 
-import { IMessageBrokerConnector, IConnectionOptions} from './MessageBrokerConnector';
+import { IMessageBrokerConnector, MessageBrokerConnectionOptions} from './MessageBrokerConnector';
 import { Types as T } from './Types';
 
 const { MbSettingKeys: S } = constants;
@@ -25,7 +25,7 @@ export class MessageBrokerAddOn implements IServiceAddOn {
 	 */
 	public init(): Promise<void> {
 		let cfgAdt = this._configProvider,
-			opts: IConnectionOptions = {
+			opts: MessageBrokerConnectionOptions = {
 				hostAddress: cfgAdt.get(S.MSG_BROKER_HOST).value as string,
 				username: cfgAdt.get(S.MSG_BROKER_USERNAME).value as string,
 				password: cfgAdt.get(S.MSG_BROKER_PASSWORD).value as string,

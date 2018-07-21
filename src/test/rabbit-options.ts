@@ -1,16 +1,17 @@
-import { IConnectionOptions } from '../app';
+import { MessageBrokerConnectionOptions } from '../app';
 
 export default {
-	handler: <IConnectionOptions> {
+	handler: <MessageBrokerConnectionOptions> {
 		hostAddress: 'localhost',
 		username: 'guest',
 		password: 'guest',
 		queue: 'my-handler', // Queue for handler, 
 								// in reality, each service must have its own queue
 								// (service instances of the same type can share same queue)
-		exchange: 'gennovative'
+		exchange: 'gennovative',
+		messageExpiredIn: 3000
 	},
-	caller: <IConnectionOptions> {
+	caller: <MessageBrokerConnectionOptions> {
 		hostAddress: 'localhost',
 		username: 'guest',
 		password: 'guest',

@@ -3,7 +3,7 @@ import * as spies from 'chai-spies';
 
 import { IConfigurationProvider, Maybe } from '@micro-fleet/common';
 
-import { IMessageBrokerConnector, IConnectionOptions, IPublishOptions,
+import { IMessageBrokerConnector, MessageBrokerConnectionOptions, MessageBrokerPublishOptions,
 	MessageHandleFunction, MessageBrokerAddOn } from '../app';
 
 
@@ -51,7 +51,7 @@ class MockMbConnector implements IMessageBrokerConnector {
 		return '';
 	}
 
-	public connect(options: IConnectionOptions): Promise<void> {
+	public connect(options: MessageBrokerConnectionOptions): Promise<void> {
 		return Promise.resolve();
 	}
 	
@@ -75,7 +75,7 @@ class MockMbConnector implements IMessageBrokerConnector {
 		return Promise.resolve();
 	}
 
-	public publish(topic: string, payload: string | Json | JsonArray, options?: IPublishOptions): Promise<void> {
+	public publish(topic: string, payload: string | Json | JsonArray, options?: MessageBrokerPublishOptions): Promise<void> {
 		return Promise.resolve();
 	}
 

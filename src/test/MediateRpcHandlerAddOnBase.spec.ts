@@ -4,7 +4,7 @@ import * as spies from 'chai-spies';
 import { IConfigurationProvider, Types as ConT, constants, Maybe,
 	injectable, inject, /*DependencyContainer*/ } from '@micro-fleet/common';
 import { IMediateRpcHandler, IMessageBrokerConnector,
-	IConnectionOptions, IPublishOptions, MessageHandleFunction,
+	MessageBrokerConnectionOptions, MessageBrokerPublishOptions, MessageHandleFunction,
 	MediateRpcHandlerAddOnBase, MessageBrokerRpcHandler,
 	Types as ComT } from '../app';
 
@@ -62,7 +62,7 @@ class MockMbConnector implements IMessageBrokerConnector {
 		return '';
 	}
 
-	public connect(options: IConnectionOptions): Promise<void> {
+	public connect(options: MessageBrokerConnectionOptions): Promise<void> {
 		return Promise.resolve();
 	}
 	
@@ -86,7 +86,7 @@ class MockMbConnector implements IMessageBrokerConnector {
 		return Promise.resolve();
 	}
 
-	public publish(topic: string, payload: string | Json | JsonArray, options?: IPublishOptions): Promise<void> {
+	public publish(topic: string, payload: string | Json | JsonArray, options?: MessageBrokerPublishOptions): Promise<void> {
 		return Promise.resolve();
 	}
 
