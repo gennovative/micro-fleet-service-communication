@@ -1,4 +1,3 @@
-import 'reflect-metadata';
 import * as chai from 'chai';
 import * as spies from 'chai-spies';
 import * as express from 'express';

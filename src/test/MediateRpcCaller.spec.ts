@@ -1,4 +1,3 @@
-import 'reflect-metadata';
 import { expect } from 'chai';
 import { MinorException, InternalErrorException } from '@micro-fleet/common';
 

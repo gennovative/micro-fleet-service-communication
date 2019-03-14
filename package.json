@@ -5,12 +5,13 @@
 	"scripts": {
 		"build": "npm run compile && npm run test",
 		"clean": "rimraf dist coverage .nyc_output",
-		"definition": "node ../../scripts/definition.js",
+		"definition": "node ../../../scripts/definition.js",
 		"dedup": "rimraf node_modules/**/node_modules/**/typings",
 		"compile": "npm run clean && npm run tslint && tsc --pretty",
 		"release": "npm run build && npm run definition",
 		"test": "nyc --reporter=json --reporter=html --include dist/app/**/*.js mocha --recursive dist/test",
 		"tslint": "tslint -c tslint.json 'src/**/*.ts'",
+		"prepublishOnly": "npm run release",
 		"watch": "npm run clean && npm run tslint && tsc --watch --pretty"
 	},
 	"dependencies": {
@@ -21,6 +22,26 @@
 		"request": "~2.83",
 		"request-promise": "~4.2",
 		"shortid": "~2.2"
+	},
+	"devDependencies": {
+		"@types/amqplib": "~0.5",
+		"@types/body-parser": "~1.17",
+		"@types/chai": "~4.1",
+		"@types/chai-spies": "~0.0.1",
+		"@types/express": "~4.16",
+		"@types/lodash": "~4.14",
+		"@types/mocha": "~5.2",
+		"@types/node": "~8.10",
+		"@types/request-promise": "~4.1",
+		"@types/shortid": "0.0.29",
+		"chai": "~4.1",
+		"chai-spies": "git://github.com/chaijs/chai-spies.git#b11aeebf",
+		"mocha": "~5.2",
+		"nyc": "~12.0",
+		"rimraf": "~2.6",
+		"ts-declarator": "~1.0",
+		"tslint": "~5.10",
+		"typescript": "~2.9"
 	},
 	"peerDependencies": {
 		"@micro-fleet/common": "~1.2"
@@ -33,7 +54,7 @@
 		"url": "https://github.com/gennovative"
 	},
 	"engines": {
-		"node": "^8"
+		"node": ">=8.0.0"
 	},
 	"license": "MIT",
 	"private": false,

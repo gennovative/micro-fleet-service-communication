@@ -1,6 +1,5 @@
 import http from 'http';
 
-import 'reflect-metadata';
 import { expect } from 'chai';
 import * as express from 'express';
 import * as bodyParser from 'body-parser';

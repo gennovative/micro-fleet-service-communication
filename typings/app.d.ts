@@ -1,8 +1,231 @@
 /// <reference path="./global.d.ts" />
+declare module '@micro-fleet/service-communication/dist/app/MessageBrokerConnector' {
+	import * as amqp from 'amqplib';
+	export type MessageHandleFunction = (msg: BrokerMessage, ack?: () => void, nack?: () => void) => void;
+	export type BrokerMessage = {
+	    data: any;
+	    raw: amqp.Message;
+	    properties?: MessageBrokerPublishOptions;
+	};
+	export type MessageBrokerPublishOptions = {
+	    contentType?: 'text/plain' | 'application/json';
+	    contentEncoding?: string;
+	    correlationId?: string;
+	    replyTo?: string;
+	};
+	export type MessageBrokerConnectionOptions = {
+	    /**
+	     * IP address or host name where message broker is located.
+	     */
+	    hostAddress: string;
+	    /**
+	     * Username to login to message broker.
+	     */
+	    username: string;
+	    /**
+	     * Password to login to message broker.
+	     */
+	    password: string;
+	    /**
+	     * Exchange name
+	     */
+	    exchange: string;
+	    /**
+	     * Milliseconds to wait before trying to reconnect to message broker.
+	     */
+	    reconnectDelay?: number;
+	    /**
+	     * The default queue name to bind.
+	     * If not specified or given falsey values (empty string, null,...), a queue with random name will be created.
+	     * IMessageBrokerConnector's implementation may allow connecting to many queues.
+	     * But each TopicMessageBrokerConnector instance connects to only one queue.
+	     */
+	    queue?: string;
+	    /**
+	     * Milliseconds to expire messages arriving in the queue.
+	     */
+	    messageExpiredIn?: number;
+	};
+	export interface IMessageBrokerConnector {
+	    /**
+	     * Gets or sets queue name.
+	     * Queue can only be changed before it is bound.
+	     * Queue is bound on the first call to `subscribe()` method.
+	     * @throws Error if changing queue after it is bound.
+	     */
+	    queue: string;
+	    /**
+	     * Gets or sets milliseconds to expire messages arriving in the queue.
+	     * Can only be changed before queue is bound.
+	     * Queue is bound on the first call to `subscribe()` method.
+	     * @throws Error if changing queue after it is bound.
+	     */
+	    messageExpiredIn: number;
+	    /**
+	     * Gets array of subscribed matching patterns.
+	     */
+	    readonly subscribedPatterns: string[];
+	    /**
+	     * Creates a connection to message broker engine.
+	     * @param {MessageBrokerConnectionOptions} options
+	     */
+	    connect(options: MessageBrokerConnectionOptions): Promise<void>;
+	    /**
+	     * Closes all channels and the connection.
+	     */
+	    disconnect(): Promise<void>;
+	    /**
+	     * Deletes queue.
+	     */
+	    deleteQueue(): Promise<void>;
+	    /**
+	     * Deletes all messages in queue.
+	     * Note that this won't remove messages that have been delivered but not yet acknowledged.
+	     * They will remain, and may be requeued under some circumstances
+	     * (e.g., if the channel to which they were delivered closes without acknowledging them).
+	     *
+	     * @returns Number of deleted message.
+	     */
+	    emptyQueue(): Promise<number>;
+	    /**
+	     * Starts receiving messages.
+	     * @param {function} onMessage - Callback to invoke when there is an incomming message.
+	     * @param {boolean} noAck - If true, received message is acknowledged automatically.
+	     * 	Default should be `true`.
+	     */
+	    listen(onMessage: MessageHandleFunction, noAck?: boolean): Promise<void>;
+	    /**
+	     * Stops receiving messages.
+	     */
+	    stopListen(): Promise<void>;
+	    /**
+	     * Sends `message` to the broker and label the message with `topic`.
+	     * @param {string} topic - A name to label the message with. Should be in format "xxx.yyy.zzz".
+	     * @param {any} payload - A message to send to broker.
+	     * @param {MessageBrokerPublishOptions} options - Options to add to message properties.
+	     */
+	    publish(topic: string, payload: any, options?: MessageBrokerPublishOptions): Promise<void>;
+	    /**
+	     * Listens to messages whose label matches `matchingPattern`.
+	     * @param {string} matchingPattern - Pattern to match with message label. Should be in format "xx.*" or "xx.#.#".
+	     */
+	    subscribe(matchingPattern: string): Promise<void>;
+	    /**
+	     * Stops listening to a topic pattern.
+	     */
+	    unsubscribe(matchingPattern: string): Promise<void>;
+	    /**
+	     * Stops listening to all subscriptions.
+	     */
+	    unsubscribeAll(): Promise<void>;
+	    /**
+	     * Registers a listener to handle errors.
+	     */
+	    onError(handler: (err: any) => void): void;
+	}
+	export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
+	    	    	    	    	    	    	    	    	    	    	    	    	    	    constructor();
+	    /**
+	     * @see IMessageBrokerConnector.queue
+	     */
+	    /**
+	    * @see IMessageBrokerConnector.queue
+	    */
+	    queue: string;
+	    /**
+	     * @see IMessageBrokerConnector.messageExpiredIn
+	     */
+	    /**
+	    * @see IMessageBrokerConnector.messageExpiredIn
+	    */
+	    messageExpiredIn: number;
+	    /**
+	     * @see IMessageBrokerConnector.subscribedPatterns
+	     */
+	    readonly subscribedPatterns: string[];
+	    	    /**
+	     * @see IMessageBrokerConnector.connect
+	     */
+	    connect(options: MessageBrokerConnectionOptions): Promise<void>;
+	    /**
+	     * @see IMessageBrokerConnector.disconnect
+	     */
+	    disconnect(): Promise<void>;
+	    /**
+	     * @see IMessageBrokerConnector.deleteQueue
+	     */
+	    deleteQueue(): Promise<void>;
+	    /**
+	     * @see IMessageBrokerConnector.emptyQueue
+	     */
+	    emptyQueue(): Promise<number>;
+	    /**
+	     * @see IMessageBrokerConnector.listen
+	     */
+	    listen(onMessage: MessageHandleFunction, noAck?: boolean): Promise<void>;
+	    /**
+	     * @see IMessageBrokerConnector.stopListen
+	     */
+	    stopListen(): Promise<void>;
+	    /**
+	     * @see IMessageBrokerConnector.publish
+	     */
+	    publish(topic: string, payload: any, options?: MessageBrokerPublishOptions): Promise<void>;
+	    /**
+	     * @see IMessageBrokerConnector.subscribe
+	     */
+	    subscribe(matchingPattern: string): Promise<void>;
+	    /**
+	     * @see IMessageBrokerConnector.unsubscribe
+	     */
+	    unsubscribe(matchingPattern: string): Promise<void>;
+	    /**
+	     * @see IMessageBrokerConnector.unsubscribeAll
+	     */
+	    unsubscribeAll(): Promise<void>;
+	    /**
+	     * @see IMessageBrokerConnector.onError
+	     */
+	    onError(handler: (err: any) => void): void;
+	    	    	    	    	    	    	    	    	    	    	    	    	    	}
+
+}
+declare module '@micro-fleet/service-communication/dist/app/Types' {
+	export class Types {
+	    static readonly BROKER_ADDON: string;
+	    static readonly DIRECT_RPC_CALLER: string;
+	    static readonly DIRECT_RPC_HANDLER: string;
+	    static readonly MEDIATE_RPC_CALLER: string;
+	    static readonly MEDIATE_RPC_HANDLER: string;
+	    static readonly MSG_BROKER_CONNECTOR: string;
+	}
+
+}
+declare module '@micro-fleet/service-communication/dist/app/MessageBrokerAddOn' {
+	import { IConfigurationProvider } from '@micro-fleet/common';
+	import { IMessageBrokerConnector } from '@micro-fleet/service-communication/dist/app/MessageBrokerConnector';
+	export class MessageBrokerAddOn implements IServiceAddOn {
+	    	    	    readonly name: string;
+	    constructor(_configProvider: IConfigurationProvider, _msgBrokerCnn: IMessageBrokerConnector);
+	    /**
+	     * @see IServiceAddOn.init
+	     */
+	    init(): Promise<void>;
+	    /**
+	     * @see IServiceAddOn.deadLetter
+	     */
+	    deadLetter(): Promise<void>;
+	    /**
+	     * @see IServiceAddOn.dispose
+	     */
+	    dispose(): Promise<void>;
+	}
+
+}
 declare module '@micro-fleet/service-communication/dist/app/RpcCommon' {
 	/// <reference types="node" />
 	import { EventEmitter } from 'events';
-	import { IDependencyContainer, ActionFactory } from '@micro-fleet/common';
+	import { IDependencyContainer } from '@micro-fleet/common';
 	export interface IRpcRequest {
 	    from: string;
 	    to: string;
@@ -45,7 +268,7 @@ declare module '@micro-fleet/service-communication/dist/app/RpcCommon' {
 	     */
 	    onError(handler: (err: any) => void): void;
 	}
-	export type RpcControllerFunction = (requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest) => any;
+	export type RpcHandlerFunction = (requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rpcRequest: IRpcRequest, rawMessage: any) => any;
 	export interface IRpcHandler {
 	    /**
 	     * A name used in "from" and "to" request property.
@@ -54,7 +277,6 @@ declare module '@micro-fleet/service-communication/dist/app/RpcCommon' {
 	    /**
 	     * A name used to construct subscription topic.
 	     */
-	    module: string;
 	    /**
 	     * Sets up this RPC handler with specified `param`. Each implementation class requires
 	     * different kinds of `param`.
@@ -65,7 +287,7 @@ declare module '@micro-fleet/service-communication/dist/app/RpcCommon' {
 	     * calls instance's `action` method. If `customAction` is specified,
 	     * calls instance's `customAction` instead.
 	     */
-	    handle(action: string | string[], dependencyIdentifier: string | symbol, actionFactory?: ActionFactory): any;
+	    handle(module: string, actionName: string, handler: RpcHandlerFunction): void;
 	    /**
 	     * Registers a listener to handle errors.
 	     */
@@ -102,7 +324,7 @@ declare module '@micro-fleet/service-communication/dist/app/RpcCommon' {
 	    protected rebuildError(payload: any): any;
 	}
 	export abstract class RpcHandlerBase {
-	    protected _depContainer: IDependencyContainer;
+	    protected _depContainer?: IDependencyContainer;
 	    /**
 	     * @see IRpcHandler.name
 	     */
@@ -110,9 +332,8 @@ declare module '@micro-fleet/service-communication/dist/app/RpcCommon' {
 	    /**
 	     * @see IRpcHandler.module
 	     */
-	    module: string;
 	    protected _emitter: EventEmitter;
-	    constructor(_depContainer: IDependencyContainer);
+	    constructor(_depContainer?: IDependencyContainer);
 	    /**
 	     * @see IRpcHandler.onError
 	     */
@@ -123,7 +344,7 @@ declare module '@micro-fleet/service-communication/dist/app/RpcCommon' {
 	}
 
 }
-declare module '@micro-fleet/service-communication/dist/app/DirectRpcCaller' {
+declare module '@micro-fleet/service-communication/dist/app/direct/DirectRpcCaller' {
 	import * as rpc from '@micro-fleet/service-communication/dist/app/RpcCommon';
 	export interface IDirectRpcCaller extends rpc.IRpcCaller {
 	    /**
@@ -151,36 +372,21 @@ declare module '@micro-fleet/service-communication/dist/app/DirectRpcCaller' {
 	}
 
 }
-declare module '@micro-fleet/service-communication/dist/app/DirectRpcHandler' {
-	import * as express from 'express';
-	import { IDependencyContainer, ActionFactory } from '@micro-fleet/common';
+declare module '@micro-fleet/service-communication/dist/app/direct/DirectRpcHandler' {
 	import * as rpc from '@micro-fleet/service-communication/dist/app/RpcCommon';
-	export interface ExpressRpcHandlerInitOptions {
-	    expressApp: express.Express;
-	    expressRouter: express.Router;
-	}
 	export interface IDirectRpcHandler extends rpc.IRpcHandler {
 	    /**
 	     * Http ports to listen
 	     */
 	    port: number;
-	    /**
-	     * @override
-	     * @see IRpcHandler.init
-	     */
-	    init(params?: ExpressRpcHandlerInitOptions): void;
-	    /**
-	     * @override IRpcHandler.handle to return void.
-	     */
-	    handle(actions: string | string[], dependencyIdentifier: string | symbol, actionFactory?: ActionFactory): void;
 	}
 	export class ExpressRpcHandler extends rpc.RpcHandlerBase implements IDirectRpcHandler {
-	    	    	    	    	    	    	    constructor(depContainer: IDependencyContainer);
+	    	    	    	    	    	    constructor();
 	    port: number;
 	    /**
 	     * @see IDirectRpcHandler.init
 	     */
-	    init(param?: ExpressRpcHandlerInitOptions): void;
+	    init(): void;
 	    /**
 	     * @see IRpcHandler.start
 	     */
@@ -192,13 +398,13 @@ declare module '@micro-fleet/service-communication/dist/app/DirectRpcHandler' {
 	    /**
 	     * @see IRpcHandler.handle
 	     */
-	    handle(actions: string | string[], dependencyIdentifier: string | symbol, actionFactory?: ActionFactory): void;
+	    handle(moduleName: string, actionName: string, handler: rpc.RpcHandlerFunction): void;
 	    	}
 
 }
-declare module '@micro-fleet/service-communication/dist/app/DirectRpcHandlerAddOnBase' {
+declare module '@micro-fleet/service-communication/dist/app/direct/DirectRpcHandlerAddOnBase' {
 	import { IConfigurationProvider } from '@micro-fleet/common';
-	import { IDirectRpcHandler } from '@micro-fleet/service-communication/dist/app/DirectRpcHandler';
+	import { IDirectRpcHandler } from '@micro-fleet/service-communication/dist/app/direct/DirectRpcHandler';
 	/**
 	 * Base class for DirectRpcAddOn.
 	 */
@@ -223,209 +429,7 @@ declare module '@micro-fleet/service-communication/dist/app/DirectRpcHandlerAddO
 	}
 
 }
-declare module '@micro-fleet/service-communication/dist/app/Types' {
-	export class Types {
-	    static readonly BROKER_ADDON: string;
-	    static readonly DIRECT_RPC_CALLER: string;
-	    static readonly DIRECT_RPC_HANDLER: string;
-	    static readonly MEDIATE_RPC_CALLER: string;
-	    static readonly MEDIATE_RPC_HANDLER: string;
-	    static readonly MSG_BROKER_CONNECTOR: string;
-	}
-
-}
-declare module '@micro-fleet/service-communication/dist/app/MessageBrokerConnector' {
-	import * as amqp from 'amqplib';
-	export type MessageHandleFunction = (msg: IMessage, ack?: () => void, nack?: () => void) => void;
-	export interface IMessage {
-	    data: any;
-	    raw: amqp.Message;
-	    properties?: IPublishOptions;
-	}
-	export interface IPublishOptions {
-	    contentType?: 'text/plain' | 'application/json';
-	    contentEncoding?: string;
-	    correlationId?: string;
-	    replyTo?: string;
-	}
-	export interface IConnectionOptions {
-	    /**
-	     * IP address or host name where message broker is located.
-	     */
-	    hostAddress: string;
-	    /**
-	     * Username to login to message broker.
-	     */
-	    username: string;
-	    /**
-	     * Password to login to message broker.
-	     */
-	    password: string;
-	    /**
-	     * Exchange name
-	     */
-	    exchange: string;
-	    /**
-	     * Milliseconds to wait before trying to reconnect to message broker.
-	     */
-	    reconnectDelay?: number;
-	    /**
-	     * The default queue name to bind.
-	     * If not specified or given falsey values (empty string, null,...), a queue with random name will be created.
-	     * IMessageBrokerConnector's implementation may allow connecting to many queues.
-	     * But each TopicMessageBrokerConnector instance connects to only one queue.
-	     */
-	    queue?: string;
-	    /**
-	     * Milliseconds to expire messages arriving in the queue.
-	     */
-	    messageExpiredIn?: number;
-	}
-	export interface IMessageBrokerConnector {
-	    /**
-	     * Gets or sets queue name.
-	     * Queue can only be changed before it is bound.
-	     * Queue is bound on the first call to `subscribe()` method.
-	     * @throws Error if changing queue after it is bound.
-	     */
-	    queue: string;
-	    /**
-	     * Gets or sets milliseconds to expire messages arriving in the queue.
-	     * Can only be changed before queue is bound.
-	     * Queue is bound on the first call to `subscribe()` method.
-	     * @throws Error if changing queue after it is bound.
-	     */
-	    messageExpiredIn: number;
-	    /**
-	     * Gets array of subscribed matching patterns.
-	     */
-	    readonly subscribedPatterns: string[];
-	    /**
-	     * Creates a connection to message broker engine.
-	     * @param {IConnectionOptions} options
-	     */
-	    connect(options: IConnectionOptions): Promise<void>;
-	    /**
-	     * Closes all channels and the connection.
-	     */
-	    disconnect(): Promise<void>;
-	    /**
-	     * Deletes queue.
-	     */
-	    deleteQueue(): Promise<void>;
-	    /**
-	     * Deletes all messages in queue.
-	     * Note that this won't remove messages that have been delivered but not yet acknowledged.
-	     * They will remain, and may be requeued under some circumstances
-	     * (e.g., if the channel to which they were delivered closes without acknowledging them).
-	     *
-	     * @returns Number of deleted message.
-	     */
-	    emptyQueue(): Promise<number>;
-	    /**
-	     * Starts receiving messages.
-	     * @param {function} onMessage - Callback to invoke when there is an incomming message.
-	     * @param {boolean} noAck - If true, received message is acknowledged automatically.
-	     * 	Default should be `true`.
-	     */
-	    listen(onMessage: MessageHandleFunction, noAck?: boolean): Promise<void>;
-	    /**
-	     * Stops receiving messages.
-	     */
-	    stopListen(): Promise<void>;
-	    /**
-	     * Sends `message` to the broker and label the message with `topic`.
-	     * @param {string} topic - A name to label the message with. Should be in format "xxx.yyy.zzz".
-	     * @param {any} payload - A message to send to broker.
-	     * @param {IPublishOptions} options - Options to add to message properties.
-	     */
-	    publish(topic: string, payload: any, options?: IPublishOptions): Promise<void>;
-	    /**
-	     * Listens to messages whose label matches `matchingPattern`.
-	     * @param {string} matchingPattern - Pattern to match with message label. Should be in format "xx.*" or "xx.#.#".
-	     */
-	    subscribe(matchingPattern: string): Promise<void>;
-	    /**
-	     * Stops listening to a topic pattern.
-	     */
-	    unsubscribe(matchingPattern: string): Promise<void>;
-	    /**
-	     * Stops listening to all subscriptions.
-	     */
-	    unsubscribeAll(): Promise<void>;
-	    /**
-	     * Registers a listener to handle errors.
-	     */
-	    onError(handler: (err: any) => void): void;
-	}
-	export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
-	    	    	    	    	    	    	    	    	    	    	    	    	    	    constructor();
-	    /**
-	     * @see IMessageBrokerConnector.queue
-	     */
-	    /**
-	    * @see IMessageBrokerConnector.queue
-	    */
-	    queue: string;
-	    /**
-	     * @see IMessageBrokerConnector.messageExpiredIn
-	     */
-	    /**
-	    * @see IMessageBrokerConnector.messageExpiredIn
-	    */
-	    messageExpiredIn: number;
-	    /**
-	     * @see IMessageBrokerConnector.subscribedPatterns
-	     */
-	    readonly subscribedPatterns: string[];
-	    	    /**
-	     * @see IMessageBrokerConnector.connect
-	     */
-	    connect(options: IConnectionOptions): Promise<void>;
-	    /**
-	     * @see IMessageBrokerConnector.disconnect
-	     */
-	    disconnect(): Promise<void>;
-	    /**
-	     * @see IMessageBrokerConnector.deleteQueue
-	     */
-	    deleteQueue(): Promise<void>;
-	    /**
-	     * @see IMessageBrokerConnector.emptyQueue
-	     */
-	    emptyQueue(): Promise<number>;
-	    /**
-	     * @see IMessageBrokerConnector.listen
-	     */
-	    listen(onMessage: MessageHandleFunction, noAck?: boolean): Promise<void>;
-	    /**
-	     * @see IMessageBrokerConnector.stopListen
-	     */
-	    stopListen(): Promise<void>;
-	    /**
-	     * @see IMessageBrokerConnector.publish
-	     */
-	    publish(topic: string, payload: any, options?: IPublishOptions): Promise<void>;
-	    /**
-	     * @see IMessageBrokerConnector.subscribe
-	     */
-	    subscribe(matchingPattern: string): Promise<void>;
-	    /**
-	     * @see IMessageBrokerConnector.unsubscribe
-	     */
-	    unsubscribe(matchingPattern: string): Promise<void>;
-	    /**
-	     * @see IMessageBrokerConnector.unsubscribeAll
-	     */
-	    unsubscribeAll(): Promise<void>;
-	    /**
-	     * @see IMessageBrokerConnector.onError
-	     */
-	    onError(handler: (err: any) => void): void;
-	    	    	    	    	    	    	    	    	    	    	    	    	    	}
-
-}
-declare module '@micro-fleet/service-communication/dist/app/MediateRpcCaller' {
+declare module '@micro-fleet/service-communication/dist/app/mediate/MediateRpcCaller' {
 	import { IMessageBrokerConnector } from '@micro-fleet/service-communication/dist/app/MessageBrokerConnector';
 	import * as rpc from '@micro-fleet/service-communication/dist/app/RpcCommon';
 	export interface IMediateRpcCaller extends rpc.IRpcCaller {
@@ -447,26 +451,21 @@ declare module '@micro-fleet/service-communication/dist/app/MediateRpcCaller' {
 	}
 
 }
-declare module '@micro-fleet/service-communication/dist/app/MediateRpcHandler' {
-	import { IDependencyContainer, ActionFactory } from '@micro-fleet/common';
+declare module '@micro-fleet/service-communication/dist/app/mediate/MediateRpcHandler' {
 	import { IMessageBrokerConnector } from '@micro-fleet/service-communication/dist/app/MessageBrokerConnector';
 	import * as rpc from '@micro-fleet/service-communication/dist/app/RpcCommon';
 	export interface IMediateRpcHandler extends rpc.IRpcHandler {
 	    /**
 	     * @override IRpcHandler.handle to return Promise<void>
 	     */
-	    handle(actions: string | string[], dependencyIdentifier: string | symbol, actionFactory?: ActionFactory): Promise<void>;
-	    /**
-	     * Handles countAll, create, delete, find, patch, update.
-	     */
-	    handleCRUD(dependencyIdentifier: string | symbol, actionFactory?: ActionFactory): Promise<void>;
+	    handle(module: string, action: string, handler: rpc.RpcHandlerFunction): Promise<void>;
 	}
 	export class MessageBrokerRpcHandler extends rpc.RpcHandlerBase implements IMediateRpcHandler {
-	    	    	    constructor(depContainer: IDependencyContainer, _msgBrokerConn: IMessageBrokerConnector);
+	    	    	    constructor(_msgBrokerConn: IMessageBrokerConnector);
 	    /**
 	     * @see IRpcHandler.init
 	     */
-	    init(params?: any): void;
+	    init(): void;
 	    /**
 	     * @see IRpcHandler.start
 	     */
@@ -478,17 +477,13 @@ declare module '@micro-fleet/service-communication/dist/app/MediateRpcHandler' {
 	    /**
 	     * @see IMediateRpcHandler.handle
 	     */
-	    handle(actions: string | string[], dependencyIdentifier: string | symbol, actionFactory?: ActionFactory): Promise<void>;
-	    /**
-	     * @see IMediateRpcHandler.handleCRUD
-	     */
-	    handleCRUD(dependencyIdentifier: string | symbol, actionFactory?: ActionFactory): Promise<void>;
+	    handle(moduleName: string, actionName: string, handler: rpc.RpcHandlerFunction): Promise<void>;
 	    	}
 
 }
-declare module '@micro-fleet/service-communication/dist/app/MediateRpcHandlerAddOnBase' {
+declare module '@micro-fleet/service-communication/dist/app/mediate/MediateRpcHandlerAddOnBase' {
 	import { IConfigurationProvider } from '@micro-fleet/common';
-	import { IMediateRpcHandler } from '@micro-fleet/service-communication/dist/app/MediateRpcHandler';
+	import { IMediateRpcHandler } from '@micro-fleet/service-communication/dist/app/mediate/MediateRpcHandler';
 	/**
 	 * Base class for MediateRpcAddOn.
 	 */
@@ -514,35 +509,14 @@ declare module '@micro-fleet/service-communication/dist/app/MediateRpcHandlerAdd
 	}
 
 }
-declare module '@micro-fleet/service-communication/dist/app/MessageBrokerAddOn' {
-	import { IConfigurationProvider } from '@micro-fleet/common';
-	import { IMessageBrokerConnector } from '@micro-fleet/service-communication/dist/app/MessageBrokerConnector';
-	export class MessageBrokerAddOn implements IServiceAddOn {
-	    	    	    readonly name: string;
-	    constructor(_configProvider: IConfigurationProvider, _msgBrokerCnn: IMessageBrokerConnector);
-	    /**
-	     * @see IServiceAddOn.init
-	     */
-	    init(): Promise<void>;
-	    /**
-	     * @see IServiceAddOn.deadLetter
-	     */
-	    deadLetter(): Promise<void>;
-	    /**
-	     * @see IServiceAddOn.dispose
-	     */
-	    dispose(): Promise<void>;
-	}
-
-}
 declare module '@micro-fleet/service-communication' {
 	export * from '@micro-fleet/service-communication/dist/app/RpcCommon';
-	export * from '@micro-fleet/service-communication/dist/app/DirectRpcCaller';
-	export * from '@micro-fleet/service-communication/dist/app/DirectRpcHandler';
-	export * from '@micro-fleet/service-communication/dist/app/DirectRpcHandlerAddOnBase';
-	export * from '@micro-fleet/service-communication/dist/app/MediateRpcCaller';
-	export * from '@micro-fleet/service-communication/dist/app/MediateRpcHandler';
-	export * from '@micro-fleet/service-communication/dist/app/MediateRpcHandlerAddOnBase';
+	export * from '@micro-fleet/service-communication/dist/app/direct/DirectRpcCaller';
+	export * from '@micro-fleet/service-communication/dist/app/direct/DirectRpcHandler';
+	export * from '@micro-fleet/service-communication/dist/app/direct/DirectRpcHandlerAddOnBase';
+	export * from '@micro-fleet/service-communication/dist/app/mediate/MediateRpcCaller';
+	export * from '@micro-fleet/service-communication/dist/app/mediate/MediateRpcHandler';
+	export * from '@micro-fleet/service-communication/dist/app/mediate/MediateRpcHandlerAddOnBase';
 	export * from '@micro-fleet/service-communication/dist/app/MessageBrokerAddOn';
 	export * from '@micro-fleet/service-communication/dist/app/MessageBrokerConnector';
 	export * from '@micro-fleet/service-communication/dist/app/Types';

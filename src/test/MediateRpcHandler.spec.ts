@@ -1,10 +1,8 @@
-import 'reflect-metadata';
 import * as amqp from 'amqplib';
 import * as chai from 'chai';
 import * as spies from 'chai-spies';
 import * as shortid from 'shortid';
 import delay = require('lodash/delay');
-// import { injectable, MinorException } from '@micro-fleet/common';
 
 import { MessageBrokerRpcHandler, BrokerMessage, IMessageBrokerConnector, IMediateRpcHandler,
 	TopicMessageBrokerConnector, IRpcRequest, IRpcResponse, RpcHandlerFunction } from '../app';

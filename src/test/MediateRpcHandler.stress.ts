@@ -1,4 +1,3 @@
-import 'reflect-metadata';
 import * as shortid from 'shortid';
 
 import { MessageBrokerRpcHandler, BrokerMessage,
