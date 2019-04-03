@@ -91,7 +91,7 @@ declare module '@micro-fleet/service-communication/dist/app/MessageBrokerConnect
 	     * Starts receiving messages.
 	     * @param {function} onMessage - Callback to invoke when there is an incomming message.
 	     * @param {boolean} noAck - If true, received message is acknowledged automatically.
-	     * 	Default should be `true`.
+	     *     Default should be `true`.
 	     */
 	    listen(onMessage: MessageHandleFunction, noAck?: boolean): Promise<void>;
 	    /**
@@ -192,12 +192,12 @@ declare module '@micro-fleet/service-communication/dist/app/MessageBrokerConnect
 }
 declare module '@micro-fleet/service-communication/dist/app/Types' {
 	export class Types {
-	    static readonly BROKER_ADDON: string;
-	    static readonly DIRECT_RPC_CALLER: string;
-	    static readonly DIRECT_RPC_HANDLER: string;
-	    static readonly MEDIATE_RPC_CALLER: string;
-	    static readonly MEDIATE_RPC_HANDLER: string;
-	    static readonly MSG_BROKER_CONNECTOR: string;
+	    static readonly BROKER_ADDON = "service-communication.MessageBrokerAddOn";
+	    static readonly DIRECT_RPC_CALLER = "service-communication.IDirectRpcCaller";
+	    static readonly DIRECT_RPC_HANDLER = "service-communication.IDirectRpcHandler";
+	    static readonly MEDIATE_RPC_CALLER = "service-communication.IMediateRpcCaller";
+	    static readonly MEDIATE_RPC_HANDLER = "service-communication.IMediateRpcHandler";
+	    static readonly MSG_BROKER_CONNECTOR = "service-communication.IMessageBrokerConnector";
 	}
 
 }

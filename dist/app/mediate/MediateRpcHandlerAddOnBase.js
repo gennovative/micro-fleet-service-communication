@@ -45,7 +45,7 @@ let MediateRpcHandlerAddOnBase = class MediateRpcHandlerAddOnBase {
      */
     dispose() {
         this._configProvider = null;
-        let handler = this._rpcHandler;
+        const handler = this._rpcHandler;
         this._rpcHandler = null;
         return handler.dispose();
     }

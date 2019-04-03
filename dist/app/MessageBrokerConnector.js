@@ -94,7 +94,8 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
             if (!this._connectionPrm || (!this._isConnected && !this._isConnecting)) {
                 return Promise.resolve();
             }
-            let ch, promises = [];
+            const promises = [];
+            let ch;
             if (this._consumeChanPrm) {
                 ch = await this._consumeChanPrm;
                 ch.removeAllListeners();
@@ -111,7 +112,7 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
             // Otherwise we will have dangling channels until application shuts down.
             await Promise.all(promises);
             if (this._connectionPrm) {
-                let conn = await this._connectionPrm;
+                const conn = await this._connectionPrm;
                 conn.removeAllListeners();
                 // Close connection, causing all temp queues to be deleted.
                 return conn.close();
@@ -135,7 +136,7 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
             throw new common_1.MinorException('Must stop listening before deleting queue');
         }
         try {
-            let ch = await this._consumeChanPrm;
+            const ch = await this._consumeChanPrm;
             await ch.deleteQueue(this.queue);
         }
         catch (err) {
@@ -148,7 +149,7 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
     async emptyQueue() {
         this.assertConnection();
         try {
-            let ch = await this._consumeChanPrm, result = await ch.purgeQueue(this.queue);
+            const ch = await this._consumeChanPrm, result = await ch.purgeQueue(this.queue);
             return result.messageCount;
         }
         catch (err) {
@@ -162,9 +163,9 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
         common_1.Guard.assertArgFunction('onMessage', onMessage);
         this.assertConnection();
         try {
-            let ch = await this._consumeChanPrm;
-            let conResult = await ch.consume(this.queue, (msg) => {
-                let ack = () => ch.ack(msg), nack = () => ch.nack(msg, false, true);
+            const ch = await this._consumeChanPrm;
+            const conResult = await ch.consume(this.queue, (msg) => {
+                const ack = () => ch.ack(msg), nack = () => ch.nack(msg, false, true);
                 onMessage(this.parseMessage(msg), ack, nack);
             }, { noAck });
             this._consumerTag = conResult.consumerTag;
@@ -182,7 +183,7 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
         }
         this.assertConnection();
         try {
-            let ch = await this._consumeChanPrm;
+            const ch = await this._consumeChanPrm;
             // onMessage callback will never be called again.
             await ch.cancel(this._consumerTag);
             this._consumerTag = null;
@@ -203,8 +204,8 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
                 // Create a new publishing channel if there is not already, and from now on we publish to this only channel.
                 this._publishChanPrm = this.createPublishChannel();
             }
-            let ch = await this._publishChanPrm;
-            let [msg, opts] = this.buildMessage(payload, options);
+            const ch = await this._publishChanPrm;
+            const [msg, opts] = this.buildMessage(payload, options);
             // We publish to exchange, then the exchange will route to appropriate consuming queue.
             ch.publish(this._exchange, topic, msg, opts);
         }
@@ -242,7 +243,7 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
                 return;
             }
             this.lessSub(matchingPattern);
-            let ch = await this._consumeChanPrm;
+            const ch = await this._consumeChanPrm;
             await ch.unbindQueue(this._queue, this._exchange, matchingPattern);
         }
         catch (err) {
@@ -312,7 +313,7 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
         return this.createChannel()
             .then(ch => {
             ch.once('close', () => {
-                let oldCh = this._consumeChanPrm;
+                const oldCh = this._consumeChanPrm;
                 // Delay a little bit to see if underlying connection is still alive
                 setTimeout(() => {
                     // If connection has reset and already created new channels
@@ -329,7 +330,7 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
         return this.createChannel()
             .then(ch => {
             ch.once('close', () => {
-                let oldCh = this._publishChanPrm;
+                const oldCh = this._publishChanPrm;
                 // Delay a little bit to see if underlying connection is still alive
                 setTimeout(() => {
                     // If connection has reset and already created new channels
@@ -345,7 +346,7 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
     async createChannel() {
         const EXCHANGE_TYPE = 'topic';
         try {
-            let conn = await this._connectionPrm, ch = await conn.createChannel();
+            const conn = await this._connectionPrm, ch = await conn.createChannel();
             // Tell message broker to create an exchange with this name if there's not any already.
             // Setting exchange as "durable" means the exchange with same name will be re-created after the message broker restarts,
             // but all queues and waiting messages will be lost.
@@ -361,12 +362,12 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
     }
     async bindQueue(channel, matchingPattern) {
         try {
-            let queue = this.queue, isTempQueue = (queue.indexOf('auto-gen') == 0);
+            const queue = this.queue, isTempQueue = (queue.indexOf('auto-gen') == 0);
             // Setting queue as "exclusive" to delete the temp queue when connection closes.
             await channel.assertQueue(queue, {
                 exclusive: isTempQueue,
                 messageTtl: this.messageExpiredIn,
-                autoDelete: true
+                autoDelete: true,
             });
             await channel.bindQueue(queue, this._exchange, matchingPattern);
             this._queueBound = true;
@@ -388,7 +389,7 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
         }
     }
     lessSub(pattern) {
-        let pos = this._subscribedPatterns.indexOf(pattern);
+        const pos = this._subscribedPatterns.indexOf(pattern);
         if (pos >= 0) {
             this._subscribedPatterns.splice(pos, 1);
         }
@@ -407,9 +408,9 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
         return [Buffer.from(msg), options];
     }
     parseMessage(raw) {
-        let msg = {
+        const msg = {
             raw,
-            properties: raw.properties || {}
+            properties: raw.properties || {},
         };
         if (msg.properties.contentType == 'text/plain') {
             msg.data = raw.content.toString(msg.properties.contentEncoding);

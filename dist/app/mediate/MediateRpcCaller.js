@@ -27,7 +27,7 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
      * @see IRpcCaller.init
      */
     init(params) {
-        let expire = this._msgBrokerConn.messageExpiredIn;
+        const expire = this._msgBrokerConn.messageExpiredIn;
         this._msgBrokerConn.messageExpiredIn = expire > 0 ? expire : 30000; // Make sure we only use temporary unique queue.
         this._msgBrokerConn.onError(err => this.emitError(err));
     }
@@ -51,12 +51,12 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
             conn.subscribe(replyTo)
                 .then(() => {
                 let token;
-                let onMessage = async (msg) => {
+                const onMessage = async (msg) => {
                     clearTimeout(token);
                     // We got what we want, stop consuming.
                     await conn.unsubscribe(replyTo);
                     await conn.stopListen();
-                    let response = msg.data;
+                    const response = msg.data;
                     if (response.isSuccess) {
                         resolve(response);
                     }
@@ -77,10 +77,10 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
                 });
             })
                 .then(() => {
-                let request = {
+                const request = {
                     from: this.name,
                     to: moduleName,
-                    payload: params
+                    payload: params,
                 };
                 // Send request, marking the message with correlationId.
                 return this._msgBrokerConn.publish(`request.${moduleName}.${action}`, request, { correlationId, replyTo });

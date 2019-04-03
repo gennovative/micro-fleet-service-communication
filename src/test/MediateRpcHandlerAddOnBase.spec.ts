@@ -1,194 +1,195 @@
-import * as chai from 'chai';
-import * as spies from 'chai-spies';
+import * as chai from 'chai'
+import * as spies from 'chai-spies'
 
 import { IConfigurationProvider, Types as ConT, constants, Maybe,
-	injectable, inject, /*DependencyContainer*/ } from '@micro-fleet/common';
+    injectable, inject /*DependencyContainer*/ } from '@micro-fleet/common'
 import { IMediateRpcHandler, IMessageBrokerConnector,
-	MessageBrokerConnectionOptions, MessageBrokerPublishOptions, MessageHandleFunction,
-	MediateRpcHandlerAddOnBase, MessageBrokerRpcHandler,
-	Types as ComT } from '../app';
+    MessageBrokerConnectionOptions, MessageBrokerPublishOptions, MessageHandleFunction,
+    MediateRpcHandlerAddOnBase, MessageBrokerRpcHandler,
+    Types as ComT } from '../app'
 
-const { SvcSettingKeys: SvcS } = constants;
+const { SvcSettingKeys: SvcS } = constants
 
-chai.use(spies);
-const expect = chai.expect;
+chai.use(spies)
+const expect = chai.expect
 
 
 const SERVICE_SLUG = 'test-service',
-	MODULE_NAME = 'testModule';
+    MODULE_NAME = 'testModule'
 
 
 class MockConfigProvider implements IConfigurationProvider {
 
-	public readonly name: string = 'MockConfigProvider';
+    public readonly name: string = 'MockConfigProvider'
 
-	get enableRemote(): boolean {
-		return true;
-	}
+    get enableRemote(): boolean {
+        return true
+    }
 
-	public init(): Promise<void> {
-		return Promise.resolve();
-	}
+    public init(): Promise<void> {
+        return Promise.resolve()
+    }
 
-	public deadLetter(): Promise<void> {
-		return Promise.resolve();
-	}
+    public deadLetter(): Promise<void> {
+        return Promise.resolve()
+    }
 
-	public dispose(): Promise<void> {
-		return Promise.resolve();
-	}
+    public dispose(): Promise<void> {
+        return Promise.resolve()
+    }
 
-	public onUpdate(listener: (changedKeys: string[]) => void) {
+    public onUpdate(listener: (changedKeys: string[]) => void) {
+        // Empty
+    }
 
-	}
+    public get(key: string): Maybe<number | boolean | string> {
+        switch (key) {
+            case SvcS.SERVICE_SLUG: return new Maybe(SERVICE_SLUG)
+            default: return new Maybe
+        }
+    }
 
-	public get(key: string): Maybe<number | boolean | string> {
-		switch (key) {
-			case SvcS.SERVICE_SLUG: return new Maybe(SERVICE_SLUG);
-			default: return new Maybe;
-		}
-	}
-
-	public async fetch(): Promise<boolean> {
-		return Promise.resolve(true);
-	}
+    public async fetch(): Promise<boolean> {
+        return Promise.resolve(true)
+    }
 }
 
 class MockMbConnector implements IMessageBrokerConnector {
-	public messageExpiredIn: number;
-	public subscribedPatterns: string[];
+    public messageExpiredIn: number
+    public subscribedPatterns: string[]
 
-	public get queue(): string {
-		return '';
-	}
+    public get queue(): string {
+        return ''
+    }
 
-	public connect(options: MessageBrokerConnectionOptions): Promise<void> {
-		return Promise.resolve();
-	}
-	
-	public disconnect(): Promise<void> {
-		return Promise.resolve();
-	}
-	
-	public deleteQueue(): Promise<void> {
-		return Promise.resolve();
-	}
-	
-	public emptyQueue(): Promise<number> {
-		return Promise.resolve(0);
-	}
+    public connect(options: MessageBrokerConnectionOptions): Promise<void> {
+        return Promise.resolve()
+    }
 
-	public listen(onMessage: MessageHandleFunction, noAck?: boolean): Promise<void> {
-		return Promise.resolve();
-	}
+    public disconnect(): Promise<void> {
+        return Promise.resolve()
+    }
 
-	public stopListen(): Promise<void> {
-		return Promise.resolve();
-	}
+    public deleteQueue(): Promise<void> {
+        return Promise.resolve()
+    }
 
-	public publish(topic: string, payload: string | Json | JsonArray, options?: MessageBrokerPublishOptions): Promise<void> {
-		return Promise.resolve();
-	}
+    public emptyQueue(): Promise<number> {
+        return Promise.resolve(0)
+    }
 
-	public subscribe(matchingPattern: string): Promise<void> {
-		return Promise.resolve();
-	}
+    public listen(onMessage: MessageHandleFunction, noAck?: boolean): Promise<void> {
+        return Promise.resolve()
+    }
 
-	public unsubscribe(consumerTag: string): Promise<void> {
-		return Promise.resolve();
-	}
+    public stopListen(): Promise<void> {
+        return Promise.resolve()
+    }
 
-	public unsubscribeAll(): Promise<void> {
-		return Promise.resolve();
-	}
+    public publish(topic: string, payload: string | Json | JsonArray, options?: MessageBrokerPublishOptions): Promise<void> {
+        return Promise.resolve()
+    }
 
-	public onError(handler: (err: any) => void): void {
-	}
+    public subscribe(matchingPattern: string): Promise<void> {
+        return Promise.resolve()
+    }
+
+    public unsubscribe(consumerTag: string): Promise<void> {
+        return Promise.resolve()
+    }
+
+    public unsubscribeAll(): Promise<void> {
+        return Promise.resolve()
+    }
+
+    public onError(handler: (err: any) => void): void {
+        // Empty
+    }
 }
 
 
 @injectable()
 class CustomAddOn extends MediateRpcHandlerAddOnBase {
 
-	public readonly name: string = 'CustomAddOn';
+    public readonly name: string = 'CustomAddOn'
 
-	protected controllerIdentifier: string | symbol;
+    protected controllerIdentifier: string | symbol
 
-	constructor(
-		@inject(ConT.CONFIG_PROVIDER) configProvider: IConfigurationProvider,
-		@inject(ComT.MEDIATE_RPC_HANDLER) rpcHandler: IMediateRpcHandler
-	) {
-		super(configProvider, rpcHandler);
-		this.controllerIdentifier = 'CustomController';
-	}
+    constructor(
+        @inject(ConT.CONFIG_PROVIDER) configProvider: IConfigurationProvider,
+        @inject(ComT.MEDIATE_RPC_HANDLER) rpcHandler: IMediateRpcHandler
+    ) {
+        super(configProvider, rpcHandler)
+        this.controllerIdentifier = 'CustomController'
+    }
 
-	/**
-	 * @see IServiceAddOn.init
-	 */
-	public init(): Promise<void> {
-		return super.init(MODULE_NAME);
-	}
+    /**
+     * @see IServiceAddOn.init
+     */
+    public init(): Promise<void> {
+        return super.init(MODULE_NAME)
+    }
 
-	/**
-	 * @see IServiceAddOn.deadLetter
-	 */
-	public deadLetter(): Promise<void> {
-		return super.deadLetter();
-	}
+    /**
+     * @see IServiceAddOn.deadLetter
+     */
+    public deadLetter(): Promise<void> {
+        return super.deadLetter()
+    }
 
-	/**
-	 * @see IServiceAddOn.dispose
-	 */
-	public dispose(): Promise<void> {
-		return super.dispose();
-	}
+    /**
+     * @see IServiceAddOn.dispose
+     */
+    public dispose(): Promise<void> {
+        return super.dispose()
+    }
 
-	/**
-	 * @override
-	 */
-	protected handleRequests(): void {
-		super.handleRequests();
-		// this._rpcHandler.handle('add', '');
-	}
+    /**
+     * @override
+     */
+    protected handleRequests(): void {
+        super.handleRequests()
+        // this._rpcHandler.handle('add', '');
+    }
 }
 
 
 let connector: IMessageBrokerConnector,
-	// depContainer: DependencyContainer,
-	handler: IMediateRpcHandler,
-	addon: CustomAddOn;
+    // depContainer: DependencyContainer,
+    globalHandler: IMediateRpcHandler,
+    addon: CustomAddOn
 
 describe('MediateRpcHandlerAddOnBase', () => {
 
-	beforeEach(() => {
-		connector = new MockMbConnector();
-		// depContainer = new DependencyContainer();
-		handler = new MessageBrokerRpcHandler(connector);
-		addon = new CustomAddOn(new MockConfigProvider(), handler);
-	});
+    beforeEach(() => {
+        connector = new MockMbConnector()
+        // depContainer = new DependencyContainer();
+        globalHandler = new MessageBrokerRpcHandler(connector)
+        addon = new CustomAddOn(new MockConfigProvider(), globalHandler)
+    })
 
-	describe('init', () => {
-		it('Should set RPC handler name and port', async () => {
-			// Act
-			await addon.init();
+    describe('init', () => {
+        it('Should set RPC handler name and port', async () => {
+            // Act
+            await addon.init()
 
-			// Assert
-			// expect(addon['_rpcHandler'].module).to.equal(MODULE_NAME);
-			expect(addon['_rpcHandler'].name).to.equal(SERVICE_SLUG);
-		});
-	}); // END describe 'init'
+            // Assert
+            // expect(addon['_rpcHandler'].module).to.equal(MODULE_NAME);
+            expect(addon['_rpcHandler'].name).to.equal(SERVICE_SLUG)
+        })
+    }) // END describe 'init'
 
-	describe('dispose', () => {
-		it('should call RPC handler.dispose', async () => {
-			// Arrange
-			let disconnectSpy = chai.spy.on(addon['_rpcHandler'], 'dispose');
-			
-			// Act
-			await addon.dispose();
+    describe('dispose', () => {
+        it('should call RPC handler.dispose', async () => {
+            // Arrange
+            const disconnectSpy = chai.spy.on(addon['_rpcHandler'], 'dispose')
 
-			// Assert
-			expect(disconnectSpy).to.be.spy;
-			expect(disconnectSpy).to.be.called.once;
-		});
-	}); // END describe 'dispose'
-});
+            // Act
+            await addon.dispose()
+
+            // Assert
+            expect(disconnectSpy).to.be.spy
+            expect(disconnectSpy).to.be.called.once
+        })
+    }) // END describe 'dispose'
+})

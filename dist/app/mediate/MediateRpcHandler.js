@@ -41,7 +41,7 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
         // Stop listening then unsbuscribe all topic patterns.
         return Promise.all([
             this._msgBrokerConn.stopListen(),
-            this._msgBrokerConn.unsubscribeAll()
+            this._msgBrokerConn.unsubscribeAll(),
         ]);
     }
     /**
@@ -89,7 +89,7 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
             return this._msgBrokerConn.publish(replyTo, this.createResponse(true, result, request.from), { correlationId });
         })
             .catch(error => {
-            let errObj = this.createError(error);
+            const errObj = this.createError(error);
             // nack(); // Disable this, because we use auto-ack.
             return this._msgBrokerConn.publish(replyTo, this.createResponse(false, errObj, request.from), { correlationId });
         })

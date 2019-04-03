@@ -15,7 +15,7 @@ const descriptor = {
     writable: false,
     enumerable: false,
     configurable: false,
-    value: null
+    value: null,
 };
 if (!global.gennova) {
     descriptor.value = {};
@@ -107,7 +107,7 @@ let RpcHandlerBase = class RpcHandlerBase {
             isSuccess,
             from: this.name,
             to: replyTo,
-            payload
+            payload,
         };
     }
     createError(rawError) {

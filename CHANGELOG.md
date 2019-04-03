@@ -2,6 +2,10 @@
 
     Note: Will be marked as v1.0.0 when test coverage >= 90%
 
+## 0.2.3
+- Upgraded dependencies.
+- Improved lint rules.
+
 ## 0.2.2
 - Moved `global` types to `global.gennova`.
 

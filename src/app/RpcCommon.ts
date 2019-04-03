@@ -1,137 +1,138 @@
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'events'
 
 import { injectable, IDependencyContainer,
-	MinorException, Exception, InternalErrorException,
-	ValidationError } from '@micro-fleet/common';
+    MinorException, Exception, InternalErrorException,
+    ValidationError } from '@micro-fleet/common'
 
 const descriptor = {
-	writable: false,
-	enumerable: false,
-	configurable: false,
-	value: null as any
-};
-
-if (!global.gennova) {
-	descriptor.value = {};
-	Object.defineProperty(global, 'gennova', descriptor);
+    writable: false,
+    enumerable: false,
+    configurable: false,
+    value: null as any,
 }
 
-const gennova = global.gennova;
+if (!global.gennova) {
+    descriptor.value = {}
+    Object.defineProperty(global, 'gennova', descriptor)
+}
+
+const gennova = global.gennova
 
 /* istanbul ignore else */
 if (!gennova['ValidationError']) {
-	descriptor.value = ValidationError;
-	Object.defineProperty(gennova, 'ValidationError', descriptor);
+    descriptor.value = ValidationError
+    Object.defineProperty(gennova, 'ValidationError', descriptor)
 }
 
 /* istanbul ignore else */
 if (!gennova['MinorException']) {
-	descriptor.value = MinorException;
-	Object.defineProperty(gennova, 'MinorException', descriptor);
+    descriptor.value = MinorException
+    Object.defineProperty(gennova, 'MinorException', descriptor)
 }
 
 /* istanbul ignore else */
 if (!gennova['InternalErrorException']) {
-	descriptor.value = InternalErrorException;
-	Object.defineProperty(gennova, 'InternalErrorException', descriptor);
+    descriptor.value = InternalErrorException
+    Object.defineProperty(gennova, 'InternalErrorException', descriptor)
 }
 
 // Interface - Service contract
 
 export interface IRpcRequest {
-	from: string;
-	to: string;
-	payload: any;
+    from: string
+    to: string
+    payload: any
 }
 
 export interface IRpcResponse {
-	isSuccess: boolean;
-	from: string;
-	to: string;
-	payload: any;
+    isSuccess: boolean
+    from: string
+    to: string
+    payload: any
 }
 
 // Interface - RPC caller and handler
 
 export interface IRpcCaller {
-	/**
-	 * A name used in "from" and "to" request property.
-	 */
-	name: string;
+    /**
+     * A name used in "from" and "to" request property.
+     */
+    name: string
 
-	/**
-	 * Number of milliseconds to wait for response before cancelling the request.
-	 * Must be between (inclusive) 1000 and 60000 (Min: 1s, Max: 60s).
-	 */
-	timeout: number;
+    /**
+     * Number of milliseconds to wait for response before cancelling the request.
+     * Must be between (inclusive) 1000 and 60000 (Min: 1s, Max: 60s).
+     */
+    timeout: number
 
-	/**
-	 * Sets up this RPC caller with specified `param`. Each implementation class requires
-	 * different kinds of `param`.
-	 */
-	init(params?: any): any;
+    /**
+     * Sets up this RPC caller with specified `param`. Each implementation class requires
+     * different kinds of `param`.
+     */
+    init(params?: any): any
 
-	/**
-	 * Clear resources.
-	 */
-	dispose(): Promise<void>;
+    /**
+     * Clear resources.
+     */
+    dispose(): Promise<void>
 
-	/**
-	 * Sends a request to `moduleName` to execute `action` with `params`.
-	 * @param moduleName The module to send request.
-	 * @param action The function name to call on `moduleName`.
-	 * @param params Parameters to pass to function `action`.
-	 */
-	call(moduleName: string, action: string, params?: any): Promise<IRpcResponse>;
+    /**
+     * Sends a request to `moduleName` to execute `action` with `params`.
+     * @param moduleName The module to send request.
+     * @param action The function name to call on `moduleName`.
+     * @param params Parameters to pass to function `action`.
+     */
+    call(moduleName: string, action: string, params?: any): Promise<IRpcResponse>
 
-	/**
-	 * Registers a listener to handle errors.
-	 */
-	onError(handler: (err: any) => void): void;
+    /**
+     * Registers a listener to handle errors.
+     */
+    onError(handler: (err: any) => void): void
 }
 
 
-export type RpcHandlerFunction = (requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rpcRequest: IRpcRequest, rawMessage: any) => any;
+export type RpcHandlerFunction = (requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn,
+    rpcRequest: IRpcRequest, rawMessage: any) => any
 
 export interface IRpcHandler {
-	/**
-	 * A name used in "from" and "to" request property.
-	 */
-	name: string;
+    /**
+     * A name used in "from" and "to" request property.
+     */
+    name: string
 
-	/**
-	 * A name used to construct subscription topic.
-	 */
-	// module: string;
-	
-	/**
-	 * Sets up this RPC handler with specified `param`. Each implementation class requires
-	 * different kinds of `param`.
-	 */
-	init(params?: any): any;
+    /**
+     * A name used to construct subscription topic.
+     */
+    // module: string;
 
-	/**
-	 * Waits for incoming request, resolves an instance with `dependencyIdentifier`,
-	 * calls instance's `action` method. If `customAction` is specified, 
-	 * calls instance's `customAction` instead.
-	 */
-	handle(module: string, actionName: string, handler: RpcHandlerFunction): void;
-	// handle(action: string, module: string | symbol, actionFactory?: ActionFactory): any;
+    /**
+     * Sets up this RPC handler with specified `param`. Each implementation class requires
+     * different kinds of `param`.
+     */
+    init(params?: any): any
 
-	/**
-	 * Registers a listener to handle errors.
-	 */
-	onError(handler: (err: any) => void): void;
+    /**
+     * Waits for incoming request, resolves an instance with `dependencyIdentifier`,
+     * calls instance's `action` method. If `customAction` is specified,
+     * calls instance's `customAction` instead.
+     */
+    handle(module: string, actionName: string, handler: RpcHandlerFunction): void
+    // handle(action: string, module: string | symbol, actionFactory?: ActionFactory): any;
 
-	/**
-	 * Starts listening to requests.
-	 */
-	start(): Promise<void>;
+    /**
+     * Registers a listener to handle errors.
+     */
+    onError(handler: (err: any) => void): void
 
-	/**
-	 * Stops handling requests and removes registered actions.
-	 */
-	dispose(): Promise<void>;
+    /**
+     * Starts listening to requests.
+     */
+    start(): Promise<void>
+
+    /**
+     * Stops handling requests and removes registered actions.
+     */
+    dispose(): Promise<void>
 }
 
 
@@ -140,130 +141,130 @@ export interface IRpcHandler {
 @injectable()
 export abstract class RpcCallerBase {
 
-	/**
-	 * @see IRpcCaller.name
-	 */
-	public name: string;
+    /**
+     * @see IRpcCaller.name
+     */
+    public name: string
 
-	private _timeout: number;
+    private _timeout: number
 
-	protected _emitter: EventEmitter;
-
-
-	constructor() {
-		this._emitter = new EventEmitter();
-		this._timeout = 30000;
-	}
-	
-
-	/**
-	 * @see IRpcCaller.timeout
-	 */
-	public get timeout(): number {
-		return this._timeout;
-	}
-
-	/**
-	 * @see IRpcCaller.timeout
-	 */
-	public set timeout(val: number) {
-		if (val >= 1000 && val <= 60000) {
-			this._timeout = val;
-		}
-	}
-
-	public dispose(): Promise<void> {
-		this._emitter.removeAllListeners();
-		this._emitter = null;
-		return Promise.resolve();
-	}
-
-	/**
-	 * @see IRpcCaller.onError
-	 */
-	public onError(handler: (err: any) => void): void {
-		this._emitter.on('error', handler);
-	}
+    protected _emitter: EventEmitter
 
 
-	protected emitError(err: any): void {
-		this._emitter.emit('error', err);
-	}
+    constructor() {
+        this._emitter = new EventEmitter()
+        this._timeout = 30000
+    }
 
-	protected rebuildError(payload: any) {
-		if (payload.type) {
-			// Expect response.payload.type = MinorException | ValidationError
-			return new global.gennova[payload.type](payload.message);
-		} else {
-			const ex = new MinorException(payload.message);
-			ex.stack = payload.stack;
-			return ex;
-		}
-	}
+
+    /**
+     * @see IRpcCaller.timeout
+     */
+    public get timeout(): number {
+        return this._timeout
+    }
+
+    /**
+     * @see IRpcCaller.timeout
+     */
+    public set timeout(val: number) {
+        if (val >= 1000 && val <= 60000) {
+            this._timeout = val
+        }
+    }
+
+    public dispose(): Promise<void> {
+        this._emitter.removeAllListeners()
+        this._emitter = null
+        return Promise.resolve()
+    }
+
+    /**
+     * @see IRpcCaller.onError
+     */
+    public onError(handler: (err: any) => void): void {
+        this._emitter.on('error', handler)
+    }
+
+
+    protected emitError(err: any): void {
+        this._emitter.emit('error', err)
+    }
+
+    protected rebuildError(payload: any) {
+        if (payload.type) {
+            // Expect response.payload.type = MinorException | ValidationError
+            return new global.gennova[payload.type](payload.message)
+        } else {
+            const ex = new MinorException(payload.message)
+            ex.stack = payload.stack
+            return ex
+        }
+    }
 }
 
 @injectable()
 export abstract class RpcHandlerBase {
 
-	/**
-	 * @see IRpcHandler.name
-	 */
-	public name: string;
+    /**
+     * @see IRpcHandler.name
+     */
+    public name: string
 
-	/**
-	 * @see IRpcHandler.module
-	 */
-	// public module: string;
+    /**
+     * @see IRpcHandler.module
+     */
+    // public module: string;
 
-	protected _emitter: EventEmitter;
-
-
-	constructor(protected _depContainer?: IDependencyContainer) {
-		this._emitter = new EventEmitter();
-	}
+    protected _emitter: EventEmitter
 
 
-	/**
-	 * @see IRpcHandler.onError
-	 */
-	public onError(handler: (err: any) => void): void {
-		this._emitter.on('error', handler);
-	}
+    constructor(protected _depContainer?: IDependencyContainer) {
+        this._emitter = new EventEmitter()
+    }
 
 
-	protected emitError(err: any): void {
-		this._emitter.emit('error', err);
-	}
+    /**
+     * @see IRpcHandler.onError
+     */
+    public onError(handler: (err: any) => void): void {
+        this._emitter.on('error', handler)
+    }
 
-	protected createResponse(isSuccess: boolean, payload: any, replyTo: string): IRpcResponse {
-		return {
-			isSuccess,
-			from: this.name,
-			to: replyTo,
-			payload
-		};
-	}
 
-	protected createError(rawError: any) {
-		// TODO: Should log this unexpected error.
-		const errObj: any = {};
-		if (rawError instanceof MinorException) {
-			// If this is a minor error, or the action method sends this error
-			// back to caller on purpose.
-			errObj.type = rawError.name;
-			errObj.message = rawError.message;
-			errObj.details = rawError['details'];
-		} else if ((rawError instanceof Error) || (rawError instanceof Exception)) {
-			// If error is an uncaught Exception/Error object, that means the action method
-			// has a problem. We should not send it back to caller.
-			errObj.type = 'InternalErrorException';
-			errObj.message = rawError.message;
-			this.emitError(rawError);
-		} else {
-			const ex = new MinorException(rawError + '');
-			errObj.type = 'InternalErrorException';
-			this.emitError(ex.message);
-		}
-		return errObj;
-	}
+    protected emitError(err: any): void {
+        this._emitter.emit('error', err)
+    }
+
+    protected createResponse(isSuccess: boolean, payload: any, replyTo: string): IRpcResponse {
+        return {
+            isSuccess,
+            from: this.name,
+            to: replyTo,
+            payload,
+        }
+    }
+
+    protected createError(rawError: any) {
+        // TODO: Should log this unexpected error.
+        const errObj: any = {}
+        if (rawError instanceof MinorException) {
+            // If this is a minor error, or the action method sends this error
+            // back to caller on purpose.
+            errObj.type = rawError.name
+            errObj.message = rawError.message
+            errObj.details = rawError['details']
+        } else if ((rawError instanceof Error) || (rawError instanceof Exception)) {
+            // If error is an uncaught Exception/Error object, that means the action method
+            // has a problem. We should not send it back to caller.
+            errObj.type = 'InternalErrorException'
+            errObj.message = rawError.message
+            this.emitError(rawError)
+        } else {
+            const ex = new MinorException(rawError + '')
+            errObj.type = 'InternalErrorException'
+            this.emitError(ex.message)
+        }
+        return errObj
+    }
 }

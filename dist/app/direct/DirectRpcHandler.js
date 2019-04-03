@@ -118,7 +118,7 @@ let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rp
     }
 };
 ExpressRpcHandler.URL_TESTER = (function () {
-    let regexp = new RegExp(/^[a-zA-Z0-9_-]*$/);
+    const regexp = new RegExp(/^[a-zA-Z0-9_-]*$/);
     regexp.compile();
     return regexp;
 })();

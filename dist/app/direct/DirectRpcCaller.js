@@ -27,6 +27,7 @@ let HttpRpcCaller = class HttpRpcCaller extends rpc.RpcCallerBase {
      * @see IRpcCaller.init
      */
     init(param) {
+        // Empty
     }
     /**
      * @see IRpcCaller.dispose
@@ -42,16 +43,16 @@ let HttpRpcCaller = class HttpRpcCaller extends rpc.RpcCallerBase {
         common_1.Guard.assertArgDefined('moduleName', moduleName);
         common_1.Guard.assertArgDefined('action', action);
         common_1.Guard.assertIsDefined(this._baseAddress, 'Base URL must be set!');
-        let request = {
+        const rpcRequest = {
             from: this.name,
             to: moduleName,
-            payload: params
+            payload: params,
         }, options = {
             method: 'POST',
             uri: `http://${this._baseAddress}/${moduleName}/${action}`,
-            body: request,
+            body: rpcRequest,
             json: true,
-            timeout: this.timeout
+            timeout: this.timeout,
         };
         return this._requestMaker(options)
             .catch(rawResponse => Promise.reject(this.rebuildError(rawResponse.error)));

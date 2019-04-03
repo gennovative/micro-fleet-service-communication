@@ -27,7 +27,7 @@ let MessageBrokerAddOn = class MessageBrokerAddOn {
      * @see IServiceAddOn.init
      */
     init() {
-        let cfgAdt = this._configProvider, opts = {
+        const cfgAdt = this._configProvider, opts = {
             hostAddress: cfgAdt.get(S.MSG_BROKER_HOST).value,
             username: cfgAdt.get(S.MSG_BROKER_USERNAME).value,
             password: cfgAdt.get(S.MSG_BROKER_PASSWORD).value,

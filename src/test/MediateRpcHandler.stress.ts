@@ -1,94 +1,95 @@
-import * as shortid from 'shortid';
+import * as shortid from 'shortid'
 
 import { MessageBrokerRpcHandler, BrokerMessage,
-	TopicMessageBrokerConnector, IRpcRequest, RpcHandlerFunction } from '../app';
+    TopicMessageBrokerConnector, IRpcRequest, RpcHandlerFunction } from '../app'
 
-import rabbitOpts from './rabbit-options';
+import rabbitOpts from './rabbit-options'
 
 
-const NAME = 'TestHandler';
+const NAME = 'TestHandler'
 
 let handlerMbConn: TopicMessageBrokerConnector,
-	callerMbConn: TopicMessageBrokerConnector,
-	rpcHandler: MessageBrokerRpcHandler;
+    callerMbConn: TopicMessageBrokerConnector,
+    rpcHandler: MessageBrokerRpcHandler
 
 describe.skip('MediateRpcHandler', function() {
-	// Disable timeout to let stress test run forever.
-	this.timeout(0);
+    // Disable timeout to let stress test run forever.
+    this.timeout(0)
 
-	beforeEach(done => {
-		callerMbConn = new TopicMessageBrokerConnector();
-		handlerMbConn = new TopicMessageBrokerConnector();
-		rpcHandler = new MessageBrokerRpcHandler(handlerMbConn);
+    beforeEach(done => {
+        callerMbConn = new TopicMessageBrokerConnector()
+        handlerMbConn = new TopicMessageBrokerConnector()
+        rpcHandler = new MessageBrokerRpcHandler(handlerMbConn)
 
-		handlerMbConn.onError((err) => {
-				console.error('Handler error:\n' + JSON.stringify(err));
-			});
-			
-			callerMbConn.onError((err) => {
-				console.error('Caller error:\n' + JSON.stringify(err));
-			});
+        handlerMbConn.onError((err) => {
+                console.error('Handler error:\n' + JSON.stringify(err))
+            })
 
-			rpcHandler.name = NAME;
-			Promise.all([
-				handlerMbConn.connect(rabbitOpts.handler),
-				callerMbConn.connect(rabbitOpts.caller)
-			])
-			.then(() => rpcHandler.init())
-			.then(() => { done(); });
-	});
+            callerMbConn.onError((err) => {
+                console.error('Caller error:\n' + JSON.stringify(err))
+            })
 
-	afterEach(done => {
-		Promise.all([
-			handlerMbConn.disconnect(),
-			callerMbConn.disconnect()
-		])
-		.then(() => { done(); });
-	});
+            rpcHandler.name = NAME
+            Promise.all([
+                handlerMbConn.connect(rabbitOpts.handler),
+                callerMbConn.connect(rabbitOpts.caller),
+            ])
+            .then(() => rpcHandler.init())
+            .then(() => { done() })
+    })
 
-	it('Should handle requests as much as it could.', (done) => {
-		// Arrange
-		const moduleName = 'accounts';
-		const createAction = 'create';
-		const correlationId = shortid.generate();
-		const result: any = {
-			text: 'successsss'
-		};
-		const createHandler: RpcHandlerFunction = (payload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest) => {
-			resolve(result);
-		};
-		
-		// Act
-		rpcHandler.handle(moduleName, createAction, createHandler);
+    afterEach(done => {
+        Promise.all([
+            handlerMbConn.disconnect(),
+            callerMbConn.disconnect(),
+        ])
+        .then(() => { done() })
+    })
 
-		// Assert
-		const replyTo = `response.${moduleName}.${createAction}@${correlationId}`;
-		let start: number, end: number;
-		
-		callerMbConn.subscribe(replyTo)
-			.then(() => {
-				return handlerMbConn.listen((msg: BrokerMessage) => {
-					end = new Date().getTime();
-					console.log(`Response after ${end - start}ms`);
-				});
-			})
-			.then(() => rpcHandler.start())
-			.then(() => {
-				let req: IRpcRequest = {
-					from: moduleName,
-					to: '',
-					payload: {}
-				};
+    it('Should handle requests as much as it could.', (done) => {
+        // Arrange
+        const moduleName = 'accounts'
+        const createAction = 'create'
+        const correlationId = shortid.generate()
+        const result: any = {
+            text: 'successsss',
+        }
+        const createHandler: RpcHandlerFunction = function (payload: any, resolve: PromiseResolveFn,
+                reject: PromiseRejectFn, rawRequest: IRpcRequest) {
+            resolve(result)
+        }
 
-				const SENDING_GAP = 100; //ms
-				setInterval(() => {
-					// Manually publish request.
-					start = new Date().getTime();
-					console.log('Request');
-					const topic = `request.${moduleName}.${createAction}`;
-					callerMbConn.publish(topic, req, { correlationId, replyTo });
-				}, SENDING_GAP); // END setInterval
-			});
+        // Act
+        rpcHandler.handle(moduleName, createAction, createHandler)
 
-	});
-});
+        // Assert
+        const replyTo = `response.${moduleName}.${createAction}@${correlationId}`
+        let start: number, end: number
+
+        callerMbConn.subscribe(replyTo)
+            .then(() => {
+                return handlerMbConn.listen((msg: BrokerMessage) => {
+                    end = new Date().getTime()
+                    console.log(`Response after ${end - start}ms`)
+                })
+            })
+            .then(() => rpcHandler.start())
+            .then(() => {
+                const req: IRpcRequest = {
+                    from: moduleName,
+                    to: '',
+                    payload: {},
+                }
+
+                const SENDING_GAP = 100 // ms
+                setInterval(() => {
+                    // Manually publish request.
+                    start = new Date().getTime()
+                    console.log('Request')
+                    const topic = `request.${moduleName}.${createAction}`
+                    callerMbConn.publish(topic, req, { correlationId, replyTo })
+                }, SENDING_GAP) // END setInterval
+            })
+
+    })
+})

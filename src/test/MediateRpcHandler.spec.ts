@@ -1,429 +1,438 @@
-import * as amqp from 'amqplib';
-import * as chai from 'chai';
-import * as spies from 'chai-spies';
-import * as shortid from 'shortid';
-import delay = require('lodash/delay');
+import * as amqp from 'amqplib'
+import * as chai from 'chai'
+import * as spies from 'chai-spies'
+import * as shortid from 'shortid'
+import delay = require('lodash/delay')
 
 import { MessageBrokerRpcHandler, BrokerMessage, IMessageBrokerConnector, IMediateRpcHandler,
-	TopicMessageBrokerConnector, IRpcRequest, IRpcResponse, RpcHandlerFunction } from '../app';
+    TopicMessageBrokerConnector, IRpcRequest, IRpcResponse, RpcHandlerFunction } from '../app'
 
-import rabbitOpts from './rabbit-options';
-import { MinorException } from '@micro-fleet/common';
+import rabbitOpts from './rabbit-options'
+import { MinorException } from '@micro-fleet/common'
 
-chai.use(spies);
-const expect = chai.expect;
+chai.use(spies)
+const expect = chai.expect
 
 
-const NAME = 'TestHandler';
+const NAME = 'TestHandler'
 
 let handlerMbConn: IMessageBrokerConnector,
-	callerMbConn: IMessageBrokerConnector,
-	rpcHandler: IMediateRpcHandler;
+    callerMbConn: IMessageBrokerConnector,
+    rpcHandler: IMediateRpcHandler
 
 describe('MediateRpcHandler', function () {
-	// this.timeout(5000);
-	this.timeout(60000); // For debugging
+    // this.timeout(5000);
+    this.timeout(60000) // For debugging
 
-	describe('init', () => {
-		it('Should raise error if problems occur', done => {
-			// Arrange
-			const ERROR = 'Test error';
+    describe('init', () => {
+        it('Should raise error if problems occur', done => {
+            // Arrange
+            const ERROR = 'Test error'
 
-			handlerMbConn = new TopicMessageBrokerConnector();
-			rpcHandler = new MessageBrokerRpcHandler(
-				handlerMbConn
-			);
+            handlerMbConn = new TopicMessageBrokerConnector()
+            rpcHandler = new MessageBrokerRpcHandler(
+                handlerMbConn
+            )
 
-			// Act
-			// handler.module = MODULE;
-			rpcHandler.name = NAME;
-			rpcHandler.init();
-			rpcHandler.onError(err => {
-				// Assert
-				expect(err).to.equal(ERROR);
-				handlerMbConn.disconnect().then(() => done());
-			});
+            // Act
+            // handler.module = MODULE;
+            rpcHandler.name = NAME
+            rpcHandler.init()
+            rpcHandler.onError(err => {
+                // Assert
+                expect(err).to.equal(ERROR)
+                handlerMbConn.disconnect().then(() => done())
+            })
 
-			handlerMbConn.connect(rabbitOpts.handler)
-				.then(() => {
-					handlerMbConn['_emitter'].emit('error', ERROR);
-				});
-		});
+            handlerMbConn.connect(rabbitOpts.handler)
+                .then(() => {
+                    handlerMbConn['_emitter'].emit('error', ERROR)
+                })
+        })
 
-	}); // END describe 'init'
+    }) // END describe 'init'
 
-	describe('handle', () => {
-		
-		beforeEach(done => {
-			callerMbConn = new TopicMessageBrokerConnector();
-			handlerMbConn = new TopicMessageBrokerConnector();
-			rpcHandler = new MessageBrokerRpcHandler(handlerMbConn);
-			
-			handlerMbConn.onError((err) => {
-				console.error('Handler error:\n', err);
-			});
-			
-			callerMbConn.onError((err) => {
-				console.error('Caller error:\n', err);
-			});
+    describe('handle', () => {
 
-			rpcHandler.name = NAME;
-			Promise.all([
-				handlerMbConn.connect(rabbitOpts.handler),
-				callerMbConn.connect(rabbitOpts.caller)
-			])
-			.then(() => rpcHandler.init())
-			.then(() => done());
-		});
+        beforeEach(done => {
+            callerMbConn = new TopicMessageBrokerConnector()
+            handlerMbConn = new TopicMessageBrokerConnector()
+            rpcHandler = new MessageBrokerRpcHandler(handlerMbConn)
 
-		afterEach(async () => {
-			await rpcHandler.dispose();
-			await handlerMbConn.deleteQueue();
-			await Promise.all([
-				handlerMbConn.disconnect(),
-				callerMbConn.disconnect()
-			]);
-		});
+            handlerMbConn.onError((err) => {
+                console.error('Handler error:\n', err)
+            })
 
-		it('Should subscribe topic pattern on message broker.', (done) => {
-			// Arrange
-			const moduleName = 'accounts';
-			const createAction = 'create';
-			const correlationId = shortid.generate();
-			const payload = {
-				text: 'eeeechooooo'
-			};
-			const createHandler: RpcHandlerFunction = (payload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest) => {
-				expect(payload).to.deep.equal(payload);
-				resolve();
-				done();
-			};
+            callerMbConn.onError((err) => {
+                console.error('Caller error:\n', err)
+            })
 
-			// Act
-			rpcHandler.handle(moduleName, createAction, createHandler);
+            rpcHandler.name = NAME
+            Promise.all([
+                handlerMbConn.connect(rabbitOpts.handler),
+                callerMbConn.connect(rabbitOpts.caller),
+            ])
+            .then(() => rpcHandler.init())
+            .then(() => done())
+        })
 
-			const replyTo = `response.${moduleName}.${createAction}@${correlationId}`;
-			
-			rpcHandler.start()
-				.then(() => {
-					const req: IRpcRequest = {
-						from: moduleName,
-						to: '',
-						payload
-					};
-					const topic = `request.${moduleName}.${createAction}`;
-					// Manually publish request.
-					callerMbConn.publish(topic, req, { correlationId, replyTo }
-					);
-				});
+        afterEach(async () => {
+            await rpcHandler.dispose()
+            await handlerMbConn.deleteQueue()
+            await Promise.all([
+                handlerMbConn.disconnect(),
+                callerMbConn.disconnect(),
+            ])
+        })
 
-		});
+        it('Should subscribe topic pattern on message broker.', (done) => {
+            // Arrange
+            const moduleName = 'accounts'
+            const createAction = 'create'
+            const correlationId = shortid.generate()
+            const samplePayload = {
+                text: 'eeeechooooo',
+            }
+            const createHandler: RpcHandlerFunction = function (payload: any, resolve: PromiseResolveFn,
+                    reject: PromiseRejectFn, rawRequest: IRpcRequest) {
+                expect(payload).to.deep.equal(samplePayload)
+                resolve()
+                done()
+            }
 
-		it('Should allow overriding topic subscription.', (done) => {
-			// Arrange
-			const moduleName = 'accounts';
-			const createAction = 'create';
-			const correlationId = shortid.generate();
-			const payload = {
-				text: 'eeeechooooo'
-			};
-			const oldHandler: RpcHandlerFunction = (payload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest) => {
-				expect(false, 'Should not call old handler').to.be.true;
-			};
+            // Act
+            rpcHandler.handle(moduleName, createAction, createHandler)
 
-			const newHandler: RpcHandlerFunction = (payload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest) => {
-				expect(payload).to.deep.equal(payload);
-				resolve();
-				done();
-			};
+            const replyTo = `response.${moduleName}.${createAction}@${correlationId}`
 
-			// Act
-			rpcHandler.handle(moduleName, createAction, oldHandler);
+            rpcHandler.start()
+                .then(() => {
+                    const req: IRpcRequest = {
+                        from: moduleName,
+                        to: '',
+                        payload: samplePayload,
+                    }
+                    const topic = `request.${moduleName}.${createAction}`
+                    // Manually publish request.
+                    callerMbConn.publish(topic, req, { correlationId, replyTo }
+                    )
+                })
 
-			// Intentionally override old handler
-			rpcHandler.handle(moduleName, createAction, newHandler);
+        })
 
-			const replyTo = `response.${moduleName}.${createAction}@${correlationId}`;
-			
-			rpcHandler.start()
-				.then(() => {
-					const req: IRpcRequest = {
-						from: moduleName,
-						to: '',
-						payload
-					};
-					const topic = `request.${moduleName}.${createAction}`;
-					// Manually publish request.
-					callerMbConn.publish(topic, req, { correlationId, replyTo }
-					);
-				});
+        it('Should allow overriding topic subscription.', (done) => {
+            // Arrange
+            const moduleName = 'accounts'
+            const createAction = 'create'
+            const correlationId = shortid.generate()
+            const samplePayload = {
+                text: 'eeeechooooo',
+            }
+            const oldHandler: RpcHandlerFunction = function (payload: any, resolve: PromiseResolveFn,
+                    reject: PromiseRejectFn, rawRequest: IRpcRequest) {
+                expect(false, 'Should not call old handler').to.be.true
+            }
 
-		});
+            const newHandler: RpcHandlerFunction = function (payload: any, resolve: PromiseResolveFn,
+                    reject: PromiseRejectFn, rawRequest: IRpcRequest) {
+                expect(payload).to.deep.equal(samplePayload)
+                resolve()
+                done()
+            }
 
-		it('Should respond with expected result.', (done) => {
-			// Arrange
-			const moduleName = 'accounts';
-			const createAction = 'create';
-			const correlationId = shortid.generate();
-			const result: any = {
-				text: 'successsss'
-			};
-			const createHandler: RpcHandlerFunction = (payload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest) => {
-				resolve(result);
-			};
+            // Act
+            rpcHandler.handle(moduleName, createAction, oldHandler)
 
-			// Act
-			rpcHandler.handle(moduleName, createAction, createHandler);
+            // Intentionally override old handler
+            rpcHandler.handle(moduleName, createAction, newHandler)
 
-			const replyTo = `response.${moduleName}.${createAction}@${correlationId}`;
-			
-			callerMbConn.subscribe(replyTo)
-				.then(() => callerMbConn.listen((msg: BrokerMessage) => {
-					// Assert
-					const response: IRpcResponse = msg.data;
-					expect(response).to.be.not.null;
-					expect(response.isSuccess).to.be.true;
-					expect(response.payload).to.deep.equal(result);
-					done();
-				}))
-				.then(() => rpcHandler.start())
-				.then(() => {
-					const req: IRpcRequest = {
-						from: moduleName,
-						to: '',
-						payload: {}
-					};
-					const topic = `request.${moduleName}.${createAction}`;
-					// Manually publish response.
-					callerMbConn.publish(topic, req, { correlationId, replyTo });
-				});
-		});
+            const replyTo = `response.${moduleName}.${createAction}@${correlationId}`
 
-		it('Should send message back to queue (nack) if no matched handler is found.', (done) => {
-			// Arrange
-			const moduleName = 'accounts';
-			const createAction = 'create';
-			const correlationId = shortid.generate();
-			const topic = `request.${moduleName}.${createAction}`;
-			const result: any = {
-				text: 'a message'
-			};
-			const spy = chai.spy();
-			const replyTo = `response.${moduleName}.${createAction}@${correlationId}`;
-			const createHandler: RpcHandlerFunction = (payload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest, rawBrokerMessage: BrokerMessage) => {
-				spy();
-				const rawAmqpMsg: amqp.Message = rawBrokerMessage.raw;
-				expect(rawAmqpMsg.fields.redelivered).to.be.true;
-				resolve(result);
-			};
+            rpcHandler.start()
+                .then(() => {
+                    const req: IRpcRequest = {
+                        from: moduleName,
+                        to: '',
+                        payload: samplePayload,
+                    }
+                    const topic = `request.${moduleName}.${createAction}`
+                    // Manually publish request.
+                    callerMbConn.publish(topic, req, { correlationId, replyTo }
+                    )
+                })
 
-			// Act
-			// Not register any handler (rpcHandler.handle(..));
+        })
 
-			// Force subscribing without handling function
-			handlerMbConn.subscribe(topic)
-				.then(() => callerMbConn.subscribe(replyTo))
-				.then(() => callerMbConn.listen((msg: BrokerMessage) => {
-					// Assert
-					const response: IRpcResponse = msg.data;
-					expect(response).to.be.not.null;
-					expect(response.isSuccess).to.be.true;
-					expect(response.payload).to.deep.equal(result);
-					// Wait for all async tasks inside RPC handler to finish
-					delay(() => done(), 1000);
-				}))
-				.then(() => rpcHandler.start())
-				.then(() => {
-					const req: IRpcRequest = {
-						from: moduleName,
-						to: '',
-						payload: {}
-					};
-					// Manually publish response.
-					callerMbConn.publish(topic, req, { correlationId, replyTo });
-				})
-				// Register again... officially
-				.then(() => delay(() => {
-					rpcHandler.handle(moduleName, createAction, createHandler);
-				}, 1000));
-		});
+        it('Should respond with expected result.', (done) => {
+            // Arrange
+            const moduleName = 'accounts'
+            const createAction = 'create'
+            const correlationId = shortid.generate()
+            const result: any = {
+                text: 'successsss',
+            }
+            const createHandler: RpcHandlerFunction = function (payload: any, resolve: PromiseResolveFn,
+                    reject: PromiseRejectFn, rawRequest: IRpcRequest) {
+                resolve(result)
+            }
 
-		it('Should emit error and respond with falsey result and InternalErrorException if handler rejects with non-MinorException.', (done) => {
-			// Arrange
-			const moduleName = 'accounts';
-			const createAction = 'create';
-			const correlationId = shortid.generate();
-			const spy = chai.spy();
-			const createHandler: RpcHandlerFunction = (payload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest) => {
-				reject('An error string');
-			};
+            // Act
+            rpcHandler.handle(moduleName, createAction, createHandler)
 
-			// Act
-			rpcHandler.handle(moduleName, createAction, createHandler);
+            const replyTo = `response.${moduleName}.${createAction}@${correlationId}`
 
-			rpcHandler.onError(err => {
-				expect(err).to.exist;
-				spy();
-			});
+            callerMbConn.subscribe(replyTo)
+                .then(() => callerMbConn.listen((msg: BrokerMessage) => {
+                    // Assert
+                    const response: IRpcResponse = msg.data
+                    expect(response).to.be.not.null
+                    expect(response.isSuccess).to.be.true
+                    expect(response.payload).to.deep.equal(result)
+                    done()
+                }))
+                .then(() => rpcHandler.start())
+                .then(() => {
+                    const req: IRpcRequest = {
+                        from: moduleName,
+                        to: '',
+                        payload: {},
+                    }
+                    const topic = `request.${moduleName}.${createAction}`
+                    // Manually publish response.
+                    callerMbConn.publish(topic, req, { correlationId, replyTo })
+                })
+        })
 
-			const replyTo = `response.${moduleName}.${createAction}@${correlationId}`;
-			
-			callerMbConn.subscribe(replyTo)
-				.then(() => callerMbConn.listen((msg: BrokerMessage) => {
-					// Assert
-					const response: IRpcResponse = msg.data;
-					expect(response).to.be.not.null;
-					expect(response.isSuccess).to.be.false;
-					expect(response.payload.type).to.equal('InternalErrorException');
-					expect(spy).to.be.called.once;
-					done();
-				}))
-				.then(() => rpcHandler.start())
-				.then(() => {
-					const req: IRpcRequest = {
-						from: moduleName,
-						to: '',
-						payload: {}
-					};
-					const topic = `request.${moduleName}.${createAction}`;
-					// Manually publish response.
-					callerMbConn.publish(topic, req, { correlationId, replyTo });
-				});
-		});
+        it('Should send message back to queue (nack) if no matched handler is found.', (done) => {
+            // Arrange
+            const moduleName = 'accounts'
+            const createAction = 'create'
+            const correlationId = shortid.generate()
+            const topic = `request.${moduleName}.${createAction}`
+            const result: any = {
+                text: 'a message',
+            }
+            const spy = chai.spy()
+            const replyTo = `response.${moduleName}.${createAction}@${correlationId}`
+            const createHandler: RpcHandlerFunction = function (payload: any, resolve: PromiseResolveFn,
+                    reject: PromiseRejectFn, rawRequest: IRpcRequest, rawBrokerMessage: BrokerMessage) {
+                spy()
+                const rawAmqpMsg: amqp.Message = rawBrokerMessage.raw
+                expect(rawAmqpMsg.fields.redelivered).to.be.true
+                resolve(result)
+            }
 
-		it('Should not emit eror but respond with falsey result and error object if controller throws MinorException', (done) => {
-			// Arrange
-			const moduleName = 'accounts';
-			const createAction = 'create';
-			const correlationId = shortid.generate();
-			const spy = chai.spy();
-			const errMsg = 'createException';
-			const createHandler: RpcHandlerFunction = (payload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest) => {
-				throw new MinorException(errMsg);
-			};
+            // Act
+            // Not register any handler (rpcHandler.handle(..));
 
-			// Act
-			rpcHandler.handle(moduleName, createAction, createHandler);
+            // Force subscribing without handling function
+            handlerMbConn.subscribe(topic)
+                .then(() => callerMbConn.subscribe(replyTo))
+                .then(() => callerMbConn.listen((msg: BrokerMessage) => {
+                    // Assert
+                    const response: IRpcResponse = msg.data
+                    expect(response).to.be.not.null
+                    expect(response.isSuccess).to.be.true
+                    expect(response.payload).to.deep.equal(result)
+                    // Wait for all async tasks inside RPC handler to finish
+                    delay(() => done(), 1000)
+                }))
+                .then(() => rpcHandler.start())
+                .then(() => {
+                    const req: IRpcRequest = {
+                        from: moduleName,
+                        to: '',
+                        payload: {},
+                    }
+                    // Manually publish response.
+                    callerMbConn.publish(topic, req, { correlationId, replyTo })
+                })
+                // Register again... officially
+                .then(() => delay(() => {
+                    rpcHandler.handle(moduleName, createAction, createHandler)
+                }, 1000))
+        })
 
-			// Assert: No error thrown
-			rpcHandler.onError(err => {
-				spy();
-			});
+        it('Should emit error and respond with falsey result if handler rejects with non-MinorException.', (done) => {
+            // Arrange
+            const moduleName = 'accounts'
+            const createAction = 'create'
+            const correlationId = shortid.generate()
+            const spy = chai.spy()
+            const createHandler: RpcHandlerFunction = function (payload: any, resolve: PromiseResolveFn,
+                    reject: PromiseRejectFn, rawRequest: IRpcRequest) {
+                reject('An error string')
+            }
 
-			const replyTo = `response.${moduleName}.${createAction}@${correlationId}`;
-			
-			callerMbConn.subscribe(replyTo)
-				.then(() => callerMbConn.listen((msg: BrokerMessage) => {
-					// Assert: Falsey response is returned
-					const response: IRpcResponse = msg.data;
-					expect(response).to.be.not.null;
-					expect(response.isSuccess).to.be.false;
-					expect(response.payload.type).to.equal('MinorException');
-					expect(response.payload.message).to.equal(errMsg);
-					expect(spy).to.be.called.exactly(0);
-					done();
-				}))
-				.then(() => rpcHandler.start())
-				.then(() => {
-					const req: IRpcRequest = {
-						from: moduleName,
-						to: '',
-						payload: {}
-					};
-					const topic = `request.${moduleName}.${createAction}`;
-					// Manually publish response.
-					callerMbConn.publish(topic, req, { correlationId, replyTo });
-				});
-		});
+            // Act
+            rpcHandler.handle(moduleName, createAction, createHandler)
 
-		it('Should not emit error but respond with status 500 and exception object if handler returns a promise which rejects with MinorException.', (done) => {
-			// Arrange
-			const moduleName = 'accounts';
-			const createAction = 'create';
-			const correlationId = shortid.generate();
-			const spy = chai.spy();
-			const errMsg = 'createException';
-			const createHandler: RpcHandlerFunction = (payload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest) => {
-				return Promise.reject(new MinorException(errMsg));
-			};
+            rpcHandler.onError(err => {
+                expect(err).to.exist
+                spy()
+            })
 
-			// Act
-			rpcHandler.handle(moduleName, createAction, createHandler);
+            const replyTo = `response.${moduleName}.${createAction}@${correlationId}`
 
-			// Assert: No error thrown
-			rpcHandler.onError(err => {
-				spy();
-			});
+            callerMbConn.subscribe(replyTo)
+                .then(() => callerMbConn.listen((msg: BrokerMessage) => {
+                    // Assert
+                    const response: IRpcResponse = msg.data
+                    expect(response).to.be.not.null
+                    expect(response.isSuccess).to.be.false
+                    expect(response.payload.type).to.equal('InternalErrorException')
+                    expect(spy).to.be.called.once
+                    done()
+                }))
+                .then(() => rpcHandler.start())
+                .then(() => {
+                    const req: IRpcRequest = {
+                        from: moduleName,
+                        to: '',
+                        payload: {},
+                    }
+                    const topic = `request.${moduleName}.${createAction}`
+                    // Manually publish response.
+                    callerMbConn.publish(topic, req, { correlationId, replyTo })
+                })
+        })
 
-			const replyTo = `response.${moduleName}.${createAction}@${correlationId}`;
-			
-			callerMbConn.subscribe(replyTo)
-				.then(() => callerMbConn.listen((msg: BrokerMessage) => {
-					// Assert: Falsey response is returned
-					const response: IRpcResponse = msg.data;
-					expect(response).to.be.not.null;
-					expect(response.isSuccess).to.be.false;
-					expect(response.payload.type).to.equal('MinorException');
-					expect(response.payload.message).to.equal(errMsg);
-					expect(spy).to.be.called.exactly(0);
-					done();
-				}))
-				.then(() => rpcHandler.start())
-				.then(() => {
-					const req: IRpcRequest = {
-						from: moduleName,
-						to: '',
-						payload: {}
-					};
-					const topic = `request.${moduleName}.${createAction}`;
-					// Manually publish response.
-					callerMbConn.publish(topic, req, { correlationId, replyTo });
-				});
-		});
+        it('Should not emit eror but respond with falsey result and error object if controller throws MinorException', (done) => {
+            // Arrange
+            const moduleName = 'accounts'
+            const createAction = 'create'
+            const correlationId = shortid.generate()
+            const spy = chai.spy()
+            const errMsg = 'createException'
+            const createHandler: RpcHandlerFunction = function (payload: any, resolve: PromiseResolveFn,
+                    reject: PromiseRejectFn, rawRequest: IRpcRequest) {
+                throw new MinorException(errMsg)
+            }
 
-		it('Should emit error and respond with falsey result and InternalErrorException if there is internal Error.', (done) => {
-			// Arrange
-			const moduleName = 'accounts';
-			const deleteAction = 'delete';
-			const errMsg = 'removeException';
-			const correlationId = shortid.generate();
-			const spy = chai.spy();
-			const deleteHandler: RpcHandlerFunction = (payload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn, rawRequest: IRpcRequest) => {
-				throw new Error(errMsg);
-			};
+            // Act
+            rpcHandler.handle(moduleName, createAction, createHandler)
 
-			// Act
-			rpcHandler.handle(moduleName, deleteAction, deleteHandler);
+            // Assert: No error thrown
+            rpcHandler.onError(err => {
+                spy()
+            })
 
-			rpcHandler.onError(err => {
-				expect(err).to.exist;
-				spy();
-			});
+            const replyTo = `response.${moduleName}.${createAction}@${correlationId}`
 
-			const replyTo = `response.${moduleName}.${deleteAction}@${correlationId}`;
-			
-			callerMbConn.subscribe(replyTo)
-			.then(() => callerMbConn.listen((msg: BrokerMessage) => {
-					// Assert
-					const response: IRpcResponse = msg.data;
-					expect(response).to.be.not.null;
-					expect(response.isSuccess).to.be.false;
-					expect(response.payload.type).to.equal('InternalErrorException');
-					expect(spy).to.be.called.once;
-					done();
-				}))
-				.then(() => rpcHandler.start())
-				.then(() => {
-					const req: IRpcRequest = {
-						from: moduleName,
-						to: '',
-						payload: {}
-					};
-					const topic = `request.${moduleName}.${deleteAction}`;
-					// Manually publish response.
-					callerMbConn.publish(topic, req, { correlationId, replyTo });
-				});
-		});
+            callerMbConn.subscribe(replyTo)
+                .then(() => callerMbConn.listen((msg: BrokerMessage) => {
+                    // Assert: Falsey response is returned
+                    const response: IRpcResponse = msg.data
+                    expect(response).to.be.not.null
+                    expect(response.isSuccess).to.be.false
+                    expect(response.payload.type).to.equal('MinorException')
+                    expect(response.payload.message).to.equal(errMsg)
+                    expect(spy).to.be.called.exactly(0)
+                    done()
+                }))
+                .then(() => rpcHandler.start())
+                .then(() => {
+                    const req: IRpcRequest = {
+                        from: moduleName,
+                        to: '',
+                        payload: {},
+                    }
+                    const topic = `request.${moduleName}.${createAction}`
+                    // Manually publish response.
+                    callerMbConn.publish(topic, req, { correlationId, replyTo })
+                })
+        })
 
-	}); // END describe 'handle'
-});
+        it('Should not emit error but respond with status 500 if handler returns a promise which rejects with MinorException.', (done) => {
+            // Arrange
+            const moduleName = 'accounts'
+            const createAction = 'create'
+            const correlationId = shortid.generate()
+            const spy = chai.spy()
+            const errMsg = 'createException'
+            const createHandler: RpcHandlerFunction = function (payload: any, resolve: PromiseResolveFn,
+                    reject: PromiseRejectFn, rawRequest: IRpcRequest) {
+                return Promise.reject(new MinorException(errMsg))
+            }
+
+            // Act
+            rpcHandler.handle(moduleName, createAction, createHandler)
+
+            // Assert: No error thrown
+            rpcHandler.onError(err => {
+                spy()
+            })
+
+            const replyTo = `response.${moduleName}.${createAction}@${correlationId}`
+
+            callerMbConn.subscribe(replyTo)
+                .then(() => callerMbConn.listen((msg: BrokerMessage) => {
+                    // Assert: Falsey response is returned
+                    const response: IRpcResponse = msg.data
+                    expect(response).to.be.not.null
+                    expect(response.isSuccess).to.be.false
+                    expect(response.payload.type).to.equal('MinorException')
+                    expect(response.payload.message).to.equal(errMsg)
+                    expect(spy).to.be.called.exactly(0)
+                    done()
+                }))
+                .then(() => rpcHandler.start())
+                .then(() => {
+                    const req: IRpcRequest = {
+                        from: moduleName,
+                        to: '',
+                        payload: {},
+                    }
+                    const topic = `request.${moduleName}.${createAction}`
+                    // Manually publish response.
+                    callerMbConn.publish(topic, req, { correlationId, replyTo })
+                })
+        })
+
+        it('Should emit error and respond with falsey result and InternalErrorException if there is internal Error.', (done) => {
+            // Arrange
+            const moduleName = 'accounts'
+            const deleteAction = 'delete'
+            const errMsg = 'removeException'
+            const correlationId = shortid.generate()
+            const spy = chai.spy()
+            const deleteHandler: RpcHandlerFunction = function (payload: any, resolve: PromiseResolveFn,
+                    reject: PromiseRejectFn, rawRequest: IRpcRequest) {
+                throw new Error(errMsg)
+            }
+
+            // Act
+            rpcHandler.handle(moduleName, deleteAction, deleteHandler)
+
+            rpcHandler.onError(err => {
+                expect(err).to.exist
+                spy()
+            })
+
+            const replyTo = `response.${moduleName}.${deleteAction}@${correlationId}`
+
+            callerMbConn.subscribe(replyTo)
+            .then(() => callerMbConn.listen((msg: BrokerMessage) => {
+                    // Assert
+                    const response: IRpcResponse = msg.data
+                    expect(response).to.be.not.null
+                    expect(response.isSuccess).to.be.false
+                    expect(response.payload.type).to.equal('InternalErrorException')
+                    expect(spy).to.be.called.once
+                    done()
+                }))
+                .then(() => rpcHandler.start())
+                .then(() => {
+                    const req: IRpcRequest = {
+                        from: moduleName,
+                        to: '',
+                        payload: {},
+                    }
+                    const topic = `request.${moduleName}.${deleteAction}`
+                    // Manually publish response.
+                    callerMbConn.publish(topic, req, { correlationId, replyTo })
+                })
+        })
+
+    }) // END describe 'handle'
+})

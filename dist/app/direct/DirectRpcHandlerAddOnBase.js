@@ -46,11 +46,12 @@ let DirectRpcHandlerAddOnBase = class DirectRpcHandlerAddOnBase {
      */
     dispose() {
         this._configProvider = null;
-        let handler = this._rpcHandler;
+        const handler = this._rpcHandler;
         this._rpcHandler = null;
         return handler.dispose();
     }
     handleRequests() {
+        // Empty
     }
 };
 DirectRpcHandlerAddOnBase = __decorate([
