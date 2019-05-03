@@ -1,6 +1,6 @@
 {
     "name": "@micro-fleet/service-communication",
-    "version": "0.2.3",
+    "version": "0.2.4",
     "description": "Provides methods for microservices to communicate with each other.",
     "scripts": {
         "build": "npm run compile && npm run test",
@@ -13,7 +13,6 @@
         "lint": "tslint --fix 'src/**/*.ts'",
         "watch": "npm run clean && npm run lint && tsc --watch --pretty",
         "linkPackages": "node ../../../scripts/linkPackages.js",
-        "postinstall": "npm run linkPackages",
         "prepublishOnly": "npm run release"
     },
     "dependencies": {
