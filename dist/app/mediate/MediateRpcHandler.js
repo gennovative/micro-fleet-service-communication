@@ -12,6 +12,8 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+/// <reference types="debug" />
+const debug = require('debug')('mcft:svccom:MessageBrokerRpcHandler');
 const common_1 = require("@micro-fleet/common");
 const Types_1 = require("../Types");
 const rpc = require("../RpcCommon");
@@ -39,16 +41,24 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
      */
     dispose() {
         // Stop listening then unsbuscribe all topic patterns.
+        // DO NOT disconnect the connector as other RPC handlers and callers
+        // share this very connector.
         return Promise.all([
             this._msgBrokerConn.stopListen(),
             this._msgBrokerConn.unsubscribeAll(),
         ]);
     }
+    /**
+     * @see IRpcHandler.pause
+     */
     pause() {
-        throw new Error('Method not implemented.');
+        return this._msgBrokerConn.stopListen();
     }
+    /**
+     * @see IRpcHandler.resume
+     */
     resume() {
-        throw new Error('Method not implemented.');
+        return this.start();
     }
     /**
      * @see IMediateRpcHandler.handle
@@ -57,7 +67,7 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
         common_1.Guard.assertIsDefined(this.name, '`name` property is required.');
         const key = `${moduleName}.${actionName}`;
         if (this._handlers.has(key)) {
-            console.warn(`MediateRpcHandler Warning: Override existing subscription key ${key}`);
+            debug(`MediateRpcHandler Warning: Override existing subscription key ${key}`);
         }
         this._handlers.set(key, handler);
         return this._msgBrokerConn.subscribe(`request.${key}`);
@@ -70,7 +80,7 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
             // if it's not handled by any other service. And we jut keep nack-ing
             // it until the message expires.
             nack();
-            return console.warn(`No handlers for request ${routingKey}`);
+            return debug(`No handlers for request ${routingKey}`);
         }
         ack();
         const request = msg.data;

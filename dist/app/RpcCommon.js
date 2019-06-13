@@ -33,6 +33,11 @@ if (!gennova['MinorException']) {
     Object.defineProperty(gennova, 'MinorException', descriptor);
 }
 /* istanbul ignore else */
+if (!gennova['CriticalException']) {
+    descriptor.value = common_1.CriticalException;
+    Object.defineProperty(gennova, 'CriticalException', descriptor);
+}
+/* istanbul ignore else */
 if (!gennova['InternalErrorException']) {
     descriptor.value = common_1.InternalErrorException;
     Object.defineProperty(gennova, 'InternalErrorException', descriptor);

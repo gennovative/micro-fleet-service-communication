@@ -21,8 +21,8 @@ let handlerMbConn: IMessageBrokerConnector,
     rpcHandler: IMediateRpcHandler
 
 describe('MediateRpcHandler', function () {
-    // this.timeout(5000);
-    this.timeout(60000) // For debugging
+    this.timeout(5000)
+    // this.timeout(60000) // For debugging
 
     describe('init', () => {
         it('Should raise error if problems occur', (done) => {
@@ -277,13 +277,11 @@ describe('MediateRpcHandler', function () {
                 .then(() => callerMbConn.listen((msg: BrokerMessage) => {
                     // Assert
                     const response: RpcResponse = msg.data
-                    expect(response.payload.type).to.equal('InternalErrorException')
-                    expect(spy).to.be.called.once
+                    expect(response).to.exist
+                    expect(response.isSuccess).to.be.false
 
                     const rpcError: RpcError = response.payload
-                    expect(response).to.exist
                     expect(rpcError).to.exist
-                    expect(response.isSuccess).to.be.false
                     expect(rpcError.type).to.equal('MinorException')
                     expect(rpcError.details.why).to.equal(REASON.why)
                     expect(spy).not.to.be.called
@@ -302,22 +300,24 @@ describe('MediateRpcHandler', function () {
                 })
         })
 
-        it('Should not emit eror but respond with falsey result and error object if controller throws MinorException', (done) => {
+        it('Should respond with the exception instance for INTENDED rejection', (done) => {
             // Arrange
             const moduleName = 'accounts'
             const createAction = 'create'
             const correlationId = shortid.generate()
             const spy = chai.spy()
             const errMsg = 'createException'
-            const createHandler: RpcHandlerFunction = function () {
-                throw new MinorException(errMsg)
+            const createHandler: RpcHandlerFunction = function ({ reject }) {
+                reject(new MinorException(errMsg))
             }
 
             // Act
             rpcHandler.handle(moduleName, createAction, createHandler)
 
-            // Assert: No error thrown
+            // Assert: Not handler's fault
             rpcHandler.onError(err => {
+                err && console.log(err)
+                expect(err).not.to.exist
                 spy()
             })
 
@@ -327,11 +327,14 @@ describe('MediateRpcHandler', function () {
                 .then(() => callerMbConn.listen((msg: BrokerMessage) => {
                     // Assert: Falsey response is returned
                     const response: RpcResponse = msg.data
-                    expect(response).to.be.not.null
+                    expect(response).to.exist
                     expect(response.isSuccess).to.be.false
-                    expect(response.payload.type).to.equal('MinorException')
-                    expect(response.payload.message).to.equal(errMsg)
-                    expect(spy).to.be.called.exactly(0)
+
+                    const rpcError: RpcError = response.payload
+                    expect(rpcError).to.exist
+                    expect(rpcError.type).to.equal('MinorException')
+                    expect(rpcError.message).to.equal(errMsg)
+                    expect(spy).not.to.be.called
                     done()
                 }))
                 .then(() => rpcHandler.start())
@@ -347,7 +350,7 @@ describe('MediateRpcHandler', function () {
                 })
         })
 
-        it('Should not emit error but respond with status 500 if handler returns a promise which rejects with MinorException.', (done) => {
+        it('Should respond with InternalErrorException when the handler returns rejected Promise', (done) => {
             // Arrange
             const moduleName = 'accounts'
             const createAction = 'create'
@@ -361,8 +364,9 @@ describe('MediateRpcHandler', function () {
             // Act
             rpcHandler.handle(moduleName, createAction, createHandler)
 
-            // Assert: No error thrown
+            // Assert: Catch handler's fault
             rpcHandler.onError(err => {
+                expect(err).to.exist
                 spy()
             })
 
@@ -372,11 +376,13 @@ describe('MediateRpcHandler', function () {
                 .then(() => callerMbConn.listen((msg: BrokerMessage) => {
                     // Assert: Falsey response is returned
                     const response: RpcResponse = msg.data
-                    expect(response).to.be.not.null
+                    expect(response).to.exist
                     expect(response.isSuccess).to.be.false
-                    expect(response.payload.type).to.equal('MinorException')
-                    expect(response.payload.message).to.equal(errMsg)
-                    expect(spy).to.be.called.exactly(0)
+
+                    const rpcError: RpcError = response.payload
+                    expect(rpcError).to.exist
+                    expect(rpcError.type).to.equal('InternalErrorException')
+                    expect(spy).to.be.called.once
                     done()
                 }))
                 .then(() => rpcHandler.start())
@@ -392,7 +398,55 @@ describe('MediateRpcHandler', function () {
                 })
         })
 
-        it('Should emit error and respond with falsey result and InternalErrorException if there is internal Error.', (done) => {
+        it('Should respond with InternalErrorException when the handler throws Exception', (done) => {
+            // Arrange
+            const moduleName = 'accounts'
+            const createAction = 'create'
+            const correlationId = shortid.generate()
+            const spy = chai.spy()
+            const errMsg = 'createException'
+            const createHandler: RpcHandlerFunction = function () {
+                throw new MinorException(errMsg)
+            }
+
+            // Act
+            rpcHandler.handle(moduleName, createAction, createHandler)
+
+            // Assert: Catch handler's fault
+            rpcHandler.onError(err => {
+                expect(err).to.exist
+                spy()
+            })
+
+            const replyTo = `response.${moduleName}.${createAction}@${correlationId}`
+
+            callerMbConn.subscribe(replyTo)
+                .then(() => callerMbConn.listen((msg: BrokerMessage) => {
+                    // Assert: Falsey response is returned
+                    const response: RpcResponse = msg.data
+                    expect(response).to.exist
+                    expect(response.isSuccess).to.be.false
+
+                    const rpcError: RpcError = response.payload
+                    expect(rpcError).to.exist
+                    expect(rpcError.type).to.equal('InternalErrorException')
+                    expect(spy).to.be.called.once
+                    done()
+                }))
+                .then(() => rpcHandler.start())
+                .then(() => {
+                    const req: RpcRequest = {
+                        from: moduleName,
+                        to: '',
+                        payload: {},
+                    }
+                    const topic = `request.${moduleName}.${createAction}`
+                    // Manually publish response.
+                    callerMbConn.publish(topic, req, { correlationId, replyTo })
+                })
+        })
+
+        it('Should respond with InternalErrorException when the handler throws Error.', (done) => {
             // Arrange
             const moduleName = 'accounts'
             const deleteAction = 'delete'
@@ -406,6 +460,7 @@ describe('MediateRpcHandler', function () {
             // Act
             rpcHandler.handle(moduleName, deleteAction, deleteHandler)
 
+            // Assert: Catch handler's fault
             rpcHandler.onError(err => {
                 expect(err).to.exist
                 spy()
@@ -417,9 +472,12 @@ describe('MediateRpcHandler', function () {
             .then(() => callerMbConn.listen((msg: BrokerMessage) => {
                     // Assert
                     const response: RpcResponse = msg.data
-                    expect(response).to.be.not.null
+                    expect(response).to.exist
                     expect(response.isSuccess).to.be.false
-                    expect(response.payload.type).to.equal('InternalErrorException')
+
+                    const rpcError: RpcError = response.payload
+                    expect(rpcError).to.exist
+                    expect(rpcError.type).to.equal('InternalErrorException')
                     expect(spy).to.be.called.once
                     done()
                 }))

@@ -42,7 +42,7 @@ let MessageBrokerAddOn = class MessageBrokerAddOn {
      * @see IServiceAddOn.deadLetter
      */
     deadLetter() {
-        return Promise.resolve();
+        return this._msgBrokerCnn.stopListen();
     }
     /**
      * @see IServiceAddOn.dispose

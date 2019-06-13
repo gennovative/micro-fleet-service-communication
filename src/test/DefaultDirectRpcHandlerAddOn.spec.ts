@@ -3,7 +3,8 @@ import * as spies from 'chai-spies'
 import * as path from 'path'
 
 import { IConfigurationProvider, constants, Maybe,
-    DependencyContainer, serviceContext, Types as CmT, InternalErrorException, CriticalException,
+    DependencyContainer, serviceContext, Types as CmT,
+    CriticalException, MinorException,
     } from '@micro-fleet/common'
 
 import { IDirectRpcHandler, IDirectRpcCaller, ExpressRpcHandler, HttpRpcCaller,
@@ -68,7 +69,7 @@ let depContainer: DependencyContainer,
     caller: IDirectRpcCaller,
     addon: DefaultDirectRpcHandlerAddOn
 
-describe.skip('DefaultDirectRpcHandlerAddOn', function() {
+describe('DefaultDirectRpcHandlerAddOn', function() {
     // this.timeout(5000)
     // For debugging
     this.timeout(60000)
@@ -158,13 +159,16 @@ describe.skip('DefaultDirectRpcHandlerAddOn', function() {
             try {
                 const res: RpcResponse = await caller.call(AUTO_MODULE_NAME, dc.ACT_REFUSE_IT)
 
-                // Assert
+                // Assert: Must not success
                 expect(res).not.to.exist
             }
             catch (resError) {
+                // Assert: Must fail with exception
                 expect(resError).to.exist
-                expect(resError).to.be.instanceOf(InternalErrorException)
-                expect(handlerError).to.exist
+                expect(resError).to.be.instanceOf(MinorException)
+                expect(resError['details']).to.equal(dc.FAIL_MESSAGE)
+                // Assert: Not handler's fault
+                expect(handlerError).not.to.exist
                 const controller = depContainer.resolve<dc.DirectAutoController>(dc.DirectAutoController.name)
                 expect(controller.spyFn).to.be.called.with(CALLER_NAME, AUTO_MODULE_NAME)
             }
@@ -193,7 +197,8 @@ describe.skip('DefaultDirectRpcHandlerAddOn', function() {
                 expect(resError).to.exist
                 expect(resError).to.be.instanceOf(CriticalException)
                 expect(resError.message).to.equal(dc.FAIL_MESSAGE)
-                expect(handlerError).to.exist
+                // Assert: Not handler's fault
+                expect(handlerError).not.to.exist
                 const controller = depContainer.resolve<dc.DirectAutoController>(dc.DirectAutoController.name)
                 expect(controller.spyFn).to.be.called.with(CALLER_NAME, AUTO_MODULE_NAME)
             }

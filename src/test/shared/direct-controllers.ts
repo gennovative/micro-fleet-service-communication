@@ -1,7 +1,7 @@
 import * as chai from 'chai'
 import { CriticalException } from '@micro-fleet/common'
 
-import { decorators as d, RpcRequest } from '../../app'
+import { decorators as d, RpcHandlerParams } from '../../app'
 
 export const MODULE_NAME = 'direct-module'
 
@@ -25,15 +25,13 @@ export class DirectNamedController {
     }
 
     @d.action('doIt')
-    public doSomething(payload: any, resolve: PromiseResolveFn,
-            reject: PromiseRejectFn, rpcRequest: RpcRequest, rawMessage: any): void {
+    public doSomething({ payload, resolve, rpcRequest }: RpcHandlerParams): void {
         this.spyFn(payload.id, rpcRequest.from, rpcRequest.to)
         resolve()
     }
 
     @d.action('getIt')
-    public getSomething(payload: any, resolve: PromiseResolveFn,
-            reject: PromiseRejectFn, rpcRequest: RpcRequest, rawMessage: any): void {
+    public getSomething({ resolve, rpcRequest }: RpcHandlerParams): void {
         this.spyFn(rpcRequest.from, rpcRequest.to)
         resolve(SUCCESS_MESSAGE)
     }
@@ -48,15 +46,13 @@ export class DirectAutoController {
     }
 
     @d.action()
-    public refuseIt(payload: any, resolve: PromiseResolveFn,
-            reject: PromiseRejectFn, rpcRequest: RpcRequest, rawMessage: any): void {
+    public refuseIt({ reject, rpcRequest}: RpcHandlerParams): void {
         this.spyFn(rpcRequest.from, rpcRequest.to)
         reject(FAIL_MESSAGE)
     }
 
     @d.action()
-    public exceptIt(payload: any, resolve: PromiseResolveFn,
-            reject: PromiseRejectFn, rpcRequest: RpcRequest, rawMessage: any): void {
+    public exceptIt({ reject, rpcRequest }: RpcHandlerParams): void {
         this.spyFn(rpcRequest.from, rpcRequest.to)
         reject(new CriticalException(FAIL_MESSAGE))
     }

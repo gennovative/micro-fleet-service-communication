@@ -35,8 +35,10 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
      * @see IRpcCaller.dispose
      */
     async dispose() {
-        await super.dispose();
+        // DO NOT disconnect the connector as other RPC handlers and callers
+        // share this very connector.
         this._msgBrokerConn = null;
+        await super.dispose();
     }
     /**
      * @see IRpcCaller.call

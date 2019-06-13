@@ -1,8 +1,9 @@
 import { EventEmitter } from 'events'
 
-import { injectable, IDependencyContainer,
+import { injectable, IDependencyContainer, CriticalException,
     MinorException, Exception, InternalErrorException,
     ValidationError } from '@micro-fleet/common'
+
 
 const descriptor = {
     writable: false,
@@ -28,6 +29,12 @@ if (!gennova['ValidationError']) {
 if (!gennova['MinorException']) {
     descriptor.value = MinorException
     Object.defineProperty(gennova, 'MinorException', descriptor)
+}
+
+/* istanbul ignore else */
+if (!gennova['CriticalException']) {
+    descriptor.value = CriticalException
+    Object.defineProperty(gennova, 'CriticalException', descriptor)
 }
 
 /* istanbul ignore else */
@@ -103,7 +110,7 @@ export interface IRpcCaller {
 }
 
 
-export type RpcHandlerFnParams = {
+export type RpcHandlerParams = {
     /**
      * The data being sent.
      */
@@ -130,7 +137,7 @@ export type RpcHandlerFnParams = {
     rawMessage: any
 }
 
-export type RpcHandlerFunction = (params: RpcHandlerFnParams) => any
+export type RpcHandlerFunction = (params: RpcHandlerParams) => any
 
 export interface IRpcHandler {
     /**
@@ -164,12 +171,12 @@ export interface IRpcHandler {
     /**
      * Keeps running, but not accepts any more incoming requests.
      */
-    pause(): void
+    pause(): Promise<void>
 
     /**
      * Continues to accept incoming requests.
      */
-    resume(): void
+    resume(): Promise<void>
 
     /**
      * Stops handling requests and removes registered actions.

@@ -37,8 +37,10 @@ export class MessageBrokerRpcCaller
      * @see IRpcCaller.dispose
      */
     public async dispose(): Promise<void> {
-        await super.dispose()
+        // DO NOT disconnect the connector as other RPC handlers and callers
+        // share this very connector.
         this._msgBrokerConn = null
+        await super.dispose()
     }
 
     /**

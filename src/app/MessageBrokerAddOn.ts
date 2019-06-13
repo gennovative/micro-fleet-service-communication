@@ -41,7 +41,7 @@ export class MessageBrokerAddOn implements IServiceAddOn {
      * @see IServiceAddOn.deadLetter
      */
     public deadLetter(): Promise<void> {
-        return Promise.resolve()
+        return this._msgBrokerCnn.stopListen()
     }
 
     /**

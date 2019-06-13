@@ -72,12 +72,14 @@ let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rp
      */
     pause() {
         this._isOpen = false;
+        return Promise.resolve();
     }
     /**
      * @see IRpcHandler.resume
      */
     resume() {
         this._isOpen = true;
+        return Promise.resolve();
     }
     /**
      * @see IRpcHandler.dispose

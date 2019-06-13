@@ -413,11 +413,13 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
         try {
             let channelPromise = this._consumeChanPrm
             if (!channelPromise) {
-                // Create a new consuming channel if there is not already, and from now on we listen to this only channel.
+                // Create a new consuming channel if there is not already,
+                // and from now on we listen to this only channel.
                 channelPromise = this._consumeChanPrm = this.createConsumeChannel()
             }
 
-            // The consuming channel should bind to only one queue, but that queue can be routed with multiple keys.
+            // The consuming channel should bind to only one queue,
+            // but that queue can be routed with multiple keys.
             await this.bindQueue(await channelPromise, matchingPattern)
 
             this.moreSub(matchingPattern)

@@ -98,15 +98,17 @@ export class ExpressRpcHandler
     /**
      * @see IRpcHandler.pause
      */
-    public pause(): void {
+    public pause(): Promise<void> {
         this._isOpen = false
+        return Promise.resolve()
     }
 
     /**
      * @see IRpcHandler.resume
      */
-    public resume(): void {
+    public resume(): Promise<void> {
         this._isOpen = true
+        return Promise.resolve()
     }
 
     /**

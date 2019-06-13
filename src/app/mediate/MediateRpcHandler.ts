@@ -1,3 +1,6 @@
+/// <reference types="debug" />
+const debug: debug.IDebugger = require('debug')('mcft:svccom:MessageBrokerRpcHandler')
+
 import { injectable, inject, Guard } from '@micro-fleet/common'
 
 import { Types as T } from '../Types'
@@ -10,11 +13,6 @@ export interface IMediateRpcHandler extends rpc.IRpcHandler {
      * @override IRpcHandler.handle to return Promise<void>
      */
     handle(module: string, action: string, handler: rpc.RpcHandlerFunction): Promise<void>
-
-    /**
-     * Handles countAll, create, delete, find, patch, update.
-     */
-    // handleCRUD(dependencyIdentifier: string | symbol, actionFactory?: ActionFactory): Promise<void>;
 }
 
 @injectable()
@@ -52,18 +50,26 @@ export class MessageBrokerRpcHandler
      */
     public dispose(): Promise<void> {
         // Stop listening then unsbuscribe all topic patterns.
+        // DO NOT disconnect the connector as other RPC handlers and callers
+        // share this very connector.
         return <any>Promise.all([
             this._msgBrokerConn.stopListen(),
             this._msgBrokerConn.unsubscribeAll(),
         ])
     }
 
-    public pause(): void {
-        throw new Error('Method not implemented.')
+    /**
+     * @see IRpcHandler.pause
+     */
+    public pause(): Promise<void> {
+        return this._msgBrokerConn.stopListen()
     }
 
-    public resume(): void {
-        throw new Error('Method not implemented.')
+    /**
+     * @see IRpcHandler.resume
+     */
+    public resume(): Promise<void> {
+        return this.start()
     }
 
     /**
@@ -73,7 +79,7 @@ export class MessageBrokerRpcHandler
         Guard.assertIsDefined(this.name, '`name` property is required.')
         const key = `${moduleName}.${actionName}`
         if (this._handlers.has(key)) {
-            console.warn(`MediateRpcHandler Warning: Override existing subscription key ${key}`)
+            debug(`MediateRpcHandler Warning: Override existing subscription key ${key}`)
         }
         this._handlers.set(key, handler)
         return this._msgBrokerConn.subscribe(`request.${key}`)
@@ -88,7 +94,7 @@ export class MessageBrokerRpcHandler
             // if it's not handled by any other service. And we jut keep nack-ing
             // it until the message expires.
             nack()
-            return console.warn(`No handlers for request ${routingKey}`)
+            return debug(`No handlers for request ${routingKey}`)
         }
         ack()
 

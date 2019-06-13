@@ -14,7 +14,7 @@ const expect = chai.expect
 const NAME = 'TestHandler'
 
 
-describe.only('ExpressDirectRpcHandler', function () {
+describe('ExpressDirectRpcHandler', function () {
     this.timeout(5000)
     // this.timeout(60000); // For debugging
 
@@ -210,6 +210,7 @@ describe.only('ExpressDirectRpcHandler', function () {
                         expect(httpResponse.statusCode).to.equal(500)
                         const rpcResponse: RpcResponse = httpResponse.error
                         expect(rpcResponse.isSuccess).to.be.false
+
                         const rpcError: RpcError = rpcResponse.payload
                         expect(rpcError).to.exist
                         expect(rpcError.type).to.equal('MinorException')
@@ -258,6 +259,7 @@ describe.only('ExpressDirectRpcHandler', function () {
                         expect(httpResponse.statusCode).to.equal(500)
                         const rpcResponse: RpcResponse = httpResponse.error
                         expect(rpcResponse.isSuccess).to.be.false
+
                         const rpcError: RpcError = rpcResponse.payload
                         expect(rpcError).to.exist
                         expect(rpcError.type).to.equal('MinorException')
@@ -268,7 +270,7 @@ describe.only('ExpressDirectRpcHandler', function () {
                 })
         })
 
-        it(`Should respond with InternalErrorException when the handler returns rejected Promise`, (done) => {
+        it('Should respond with InternalErrorException when the handler returns rejected Promise', (done) => {
             // Arrange
             const moduleName = 'products'
             const deleteAction = 'delete'
@@ -306,6 +308,7 @@ describe.only('ExpressDirectRpcHandler', function () {
                         expect(httpResponse.statusCode).to.equal(500)
                         const rpcResponse: RpcResponse = httpResponse.error
                         expect(rpcResponse.isSuccess).to.be.false
+
                         const rpcError: RpcError = rpcResponse.payload
                         expect(rpcError).to.exist
                         expect(rpcError.type).to.equal('InternalErrorException')
@@ -352,6 +355,7 @@ describe.only('ExpressDirectRpcHandler', function () {
                         expect(httpResponse.statusCode).to.equal(500)
                         const rpcResponse: RpcResponse = httpResponse.error
                         expect(rpcResponse.isSuccess).to.be.false
+
                         const rpcError: RpcError = rpcResponse.payload
                         expect(rpcError).to.exist
                         expect(rpcError.type).to.equal('InternalErrorException')
