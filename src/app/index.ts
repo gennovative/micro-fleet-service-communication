@@ -1,4 +1,7 @@
+
 export * from './RpcCommon'
+export * from './decorators'
+export * from './direct/DefaultDirectRpcHandlerAddOn'
 export * from './direct/DirectRpcCaller'
 export * from './direct/DirectRpcHandler'
 export * from './direct/DirectRpcHandlerAddOnBase'

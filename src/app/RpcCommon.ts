@@ -36,15 +36,27 @@ if (!gennova['InternalErrorException']) {
     Object.defineProperty(gennova, 'InternalErrorException', descriptor)
 }
 
+export type HandlerRejection = {
+    isIntended: boolean,
+    reason: any,
+}
+
+
+export type RpcError = {
+    type: string,
+    message?: string,
+    details?: any,
+}
+
 // Interface - Service contract
 
-export interface IRpcRequest {
+export type RpcRequest = {
     from: string
     to: string
     payload: any
 }
 
-export interface IRpcResponse {
+export type RpcResponse = {
     isSuccess: boolean
     from: string
     to: string
@@ -82,7 +94,7 @@ export interface IRpcCaller {
      * @param action The function name to call on `moduleName`.
      * @param params Parameters to pass to function `action`.
      */
-    call(moduleName: string, action: string, params?: any): Promise<IRpcResponse>
+    call(moduleName: string, action: string, params?: any): Promise<RpcResponse>
 
     /**
      * Registers a listener to handle errors.
@@ -91,19 +103,40 @@ export interface IRpcCaller {
 }
 
 
-export type RpcHandlerFunction = (requestPayload: any, resolve: PromiseResolveFn, reject: PromiseRejectFn,
-    rpcRequest: IRpcRequest, rawMessage: any) => any
+export type RpcHandlerFnParams = {
+    /**
+     * The data being sent.
+     */
+    payload: any,
+
+    /**
+     * Responds with success state.
+     */
+    resolve: PromiseResolveFn,
+
+    /**
+     * Responds with failure state.
+     */
+    reject: PromiseRejectFn,
+
+    /**
+     * The RPC request that contains payload.
+     */
+    rpcRequest: RpcRequest,
+
+    /**
+     * Is either raw HTTP request (direct RPC) or raw Message broker message
+     */
+    rawMessage: any
+}
+
+export type RpcHandlerFunction = (params: RpcHandlerFnParams) => any
 
 export interface IRpcHandler {
     /**
      * A name used in "from" and "to" request property.
      */
     name: string
-
-    /**
-     * A name used to construct subscription topic.
-     */
-    // module: string;
 
     /**
      * Sets up this RPC handler with specified `param`. Each implementation class requires
@@ -116,8 +149,7 @@ export interface IRpcHandler {
      * calls instance's `action` method. If `customAction` is specified,
      * calls instance's `customAction` instead.
      */
-    handle(module: string, actionName: string, handler: RpcHandlerFunction): void
-    // handle(action: string, module: string | symbol, actionFactory?: ActionFactory): any;
+    handle(module: string, actionName: string, handler: RpcHandlerFunction): any | Promise<any>
 
     /**
      * Registers a listener to handle errors.
@@ -130,9 +162,24 @@ export interface IRpcHandler {
     start(): Promise<void>
 
     /**
+     * Keeps running, but not accepts any more incoming requests.
+     */
+    pause(): void
+
+    /**
+     * Continues to accept incoming requests.
+     */
+    resume(): void
+
+    /**
      * Stops handling requests and removes registered actions.
      */
     dispose(): Promise<void>
+
+    /**
+     * Registers a listener to handle errors.
+     */
+    onError(handler: (err: any) => void): void
 }
 
 
@@ -191,15 +238,19 @@ export abstract class RpcCallerBase {
         this._emitter.emit('error', err)
     }
 
-    protected rebuildError(payload: any) {
+    protected rebuildError(error: any) {
+        const payload = error.payload ? error.payload : error
+        let exception: Exception
         if (payload.type) {
             // Expect response.payload.type = MinorException | ValidationError
-            return new global.gennova[payload.type](payload.message)
-        } else {
-            const ex = new MinorException(payload.message)
-            ex.stack = payload.stack
-            return ex
+            exception = new global.gennova[payload.type](payload.message)
         }
+        else {
+            exception = new MinorException(payload.message)
+        }
+        exception.stack = payload.stack
+        exception['details'] = payload['details']
+        return exception
     }
 }
 
@@ -210,11 +261,6 @@ export abstract class RpcHandlerBase {
      * @see IRpcHandler.name
      */
     public name: string
-
-    /**
-     * @see IRpcHandler.module
-     */
-    // public module: string;
 
     protected _emitter: EventEmitter
 
@@ -236,7 +282,7 @@ export abstract class RpcHandlerBase {
         this._emitter.emit('error', err)
     }
 
-    protected createResponse(isSuccess: boolean, payload: any, replyTo: string): IRpcResponse {
+    protected createResponse(isSuccess: boolean, payload: any, replyTo: string): RpcResponse {
         return {
             isSuccess,
             from: this.name,
@@ -245,26 +291,31 @@ export abstract class RpcHandlerBase {
         }
     }
 
-    protected createError(rawError: any) {
+    protected createError({ isIntended, reason}: HandlerRejection): RpcError {
         // TODO: Should log this unexpected error.
-        const errObj: any = {}
-        if (rawError instanceof MinorException) {
+        const rpcError: RpcError = {
+            type: 'InternalErrorException',
+        }
+        if (!isIntended) {
+            // If error type is unidentified, we should not send it back to caller.
+            this.emitError(reason)
+            return rpcError
+        }
+
+        if (reason instanceof Exception) {
             // If this is a minor error, or the action method sends this error
             // back to caller on purpose.
-            errObj.type = rawError.name
-            errObj.message = rawError.message
-            errObj.details = rawError['details']
-        } else if ((rawError instanceof Error) || (rawError instanceof Exception)) {
+            rpcError.type = reason.name
+            rpcError.message = reason.message
+            rpcError.details = reason['details'] // In case of ValidationError
+        }
+        else {
             // If error is an uncaught Exception/Error object, that means the action method
             // has a problem. We should not send it back to caller.
-            errObj.type = 'InternalErrorException'
-            errObj.message = rawError.message
-            this.emitError(rawError)
-        } else {
-            const ex = new MinorException(rawError + '')
-            errObj.type = 'InternalErrorException'
-            this.emitError(ex.message)
+            rpcError.type = 'MinorException'
+            rpcError.message = reason.message
+            rpcError.details = reason
         }
-        return errObj
+        return rpcError
     }
 }

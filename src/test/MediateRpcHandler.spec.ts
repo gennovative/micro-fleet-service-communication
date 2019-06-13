@@ -5,7 +5,7 @@ import * as shortid from 'shortid'
 import delay = require('lodash/delay')
 
 import { MessageBrokerRpcHandler, BrokerMessage, IMessageBrokerConnector, IMediateRpcHandler,
-    TopicMessageBrokerConnector, IRpcRequest, IRpcResponse, RpcHandlerFunction } from '../app'
+    TopicMessageBrokerConnector, RpcRequest, RpcResponse, RpcHandlerFunction, RpcError } from '../app'
 
 import rabbitOpts from './rabbit-options'
 import { MinorException } from '@micro-fleet/common'
@@ -25,7 +25,7 @@ describe('MediateRpcHandler', function () {
     this.timeout(60000) // For debugging
 
     describe('init', () => {
-        it('Should raise error if problems occur', done => {
+        it('Should raise error if problems occur', (done) => {
             // Arrange
             const ERROR = 'Test error'
 
@@ -54,7 +54,7 @@ describe('MediateRpcHandler', function () {
 
     describe('handle', () => {
 
-        beforeEach(done => {
+        beforeEach((done) => {
             callerMbConn = new TopicMessageBrokerConnector()
             handlerMbConn = new TopicMessageBrokerConnector()
             rpcHandler = new MessageBrokerRpcHandler(handlerMbConn)
@@ -93,8 +93,7 @@ describe('MediateRpcHandler', function () {
             const samplePayload = {
                 text: 'eeeechooooo',
             }
-            const createHandler: RpcHandlerFunction = function (payload: any, resolve: PromiseResolveFn,
-                    reject: PromiseRejectFn, rawRequest: IRpcRequest) {
+            const createHandler: RpcHandlerFunction = function ({ payload, resolve }) {
                 expect(payload).to.deep.equal(samplePayload)
                 resolve()
                 done()
@@ -107,7 +106,7 @@ describe('MediateRpcHandler', function () {
 
             rpcHandler.start()
                 .then(() => {
-                    const req: IRpcRequest = {
+                    const req: RpcRequest = {
                         from: moduleName,
                         to: '',
                         payload: samplePayload,
@@ -128,13 +127,11 @@ describe('MediateRpcHandler', function () {
             const samplePayload = {
                 text: 'eeeechooooo',
             }
-            const oldHandler: RpcHandlerFunction = function (payload: any, resolve: PromiseResolveFn,
-                    reject: PromiseRejectFn, rawRequest: IRpcRequest) {
+            const oldHandler: RpcHandlerFunction = function () {
                 expect(false, 'Should not call old handler').to.be.true
             }
 
-            const newHandler: RpcHandlerFunction = function (payload: any, resolve: PromiseResolveFn,
-                    reject: PromiseRejectFn, rawRequest: IRpcRequest) {
+            const newHandler: RpcHandlerFunction = function ({ payload, resolve }) {
                 expect(payload).to.deep.equal(samplePayload)
                 resolve()
                 done()
@@ -150,7 +147,7 @@ describe('MediateRpcHandler', function () {
 
             rpcHandler.start()
                 .then(() => {
-                    const req: IRpcRequest = {
+                    const req: RpcRequest = {
                         from: moduleName,
                         to: '',
                         payload: samplePayload,
@@ -171,8 +168,7 @@ describe('MediateRpcHandler', function () {
             const result: any = {
                 text: 'successsss',
             }
-            const createHandler: RpcHandlerFunction = function (payload: any, resolve: PromiseResolveFn,
-                    reject: PromiseRejectFn, rawRequest: IRpcRequest) {
+            const createHandler: RpcHandlerFunction = function ({ resolve }) {
                 resolve(result)
             }
 
@@ -184,7 +180,7 @@ describe('MediateRpcHandler', function () {
             callerMbConn.subscribe(replyTo)
                 .then(() => callerMbConn.listen((msg: BrokerMessage) => {
                     // Assert
-                    const response: IRpcResponse = msg.data
+                    const response: RpcResponse = msg.data
                     expect(response).to.be.not.null
                     expect(response.isSuccess).to.be.true
                     expect(response.payload).to.deep.equal(result)
@@ -192,7 +188,7 @@ describe('MediateRpcHandler', function () {
                 }))
                 .then(() => rpcHandler.start())
                 .then(() => {
-                    const req: IRpcRequest = {
+                    const req: RpcRequest = {
                         from: moduleName,
                         to: '',
                         payload: {},
@@ -214,10 +210,9 @@ describe('MediateRpcHandler', function () {
             }
             const spy = chai.spy()
             const replyTo = `response.${moduleName}.${createAction}@${correlationId}`
-            const createHandler: RpcHandlerFunction = function (payload: any, resolve: PromiseResolveFn,
-                    reject: PromiseRejectFn, rawRequest: IRpcRequest, rawBrokerMessage: BrokerMessage) {
+            const createHandler: RpcHandlerFunction = function ({ resolve, rawMessage }) {
                 spy()
-                const rawAmqpMsg: amqp.Message = rawBrokerMessage.raw
+                const rawAmqpMsg: amqp.Message = (<BrokerMessage>rawMessage).raw
                 expect(rawAmqpMsg.fields.redelivered).to.be.true
                 resolve(result)
             }
@@ -230,7 +225,7 @@ describe('MediateRpcHandler', function () {
                 .then(() => callerMbConn.subscribe(replyTo))
                 .then(() => callerMbConn.listen((msg: BrokerMessage) => {
                     // Assert
-                    const response: IRpcResponse = msg.data
+                    const response: RpcResponse = msg.data
                     expect(response).to.be.not.null
                     expect(response.isSuccess).to.be.true
                     expect(response.payload).to.deep.equal(result)
@@ -239,7 +234,7 @@ describe('MediateRpcHandler', function () {
                 }))
                 .then(() => rpcHandler.start())
                 .then(() => {
-                    const req: IRpcRequest = {
+                    const req: RpcRequest = {
                         from: moduleName,
                         to: '',
                         payload: {},
@@ -253,22 +248,26 @@ describe('MediateRpcHandler', function () {
                 }, 1000))
         })
 
-        it('Should emit error and respond with falsey result if handler rejects with non-MinorException.', (done) => {
+        it('Should respond with the custom error object for INTENDED rejection', (done) => {
             // Arrange
             const moduleName = 'accounts'
             const createAction = 'create'
             const correlationId = shortid.generate()
             const spy = chai.spy()
-            const createHandler: RpcHandlerFunction = function (payload: any, resolve: PromiseResolveFn,
-                    reject: PromiseRejectFn, rawRequest: IRpcRequest) {
-                reject('An error string')
+            const REASON = {
+                why: 'An error string',
+            }
+            const createHandler: RpcHandlerFunction = function ({ reject }) {
+                reject(REASON)
             }
 
             // Act
             rpcHandler.handle(moduleName, createAction, createHandler)
 
+            // Assert: Not handler's fault
             rpcHandler.onError(err => {
-                expect(err).to.exist
+                err && console.log(err)
+                expect(err).not.to.exist
                 spy()
             })
 
@@ -277,16 +276,22 @@ describe('MediateRpcHandler', function () {
             callerMbConn.subscribe(replyTo)
                 .then(() => callerMbConn.listen((msg: BrokerMessage) => {
                     // Assert
-                    const response: IRpcResponse = msg.data
-                    expect(response).to.be.not.null
-                    expect(response.isSuccess).to.be.false
+                    const response: RpcResponse = msg.data
                     expect(response.payload.type).to.equal('InternalErrorException')
                     expect(spy).to.be.called.once
+
+                    const rpcError: RpcError = response.payload
+                    expect(response).to.exist
+                    expect(rpcError).to.exist
+                    expect(response.isSuccess).to.be.false
+                    expect(rpcError.type).to.equal('MinorException')
+                    expect(rpcError.details.why).to.equal(REASON.why)
+                    expect(spy).not.to.be.called
                     done()
                 }))
                 .then(() => rpcHandler.start())
                 .then(() => {
-                    const req: IRpcRequest = {
+                    const req: RpcRequest = {
                         from: moduleName,
                         to: '',
                         payload: {},
@@ -304,8 +309,7 @@ describe('MediateRpcHandler', function () {
             const correlationId = shortid.generate()
             const spy = chai.spy()
             const errMsg = 'createException'
-            const createHandler: RpcHandlerFunction = function (payload: any, resolve: PromiseResolveFn,
-                    reject: PromiseRejectFn, rawRequest: IRpcRequest) {
+            const createHandler: RpcHandlerFunction = function () {
                 throw new MinorException(errMsg)
             }
 
@@ -322,7 +326,7 @@ describe('MediateRpcHandler', function () {
             callerMbConn.subscribe(replyTo)
                 .then(() => callerMbConn.listen((msg: BrokerMessage) => {
                     // Assert: Falsey response is returned
-                    const response: IRpcResponse = msg.data
+                    const response: RpcResponse = msg.data
                     expect(response).to.be.not.null
                     expect(response.isSuccess).to.be.false
                     expect(response.payload.type).to.equal('MinorException')
@@ -332,7 +336,7 @@ describe('MediateRpcHandler', function () {
                 }))
                 .then(() => rpcHandler.start())
                 .then(() => {
-                    const req: IRpcRequest = {
+                    const req: RpcRequest = {
                         from: moduleName,
                         to: '',
                         payload: {},
@@ -350,8 +354,7 @@ describe('MediateRpcHandler', function () {
             const correlationId = shortid.generate()
             const spy = chai.spy()
             const errMsg = 'createException'
-            const createHandler: RpcHandlerFunction = function (payload: any, resolve: PromiseResolveFn,
-                    reject: PromiseRejectFn, rawRequest: IRpcRequest) {
+            const createHandler: RpcHandlerFunction = function () {
                 return Promise.reject(new MinorException(errMsg))
             }
 
@@ -368,7 +371,7 @@ describe('MediateRpcHandler', function () {
             callerMbConn.subscribe(replyTo)
                 .then(() => callerMbConn.listen((msg: BrokerMessage) => {
                     // Assert: Falsey response is returned
-                    const response: IRpcResponse = msg.data
+                    const response: RpcResponse = msg.data
                     expect(response).to.be.not.null
                     expect(response.isSuccess).to.be.false
                     expect(response.payload.type).to.equal('MinorException')
@@ -378,7 +381,7 @@ describe('MediateRpcHandler', function () {
                 }))
                 .then(() => rpcHandler.start())
                 .then(() => {
-                    const req: IRpcRequest = {
+                    const req: RpcRequest = {
                         from: moduleName,
                         to: '',
                         payload: {},
@@ -396,8 +399,7 @@ describe('MediateRpcHandler', function () {
             const errMsg = 'removeException'
             const correlationId = shortid.generate()
             const spy = chai.spy()
-            const deleteHandler: RpcHandlerFunction = function (payload: any, resolve: PromiseResolveFn,
-                    reject: PromiseRejectFn, rawRequest: IRpcRequest) {
+            const deleteHandler: RpcHandlerFunction = function () {
                 throw new Error(errMsg)
             }
 
@@ -414,7 +416,7 @@ describe('MediateRpcHandler', function () {
             callerMbConn.subscribe(replyTo)
             .then(() => callerMbConn.listen((msg: BrokerMessage) => {
                     // Assert
-                    const response: IRpcResponse = msg.data
+                    const response: RpcResponse = msg.data
                     expect(response).to.be.not.null
                     expect(response.isSuccess).to.be.false
                     expect(response.payload.type).to.equal('InternalErrorException')
@@ -423,7 +425,7 @@ describe('MediateRpcHandler', function () {
                 }))
                 .then(() => rpcHandler.start())
                 .then(() => {
-                    const req: IRpcRequest = {
+                    const req: RpcRequest = {
                         from: moduleName,
                         to: '',
                         payload: {},

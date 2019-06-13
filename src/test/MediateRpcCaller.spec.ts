@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import { MinorException, InternalErrorException } from '@micro-fleet/common'
 
 import { MessageBrokerRpcCaller, BrokerMessage,
-    TopicMessageBrokerConnector, IRpcRequest, IRpcResponse } from '../app'
+    TopicMessageBrokerConnector, RpcRequest, RpcResponse } from '../app'
 
 import rabbitOpts from './rabbit-options'
 
@@ -106,7 +106,7 @@ describe('MessageBrokerRpcCaller', function() {
 
             handlerMbConn.subscribe(topic)
                 .then(() => handlerMbConn.listen((msg: BrokerMessage) => {
-                    const request: IRpcRequest = msg.data
+                    const request: RpcRequest = msg.data
 
                     // Assert
                     expect(request).to.be.not.null
@@ -136,9 +136,9 @@ describe('MessageBrokerRpcCaller', function() {
             handlerMbConn.subscribe(topic)
                 .then(() => {
                     return handlerMbConn.listen((msg: BrokerMessage) => {
-                        const request: IRpcRequest = msg.data,
+                        const request: RpcRequest = msg.data,
                             props = msg.properties,
-                            response: IRpcResponse = {
+                            response: RpcResponse = {
                                 isSuccess: true,
                                 from: request.to,
                                 to: request.from,
@@ -152,7 +152,7 @@ describe('MessageBrokerRpcCaller', function() {
                     // Act
                     return globalCaller.call(HANDLER_MODULE, ACTION)
                 })
-                .then((res: IRpcResponse) => {
+                .then((res: RpcResponse) => {
                     // Assert
                     expect(res).to.be.not.null
                     expect(res.from).to.equal(HANDLER_MODULE)
@@ -178,9 +178,9 @@ describe('MessageBrokerRpcCaller', function() {
             handlerMbConn.subscribe(topic)
                 .then(() => {
                     return handlerMbConn.listen((msg: BrokerMessage) => {
-                        const request: IRpcRequest = msg.data,
+                        const request: RpcRequest = msg.data,
                             props = msg.properties,
-                            response: IRpcResponse = {
+                            response: RpcResponse = {
                                 isSuccess: false,
                                 from: request.to,
                                 to: request.from,
@@ -195,7 +195,7 @@ describe('MessageBrokerRpcCaller', function() {
                     // Act
                     return globalCaller.call(HANDLER_MODULE, ACTION)
                 })
-                .then((res: IRpcResponse) => {
+                .then((res: RpcResponse) => {
                     // Assert
                     console.error(res)
                     expect(res).not.to.exist
@@ -227,7 +227,7 @@ describe('MessageBrokerRpcCaller', function() {
                     // Act
                     return globalCaller.call(HANDLER_MODULE, ACTION)
                 })
-                .then((res: IRpcResponse) => {
+                .then((res: RpcResponse) => {
                     expect(res, 'Should NOT get any response!').not.to.exist
                 })
                 .catch(err => {
@@ -285,7 +285,7 @@ describe('MessageBrokerRpcCaller', function() {
                     // Step 1
                     return globalCaller.call(HANDLER_MODULE, ACTION)
                 })
-                .then((res: IRpcResponse) => {
+                .then((res: RpcResponse) => {
                     expect(res, 'Should NOT get any response!').not.to.exist
                 })
                 .catch(err => {

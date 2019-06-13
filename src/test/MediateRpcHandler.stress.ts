@@ -1,7 +1,7 @@
 import * as shortid from 'shortid'
 
 import { MessageBrokerRpcHandler, BrokerMessage,
-    TopicMessageBrokerConnector, IRpcRequest, RpcHandlerFunction } from '../app'
+    TopicMessageBrokerConnector, RpcRequest, RpcHandlerFunction } from '../app'
 
 import rabbitOpts from './rabbit-options'
 
@@ -54,8 +54,7 @@ describe.skip('MediateRpcHandler', function() {
         const result: any = {
             text: 'successsss',
         }
-        const createHandler: RpcHandlerFunction = function (payload: any, resolve: PromiseResolveFn,
-                reject: PromiseRejectFn, rawRequest: IRpcRequest) {
+        const createHandler: RpcHandlerFunction = function ({ resolve }) {
             resolve(result)
         }
 
@@ -75,7 +74,7 @@ describe.skip('MediateRpcHandler', function() {
             })
             .then(() => rpcHandler.start())
             .then(() => {
-                const req: IRpcRequest = {
+                const req: RpcRequest = {
                     from: moduleName,
                     to: '',
                     payload: {},

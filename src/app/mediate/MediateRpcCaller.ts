@@ -44,11 +44,11 @@ export class MessageBrokerRpcCaller
     /**
      * @see IRpcCaller.call
      */
-    public call(moduleName: string, action: string, params?: any): Promise<rpc.IRpcResponse> {
+    public call(moduleName: string, action: string, params?: any): Promise<rpc.RpcResponse> {
         Guard.assertArgDefined('moduleName', moduleName)
         Guard.assertArgDefined('action', action)
 
-        return new Promise<rpc.IRpcResponse>((resolve, reject) => {
+        return new Promise<rpc.RpcResponse>((resolve, reject) => {
             // There are many requests to same `requestTopic` and they listen to same `responseTopic`,
             // A request only cares about a response with same `correlationId`.
             const correlationId = shortid.generate(),
@@ -64,7 +64,7 @@ export class MessageBrokerRpcCaller
                         await conn.unsubscribe(replyTo)
                         await conn.stopListen()
 
-                        const response: rpc.IRpcResponse = msg.data
+                        const response: rpc.RpcResponse = msg.data
                         if (response.isSuccess) {
                             resolve(response)
                         } else {
@@ -87,7 +87,7 @@ export class MessageBrokerRpcCaller
                     })
                 })
                 .then(() => {
-                    const request: rpc.IRpcRequest = {
+                    const request: rpc.RpcRequest = {
                         from: this.name,
                         to: moduleName,
                         payload: params,

@@ -4,6 +4,8 @@ function __export(m) {
 }
 Object.defineProperty(exports, "__esModule", { value: true });
 __export(require("./RpcCommon"));
+__export(require("./decorators"));
+__export(require("./direct/DefaultDirectRpcHandlerAddOn"));
 __export(require("./direct/DirectRpcCaller"));
 __export(require("./direct/DirectRpcHandler"));
 __export(require("./direct/DirectRpcHandlerAddOnBase"));

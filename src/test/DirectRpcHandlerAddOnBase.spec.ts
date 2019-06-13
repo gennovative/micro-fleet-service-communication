@@ -11,7 +11,6 @@ const expect = chai.expect
 const { RpcSettingKeys: RpcS, SvcSettingKeys: SvcS } = constants
 
 const SERVICE_SLUG = 'test-service',
-    MODULE_NAME = 'testModule',
     HANDLER_PORT = 30000
 
 class MockConfigProvider implements IConfigurationProvider {
@@ -68,7 +67,7 @@ class CustomAddOn extends DirectRpcHandlerAddOnBase {
      * @see IServiceAddOn.init
      */
     public init(): Promise<void> {
-        return super.init(MODULE_NAME)
+        return super.init()
     }
 
     /**
@@ -88,9 +87,9 @@ class CustomAddOn extends DirectRpcHandlerAddOnBase {
     /**
      * @override
      */
-    protected handleRequests(): void {
-        super.handleRequests()
-        // this._rpcHandler.handle('add', '');
+    protected handleRequests(): Promise<any> {
+        // Eg: this._rpcHandler.handle('add', '');
+        return Promise.resolve()
     }
 }
 

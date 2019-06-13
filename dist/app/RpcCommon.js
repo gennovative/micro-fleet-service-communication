@@ -71,16 +71,19 @@ let RpcCallerBase = class RpcCallerBase {
     emitError(err) {
         this._emitter.emit('error', err);
     }
-    rebuildError(payload) {
+    rebuildError(error) {
+        const payload = error.payload ? error.payload : error;
+        let exception;
         if (payload.type) {
             // Expect response.payload.type = MinorException | ValidationError
-            return new global.gennova[payload.type](payload.message);
+            exception = new global.gennova[payload.type](payload.message);
         }
         else {
-            const ex = new common_1.MinorException(payload.message);
-            ex.stack = payload.stack;
-            return ex;
+            exception = new common_1.MinorException(payload.message);
         }
+        exception.stack = payload.stack;
+        exception['details'] = payload['details'];
+        return exception;
     }
 };
 RpcCallerBase = __decorate([
@@ -110,29 +113,31 @@ let RpcHandlerBase = class RpcHandlerBase {
             payload,
         };
     }
-    createError(rawError) {
+    createError({ isIntended, reason }) {
         // TODO: Should log this unexpected error.
-        const errObj = {};
-        if (rawError instanceof common_1.MinorException) {
+        const rpcError = {
+            type: 'InternalErrorException',
+        };
+        if (!isIntended) {
+            // If error type is unidentified, we should not send it back to caller.
+            this.emitError(reason);
+            return rpcError;
+        }
+        if (reason instanceof common_1.Exception) {
             // If this is a minor error, or the action method sends this error
             // back to caller on purpose.
-            errObj.type = rawError.name;
-            errObj.message = rawError.message;
-            errObj.details = rawError['details'];
-        }
-        else if ((rawError instanceof Error) || (rawError instanceof common_1.Exception)) {
-            // If error is an uncaught Exception/Error object, that means the action method
-            // has a problem. We should not send it back to caller.
-            errObj.type = 'InternalErrorException';
-            errObj.message = rawError.message;
-            this.emitError(rawError);
+            rpcError.type = reason.name;
+            rpcError.message = reason.message;
+            rpcError.details = reason['details']; // In case of ValidationError
         }
         else {
-            const ex = new common_1.MinorException(rawError + '');
-            errObj.type = 'InternalErrorException';
-            this.emitError(ex.message);
+            // If error is an uncaught Exception/Error object, that means the action method
+            // has a problem. We should not send it back to caller.
+            rpcError.type = 'MinorException';
+            rpcError.message = reason.message;
+            rpcError.details = reason;
         }
-        return errObj;
+        return rpcError;
     }
 };
 RpcHandlerBase = __decorate([

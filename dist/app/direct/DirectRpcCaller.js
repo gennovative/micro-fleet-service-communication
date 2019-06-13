@@ -9,6 +9,8 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+/// <reference types="debug" />
+const debug = require('debug')('mcft:svccom:HttpRpcCaller');
 const request = require("request-promise");
 const common_1 = require("@micro-fleet/common");
 const rpc = require("../RpcCommon");
@@ -43,13 +45,15 @@ let HttpRpcCaller = class HttpRpcCaller extends rpc.RpcCallerBase {
         common_1.Guard.assertArgDefined('moduleName', moduleName);
         common_1.Guard.assertArgDefined('action', action);
         common_1.Guard.assertIsDefined(this._baseAddress, 'Base URL must be set!');
+        const uri = `http://${this._baseAddress}/${moduleName}/${action}`;
+        debug(`Calling: ${uri}`);
         const rpcRequest = {
             from: this.name,
             to: moduleName,
             payload: params,
         }, options = {
             method: 'POST',
-            uri: `http://${this._baseAddress}/${moduleName}/${action}`,
+            uri,
             body: rpcRequest,
             json: true,
             timeout: this.timeout,

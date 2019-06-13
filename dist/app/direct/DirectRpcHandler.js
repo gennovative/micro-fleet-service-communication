@@ -11,8 +11,10 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var ExpressRpcHandler_1;
 "use strict";
+/// <reference types="debug" />
+const debug = require('debug')('mcft:svccom:ExpressRpcHandler');
 const express = require("express");
-const bodyParser = require("body-parser");
+// import * as bodyParser from 'body-parser'
 // import * as shortid from 'shortid';
 const common_1 = require("@micro-fleet/common");
 const rpc = require("../RpcCommon");
@@ -20,29 +22,36 @@ let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rp
     constructor() {
         super();
         this._port = 30000;
-        // this._container = HandlerContainer.instance;
+        this._isOpen = false;
     }
     get port() {
         return this._port;
     }
     set port(val) {
-        /* istanbul ignore else */
         if (val > 0 && val <= 65535) {
             this._port = val;
+            return;
         }
+        throw new common_1.CriticalException('INVALID_PORT_DIRECT_RPC_HANDLER');
     }
     /**
      * @see IDirectRpcHandler.init
      */
-    init() {
+    init(params) {
         common_1.Guard.assertIsFalsey(this._routers, 'This RPC Handler is already initialized!');
         common_1.Guard.assertIsTruthy(this.name, '`name` property must be set!');
         // this._instanceUid = shortid.generate();
         let app;
         app = this._app = express();
-        // this._router = (param && param.expressRouter) ? param.expressRouter : express.Router();
-        app.use(bodyParser.json()); // Parse JSON in POST request
-        // app.use(`/${this.module}`, this._router);
+        app.disable('x-powered-by');
+        app.use((req, res, next) => {
+            // When `deadLetter()` is called, prevent all new requests.
+            if (!this._isOpen) {
+                return res.sendStatus(410); // Gone, https://httpstatuses.com/410
+            }
+            return next();
+        });
+        app.use(express.json()); // Parse JSON in POST request
         this._routers = new Map();
     }
     /**
@@ -50,9 +59,25 @@ let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rp
      */
     start() {
         return new Promise(resolve => {
-            this._server = this._app.listen(this._port, resolve);
+            this._server = this._app.listen(this._port, () => {
+                debug(`Listening port ${this._port}`);
+                this._isOpen = true;
+                resolve();
+            });
             this._server.on('error', err => this.emitError(err));
         });
+    }
+    /**
+     * @see IRpcHandler.pause
+     */
+    pause() {
+        this._isOpen = false;
+    }
+    /**
+     * @see IRpcHandler.resume
+     */
+    resume() {
+        this._isOpen = true;
     }
     /**
      * @see IRpcHandler.dispose
@@ -83,32 +108,40 @@ let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rp
             router = express.Router();
             this._routers.set(moduleName, router);
             this._app.use(`/${moduleName}`, router);
+            debug(`Created router for module: ${moduleName}`);
         }
         router.post(`/${actionName}`, this.wrapHandler(handler));
-        // const depId = `${this._instanceUid}::module`;
-        // this._container.register(actionName, depId);
+        debug(`Register action: ${actionName} to module ${moduleName}`);
     }
     wrapHandler(handler) {
         return (req, res, next) => {
             // const actionName = req.url.match(/[^\/]+$/)[0];
             const request = req.body;
             (new Promise((resolve, reject) => {
-                // const depId = `${this._instanceUid}::module`;
-                // const actionFn = this._container.resolve(actionName, depId);
+                const wrappedReject = (isIntended) => (reason) => reject({
+                    isIntended,
+                    reason,
+                });
                 try {
-                    const output = handler(request.payload, resolve, reject, request, req);
-                    if (output instanceof Promise) {
-                        output.catch(reject); // Catch async exceptions.
+                    const output = handler({
+                        payload: request.payload,
+                        resolve,
+                        reject: wrappedReject(true),
+                        rpcRequest: request,
+                        rawMessage: req,
+                    });
+                    if (output && typeof output.catch === 'function') {
+                        output.catch(wrappedReject(false)); // Catch async exceptions.
                     }
                 }
                 catch (err) { // Catch normal exceptions.
-                    reject(err);
+                    wrappedReject(false)(err);
                 }
             }))
                 .then(result => {
                 res.status(200).send(this.createResponse(true, result, request.from));
             })
-                .catch(error => {
+                .catch((error) => {
                 const errObj = this.createError(error);
                 res.status(500).send(this.createResponse(false, errObj, request.from));
             })

@@ -4,8 +4,8 @@ import * as express from 'express'
 import * as requestMaker from 'request-promise'
 import { MinorException } from '@micro-fleet/common'
 
-import { ExpressRpcHandler, IRpcRequest, IRpcResponse,
-    RpcHandlerFunction } from '../app'
+import { ExpressRpcHandler, RpcRequest, RpcResponse,
+    RpcHandlerFunction, RpcError} from '../app'
 
 chai.use(spies)
 const expect = chai.expect
@@ -14,12 +14,12 @@ const expect = chai.expect
 const NAME = 'TestHandler'
 
 
-describe('ExpressDirectRpcHandler', function () {
+describe.only('ExpressDirectRpcHandler', function () {
     this.timeout(5000)
     // this.timeout(60000); // For debugging
 
     describe('start', () => {
-        it('Should raise error if problems occur', done => {
+        it('Should raise error if problems occur', (done) => {
             // Arrange
             const handler = new ExpressRpcHandler(),
                 app = express()
@@ -96,16 +96,15 @@ describe('ExpressDirectRpcHandler', function () {
             expect(router.stack[0].route.path).to.equal(`/${deleteAction}`)
         })
 
-        it('Should parse and pass request parameters to action method.', done => {
+        it('Should parse and pass request parameters to action method.', (done) => {
             // Arrange
             const text = 'echo...echooooo'
             const moduleName = 'accounts'
             const createAction = 'create'
-            const createHandler: RpcHandlerFunction = function (payload: any, resolve: PromiseResolveFn,
-                    reject: PromiseRejectFn, rawRequest: IRpcRequest) {
+            const createHandler: RpcHandlerFunction = function ({ payload, rpcRequest, resolve }) {
                 expect(payload.text).to.equal(text)
-                expect(rawRequest.payload.text).to.equal(text)
-                expect(rawRequest.to).to.equal(moduleName)
+                expect(rpcRequest.payload.text).to.equal(text)
+                expect(rpcRequest.to).to.equal(moduleName)
                 resolve()
                 done()
             }
@@ -117,7 +116,7 @@ describe('ExpressDirectRpcHandler', function () {
             // Assert
             handler.start()
                 .then(() => {
-                    const request: IRpcRequest = {
+                    const request: RpcRequest = {
                         from: '',
                         to: moduleName,
                         payload: { text },
@@ -137,7 +136,7 @@ describe('ExpressDirectRpcHandler', function () {
                 })
         })
 
-        it('Should respond with expected result', done => {
+        it('Should respond with expected result', (done) => {
             // Arrange
             const moduleName = 'accounts'
             const createAction = 'create'
@@ -145,8 +144,7 @@ describe('ExpressDirectRpcHandler', function () {
             const result: any = {
                 text: 'successsss',
             }
-            const createHandler: RpcHandlerFunction = function (payload: any, resolve: PromiseResolveFn,
-                    reject: PromiseRejectFn, rawRequest: IRpcRequest) {
+            const createHandler: RpcHandlerFunction = function ({ resolve }) {
                 resolve(result)
             }
 
@@ -163,7 +161,7 @@ describe('ExpressDirectRpcHandler', function () {
                         json: true,
                     }
 
-                    requestMaker(options).then((res: IRpcResponse) => {
+                    requestMaker(options).then((res: RpcResponse) => {
                         expect(res.payload).to.deep.equal(result)
                         done()
                     })
@@ -173,22 +171,25 @@ describe('ExpressDirectRpcHandler', function () {
                 })
         })
 
-        it('Should emit error and respond with status 500 and InternalErrorException if handler rejects with non-MinorException.', done => {
+        it('Should respond with the custom error object for INTENDED rejection', (done) => {
             // Arrange
             const moduleName = 'accounts'
             const createAction = 'create'
             const spy = chai.spy()
-            const createHandler: RpcHandlerFunction = function (payload: any, resolve: PromiseResolveFn,
-                    reject: PromiseRejectFn, rawRequest: IRpcRequest) {
-                reject('An error string')
+            const REASON = {
+                why: 'An error string',
+            }
+            const createHandler: RpcHandlerFunction = function ({ reject }) {
+                reject(REASON)
             }
 
             // Act
             handler.handle(moduleName, createAction, createHandler)
 
-            // Assert
+            // Assert: Not handler's fault
             handler.onError(err => {
-                expect(err).to.exist
+                err && console.log(err)
+                expect(err).not.to.exist
                 spy()
             })
 
@@ -201,34 +202,41 @@ describe('ExpressDirectRpcHandler', function () {
                         json: true,
                     }
 
-                    requestMaker(options).then((res: IRpcResponse) => {
+                    requestMaker(options).then((res: RpcResponse) => {
                         expect(res, 'Request should not be successful!').not.to.exist
                     })
-                    .catch(rawResponse => {
-                        expect(rawResponse.statusCode).to.equal(500)
-                        expect(rawResponse.error.payload.type).to.equal('InternalErrorException')
-                        expect(spy).to.be.called.once
+                    .catch(httpResponse => {
+                        // Assert: Falsey response is returned
+                        expect(httpResponse.statusCode).to.equal(500)
+                        const rpcResponse: RpcResponse = httpResponse.error
+                        expect(rpcResponse.isSuccess).to.be.false
+                        const rpcError: RpcError = rpcResponse.payload
+                        expect(rpcError).to.exist
+                        expect(rpcError.type).to.equal('MinorException')
+                        expect(rpcError.details.why).to.equal(REASON.why)
+                        expect(spy).not.to.be.called
                         done()
                     })
                 })
         })
 
-        it('Should not emit error but respond with status 500 and exception object if handler throws MinorException.', done => {
+        it('Should respond with the exception instance for INTENDED rejection', (done) => {
             // Arrange
             const moduleName = 'products'
             const deleteAction = 'delete'
             const errMsg = 'removeException'
             const spy = chai.spy()
-            const deleteHandler: RpcHandlerFunction = function (payload: any, resolve: PromiseResolveFn,
-                    reject: PromiseRejectFn, rawRequest: IRpcRequest) {
-                throw new MinorException(errMsg)
+            const deleteHandler: RpcHandlerFunction = function ({ reject }) {
+                reject(new MinorException(errMsg))
             }
 
             // Act
             handler.handle(moduleName, deleteAction, deleteHandler)
 
-            // Assert: No error thrown
+            // Assert: Not handler's fault
             handler.onError(err => {
+                err && console.log(err)
+                expect(err).not.to.exist
                 spy()
             })
 
@@ -241,37 +249,39 @@ describe('ExpressDirectRpcHandler', function () {
                         json: true,
                     }
 
-                    requestMaker(options).then((res: IRpcResponse) => {
+                    requestMaker(options).then((res: RpcResponse) => {
                         // If status 200
                         expect(res, 'Request should NOT be successful!').not.to.exist
                     })
-                    .catch(rawResponse => {
+                    .catch(httpResponse => {
                         // Assert: Falsey response is returned
-                        // If status 500 or request error.
-                        expect(rawResponse.statusCode).to.equal(500)
-                        expect(rawResponse.error.payload.type).to.equal('MinorException')
-                        expect(rawResponse.error.payload.message).to.equal(errMsg)
-                        expect(spy).to.be.called.exactly(0)
+                        expect(httpResponse.statusCode).to.equal(500)
+                        const rpcResponse: RpcResponse = httpResponse.error
+                        expect(rpcResponse.isSuccess).to.be.false
+                        const rpcError: RpcError = rpcResponse.payload
+                        expect(rpcError).to.exist
+                        expect(rpcError.type).to.equal('MinorException')
+                        expect(rpcError.message).to.equal(errMsg)
+                        expect(spy).not.to.be.called
                         done()
                     })
                 })
         })
 
-        it(`Should not emit error but respond with status 500 if handler returns a promise which rejects with MinorException.`, done => {
+        it(`Should respond with InternalErrorException when the handler returns rejected Promise`, (done) => {
             // Arrange
             const moduleName = 'products'
             const deleteAction = 'delete'
             const errMsg = 'removeException'
             const spy = chai.spy()
-            const deleteHandler: RpcHandlerFunction = function (payload: any, resolve: PromiseResolveFn,
-                    reject: PromiseRejectFn, rawRequest: IRpcRequest) {
+            const deleteHandler: RpcHandlerFunction = function () {
                 return Promise.reject(new MinorException(errMsg))
             }
 
             // Act
             handler.handle(moduleName, deleteAction, deleteHandler)
 
-            // Assert
+            // Assert: Catch handler's fault
             handler.onError(err => {
                 expect(err).to.exist
                 spy()
@@ -287,36 +297,84 @@ describe('ExpressDirectRpcHandler', function () {
                         json: true,
                     }
 
-                    requestMaker(options).then((res: IRpcResponse) => {
+                    requestMaker(options).then((res: RpcResponse) => {
                         // If status 200
                         expect(res, 'Request should NOT be successful!').not.to.exist
                     })
-                    .catch(rawResponse => {
-                        // If status 500 or request error.
-                        expect(rawResponse.statusCode).to.equal(500)
-                        expect(rawResponse.error.payload.type).to.equal('MinorException')
-                        expect(rawResponse.error.payload.message).to.equal(errMsg)
-                        expect(spy).to.be.called.exactly(0)
+                    .catch(httpResponse => {
+                        // Assert: Falsey response is returned
+                        expect(httpResponse.statusCode).to.equal(500)
+                        const rpcResponse: RpcResponse = httpResponse.error
+                        expect(rpcResponse.isSuccess).to.be.false
+                        const rpcError: RpcError = rpcResponse.payload
+                        expect(rpcError).to.exist
+                        expect(rpcError.type).to.equal('InternalErrorException')
+                        expect(spy).to.be.called.once
                         done()
                     })
                 })
         })
 
-        it('Should emit error and respond with status 500 and InternalErrorException if handler throws Error.', done => {
+        it('Should respond with InternalErrorException when the handler throws Exception', (done) => {
+            // Arrange
+            const moduleName = 'products'
+            const deleteAction = 'delete'
+            const errMsg = 'removeException'
+            const spy = chai.spy()
+            const deleteHandler: RpcHandlerFunction = function () {
+                throw new MinorException(errMsg)
+            }
+
+            // Act
+            handler.handle(moduleName, deleteAction, deleteHandler)
+
+            // Assert: Catch handler's fault
+            handler.onError(err => {
+                expect(err).to.exist
+                spy()
+            })
+
+            handler.start()
+                .then(() => {
+                    const options = {
+                        method: 'POST',
+                        uri: `http://localhost:${handler.port}/${moduleName}/${deleteAction}`,
+                        body: {},
+                        json: true,
+                    }
+
+                    requestMaker(options).then((res: RpcResponse) => {
+                        // If status 200
+                        expect(res, 'Request should NOT be successful!').not.to.exist
+                    })
+                    .catch(httpResponse => {
+                        // Assert: Falsey response is returned
+                        expect(httpResponse.statusCode).to.equal(500)
+                        const rpcResponse: RpcResponse = httpResponse.error
+                        expect(rpcResponse.isSuccess).to.be.false
+                        const rpcError: RpcError = rpcResponse.payload
+                        expect(rpcError).to.exist
+                        expect(rpcError.type).to.equal('InternalErrorException')
+                        expect(spy).to.be.called.once
+                        done()
+                    })
+                })
+        })
+
+        it('Should respond with InternalErrorException when the handler throws Error.', (done) => {
             // Arrange
             const moduleName = 'products'
             const editAction = 'edit'
             const errMsg = 'editError'
             const spy = chai.spy()
-            const editHandler: RpcHandlerFunction = function (payload: any, resolve: PromiseResolveFn,
-                    reject: PromiseRejectFn, rawRequest: IRpcRequest) {
+            const editHandler: RpcHandlerFunction = function () {
                 throw new Error(errMsg)
             }
 
             // Act
             handler.handle(moduleName, editAction, editHandler)
 
-            // Assert
+            // Assert: Catch handler's fault
             handler.onError(err => {
                 expect(err).to.exist
                 spy()
@@ -331,14 +389,18 @@ describe('ExpressDirectRpcHandler', function () {
                         json: true,
                     }
 
-                    requestMaker(options).then((res: IRpcResponse) => {
+                    requestMaker(options).then((res: RpcResponse) => {
                         // If status 200
                         expect(res, 'Request should NOT be successful!').not.to.exist
                     })
-                    .catch(rawResponse => {
+                    .catch(httpResponse => {
                         // If status 500 or request error.
-                        expect(rawResponse.statusCode).to.equal(500)
-                        expect(rawResponse.error.payload.type).to.equal('InternalErrorException')
+                        expect(httpResponse.statusCode).to.equal(500)
+                        const rpcResponse: RpcResponse = httpResponse.error
+                        expect(rpcResponse.isSuccess).to.be.false
+                        const rpcError: RpcError = rpcResponse.payload
+                        expect(rpcError).to.exist
+                        expect(rpcError.type).to.equal('InternalErrorException')
                         expect(spy).to.be.called.once
                         done()
                     })

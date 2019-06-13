@@ -1,6 +1,6 @@
 {
     "name": "@micro-fleet/service-communication",
-    "version": "0.2.4",
+    "version": "0.3.0",
     "description": "Provides methods for microservices to communicate with each other.",
     "scripts": {
         "build": "npm run compile && npm run test",
@@ -17,8 +17,10 @@
     },
     "dependencies": {
         "amqplib": "~0.5",
+        "debug": "~4.1",
         "express": "~4.16",
         "lodash": "~4.17",
+        "reflect-metadata": "~0.1",
         "request": "~2.87",
         "request-promise": "~4.2",
         "shortid": "~2.2"
@@ -28,6 +30,7 @@
         "@types/body-parser": "~1.17",
         "@types/chai": "~4.1",
         "@types/chai-spies": "~0.0.1",
+        "@types/debug": "~4.1",
         "@types/express": "~4.16",
         "@types/lodash": "~4.14",
         "@types/mocha": "~5.2",

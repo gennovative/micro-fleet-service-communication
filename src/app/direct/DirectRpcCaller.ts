@@ -1,3 +1,6 @@
+/// <reference types="debug" />
+const debug: debug.IDebugger = require('debug')('mcft:svccom:HttpRpcCaller')
+
 import * as request from 'request-promise'
 import { injectable, Guard } from '@micro-fleet/common'
 
@@ -53,19 +56,21 @@ export class HttpRpcCaller
     /**
      * @see IRpcCaller.call
      */
-    public call(moduleName: string, action: string, params?: any): Promise<rpc.IRpcResponse> {
+    public call(moduleName: string, action: string, params?: any): Promise<rpc.RpcResponse> {
         Guard.assertArgDefined('moduleName', moduleName)
         Guard.assertArgDefined('action', action)
         Guard.assertIsDefined(this._baseAddress, 'Base URL must be set!')
 
-        const rpcRequest: rpc.IRpcRequest = {
+        const uri = `http://${this._baseAddress}/${moduleName}/${action}`
+        debug(`Calling: ${uri}`)
+        const rpcRequest: rpc.RpcRequest = {
                 from: this.name,
                 to: moduleName,
                 payload: params,
             },
             options: request.Options = {
                 method: 'POST',
-                uri: `http://${this._baseAddress}/${moduleName}/${action}`,
+                uri,
                 body: rpcRequest,
                 json: true, // Automatically stringifies the body to JSON
                 timeout: this.timeout,

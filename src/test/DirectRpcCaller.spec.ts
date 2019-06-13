@@ -5,7 +5,7 @@ import * as express from 'express'
 import * as bodyParser from 'body-parser'
 import { MinorException } from '@micro-fleet/common'
 
-import { HttpRpcCaller, IDirectRpcCaller, IRpcRequest, IRpcResponse } from '../app'
+import { HttpRpcCaller, IDirectRpcCaller, RpcRequest, RpcResponse } from '../app'
 
 
 const HANDLER_ADDR = 'localhost:3000',
@@ -63,7 +63,7 @@ describe('HttpRpcCaller', () => {
             router.get('/', (req, res) => res.send('Hello! Postman'))
 
             router.post(`/${ACTION}`, (req: express.Request, res: express.Response) => {
-                const request: IRpcRequest = req.body
+                const request: RpcRequest = req.body
                 // Assert
                 expect(request).to.exist
                 expect(request.payload.msg).to.equal(TEXT_REQUEST)
@@ -82,7 +82,7 @@ describe('HttpRpcCaller', () => {
                 caller.call(HANDLER_NAME, ACTION, {
                     msg: TEXT_REQUEST,
                 })
-                .then((res: IRpcResponse) => {
+                .then((res: RpcResponse) => {
                     // Assert
                     expect(res).to.exist
                     expect(res.payload.text).to.equal(TEXT_RESPONSE)
@@ -102,7 +102,7 @@ describe('HttpRpcCaller', () => {
             caller.call(HANDLER_NAME, ACTION, {
                 msg: TEXT_REQUEST,
             })
-            .then((res: IRpcResponse) => {
+            .then((res: RpcResponse) => {
                 // Assert
                 expect(res).to.not.exist
             })

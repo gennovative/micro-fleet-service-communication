@@ -58,6 +58,14 @@ export class MessageBrokerRpcHandler
         ])
     }
 
+    public pause(): void {
+        throw new Error('Method not implemented.')
+    }
+
+    public resume(): void {
+        throw new Error('Method not implemented.')
+    }
+
     /**
      * @see IMediateRpcHandler.handle
      */
@@ -84,21 +92,30 @@ export class MessageBrokerRpcHandler
         }
         ack()
 
-        const request: rpc.IRpcRequest = msg.data
+        const request: rpc.RpcRequest = msg.data
         const correlationId = msg.properties.correlationId
         const replyTo: string = msg.properties.replyTo;
 
         (new Promise((resolve, reject) => {
-            // Extract "module.action" out of "request.module.action"
+            const wrappedReject = (isIntended: boolean) => (reason: any) => reject(<rpc.HandlerRejection>{
+                isIntended,
+                reason,
+            })
             try {
                 const actionFn = this._handlers.get(key)
                 // Execute controller's action
-                const output: any = actionFn(request.payload, resolve, reject, request, msg)
+                const output: any = actionFn({
+                    payload: request.payload,
+                    resolve,
+                    reject: wrappedReject(true),
+                    rpcRequest: request,
+                    rawMessage: msg,
+                })
                 if (output instanceof Promise) {
-                    output.catch(reject) // Catch async exceptions.
+                    output.catch(wrappedReject(false)) // Catch async exceptions.
                 }
             } catch (err) { // Catch normal exceptions.
-                reject(err)
+                wrappedReject(false)(err)
             }
         }))
         .then(result => { // When `actionFn` calls `resolve` from inside.

@@ -44,6 +44,12 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
             this._msgBrokerConn.unsubscribeAll(),
         ]);
     }
+    pause() {
+        throw new Error('Method not implemented.');
+    }
+    resume() {
+        throw new Error('Method not implemented.');
+    }
     /**
      * @see IMediateRpcHandler.handle
      */
@@ -71,17 +77,26 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
         const correlationId = msg.properties.correlationId;
         const replyTo = msg.properties.replyTo;
         (new Promise((resolve, reject) => {
-            // Extract "module.action" out of "request.module.action"
+            const wrappedReject = (isIntended) => (reason) => reject({
+                isIntended,
+                reason,
+            });
             try {
                 const actionFn = this._handlers.get(key);
                 // Execute controller's action
-                const output = actionFn(request.payload, resolve, reject, request, msg);
+                const output = actionFn({
+                    payload: request.payload,
+                    resolve,
+                    reject: wrappedReject(true),
+                    rpcRequest: request,
+                    rawMessage: msg,
+                });
                 if (output instanceof Promise) {
-                    output.catch(reject); // Catch async exceptions.
+                    output.catch(wrappedReject(false)); // Catch async exceptions.
                 }
             }
             catch (err) { // Catch normal exceptions.
-                reject(err);
+                wrappedReject(false)(err);
             }
         }))
             .then(result => {

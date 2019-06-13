@@ -7,35 +7,21 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch Program",
-            "program": "${workspaceRoot}\\dist\\app\\index.js",
-            "args": [
-            ],
-            "cwd": "${workspaceRoot}",
-            "outFiles": [],
-            "sourceMaps": true
-        },
-        {
-            "type": "node",
-            "request": "launch",
             "name": "Mocha test",
             "program": "${workspaceRoot}/node_modules/mocha/bin/_mocha",
             "args": [
                 "./dist/test/**/*.js"
             ],
-            // Automatically stop program after launch.
+            "env": {
+                "DEBUG": "mcft:svccom:*",
+                "DEBUG_HIDE_DATE": "true"
+            },
             "stopOnEntry": false,
             "runtimeExecutable": null,
             "cwd": "${workspaceRoot}",
             "outFiles": [],
-            "sourceMaps": false
-        },
-        {
-            "type": "node",
-            "request": "attach",
-            "name": "Attach to Process",
-            "port": 5858,
-            "outFiles": []
+            "sourceMaps": false,
+            "outputCapture": "std"
         }
     ]
 }
