@@ -13,6 +13,7 @@ import { IDirectRpcHandler, IDirectRpcCaller, ExpressRpcHandler, HttpRpcCaller,
     } from '../app'
 
 import * as dc from './shared/direct-controllers'
+import { sleep } from './shared/helper'
 
 
 chai.use(spies)
@@ -70,9 +71,9 @@ let depContainer: DependencyContainer,
     addon: DefaultDirectRpcHandlerAddOn
 
 describe('DefaultDirectRpcHandlerAddOn', function() {
-    // this.timeout(5000)
+    this.timeout(5000)
     // For debugging
-    this.timeout(60000)
+    // this.timeout(60000)
 
     beforeEach(() => {
         depContainer = new DependencyContainer()
@@ -92,10 +93,15 @@ describe('DefaultDirectRpcHandlerAddOn', function() {
         addon.controllerPath = path.join(process.cwd(), 'dist', 'test', 'shared', 'direct-controllers')
     })
 
+    afterEach(async () => {
+        await addon.dispose()
+        await caller.dispose()
+        depContainer.dispose()
+    })
+
     describe('handleRequests', () => {
-        it('should call action method', async () => {
+        it('Should call action method', async () => {
             // Arrange
-            // const disconnectSpy = chai.spy.on(addon['_rpcHandler'], 'dispose')
             await addon.init()
 
             // Act
@@ -114,15 +120,10 @@ describe('DefaultDirectRpcHandlerAddOn', function() {
                 err && console.error(err)
                 expect(err).to.not.exist
             }
-            finally {
-                await addon.dispose()
-            }
-
         })
 
-        it('should return expected response', async () => {
+        it('Should return expected response', async () => {
             // Arrange
-            // const disconnectSpy = chai.spy.on(addon['_rpcHandler'], 'dispose')
             await addon.init()
 
             // Act
@@ -140,13 +141,10 @@ describe('DefaultDirectRpcHandlerAddOn', function() {
                 err && console.error(err)
                 expect(err).to.not.exist
             }
-            finally {
-                await addon.dispose()
-            }
 
         })
 
-        it('should return expected error message', async () => {
+        it('Should return expected error message', async () => {
             // Arrange
             const AUTO_MODULE_NAME = 'directAuto'
             let handlerError
@@ -172,12 +170,9 @@ describe('DefaultDirectRpcHandlerAddOn', function() {
                 const controller = depContainer.resolve<dc.DirectAutoController>(dc.DirectAutoController.name)
                 expect(controller.spyFn).to.be.called.with(CALLER_NAME, AUTO_MODULE_NAME)
             }
-            finally {
-                await addon.dispose()
-            }
         })
 
-        it('should rebuild the response exception', async () => {
+        it('Should rebuild the response exception', async () => {
             // Arrange
             const AUTO_MODULE_NAME = 'directAuto'
             let handlerError
@@ -202,10 +197,62 @@ describe('DefaultDirectRpcHandlerAddOn', function() {
                 const controller = depContainer.resolve<dc.DirectAutoController>(dc.DirectAutoController.name)
                 expect(controller.spyFn).to.be.called.with(CALLER_NAME, AUTO_MODULE_NAME)
             }
-            finally {
-                await addon.dispose()
-            }
         })
-
     }) // END describe 'handleRequests'
+
+
+    describe('deadLetter', () => {
+        it('Should stop accepting more request', (done) => {
+            // Arrange
+            const CALL_NUM = 5
+            const resolvers: PromiseResolveFn[] = []
+            let counter = 0
+
+            addon.init()
+                .then(() => {
+                    const controller = depContainer.resolve<dc.DirectNamedController>(dc.DirectNamedController.name)
+                    controller.doSomething = ({ resolve }) => {
+                        ++counter
+                        resolvers.push(resolve)
+                    }
+
+                    // Act 1
+                    for (let i = 0; i < CALL_NUM; ++i) {
+                        caller.call(dc.MODULE_NAME, dc.ACT_DO_IT)
+                    }
+                    return sleep(1000)
+                })
+                .then(() => addon.deadLetter())
+                .then(async () => {
+                    // Assert: Handler accepts requests
+                    expect(counter).to.equal(CALL_NUM)
+
+                    // Act 2
+                    for (let i = 0; i < CALL_NUM; ++i) {
+                        try {
+                            const res = await caller.call(dc.MODULE_NAME, dc.ACT_DO_IT)
+                            expect(res).not.to.exist
+                        }
+                        catch (err) {
+                            expect(err).to.exist
+                            expect(err.message).to.equal('Gone')
+                        }
+                    }
+                    return sleep(1000)
+                })
+                .then(() => {
+                    // Assert: "counter" not increased.
+                    //          Handler no longer accepts requests
+                    expect(counter).to.equal(CALL_NUM)
+                })
+                .catch(err => {
+                    err && console.error(err)
+                    expect(err).to.not.exist
+                })
+                .finally(async () => {
+                    resolvers.forEach(resolve => resolve())
+                    done()
+                })
+        })
+    }) // END describe 'deadLetter'
 })

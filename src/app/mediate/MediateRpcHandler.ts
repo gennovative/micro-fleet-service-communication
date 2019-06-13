@@ -9,10 +9,6 @@ import * as rpc from '../RpcCommon'
 
 
 export interface IMediateRpcHandler extends rpc.IRpcHandler {
-    /**
-     * @override IRpcHandler.handle to return Promise<void>
-     */
-    handle(module: string, action: string, handler: rpc.RpcHandlerFunction): Promise<void>
 }
 
 @injectable()
@@ -33,9 +29,10 @@ export class MessageBrokerRpcHandler
     /**
      * @see IRpcHandler.init
      */
-    public init(): void {
+    public init(): Promise<void> {
         this._handlers = new Map<string, rpc.RpcHandlerFunction>()
         this._msgBrokerConn.onError(err => this.emitError(err))
+        return Promise.resolve()
     }
 
     /**

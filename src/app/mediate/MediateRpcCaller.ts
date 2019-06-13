@@ -70,7 +70,7 @@ export class MessageBrokerRpcCaller
                         if (response.isSuccess) {
                             resolve(response)
                         } else {
-                            reject(this.rebuildError(response.payload))
+                            reject(this.rebuildError(response))
                         }
                     }
 

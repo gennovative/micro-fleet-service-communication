@@ -2,6 +2,10 @@
 
     Note: Will be marked as v1.0.0 when test coverage >= 90%
 
+## 0.3.0
+- Added `DefaultDirectRpcHandlerAddOn` which automatically registers classes decorated with `@directController()`
+- Added `DefaultMediateRpcHandlerAddOn` which automatically registers classes decorated with `@mediateController()`
+
 ## 0.2.4
 - Remove script "postinstall" from `package.json`.
 

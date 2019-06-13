@@ -9,6 +9,7 @@ __export(require("./direct/DefaultDirectRpcHandlerAddOn"));
 __export(require("./direct/DirectRpcCaller"));
 __export(require("./direct/DirectRpcHandler"));
 __export(require("./direct/DirectRpcHandlerAddOnBase"));
+__export(require("./mediate/DefaultMediateRpcHandlerAddOn"));
 __export(require("./mediate/MediateRpcCaller"));
 __export(require("./mediate/MediateRpcHandler"));
 __export(require("./mediate/MediateRpcHandlerAddOnBase"));

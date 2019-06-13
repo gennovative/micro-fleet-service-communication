@@ -77,17 +77,21 @@ let RpcCallerBase = class RpcCallerBase {
         this._emitter.emit('error', err);
     }
     rebuildError(error) {
-        const payload = error.payload ? error.payload : error;
         let exception;
-        if (payload.type) {
-            // Expect response.payload.type = MinorException | ValidationError
-            exception = new global.gennova[payload.type](payload.message);
+        if (error['payload']) {
+            const payload = error.payload;
+            if (payload.type) {
+                // Expect response.payload.type = MinorException | ValidationError...
+                exception = new global.gennova[payload.type](payload.message);
+                exception['details'] = payload['details'];
+            }
+        }
+        else if (error instanceof Error) {
+            return error;
         }
         else {
-            exception = new common_1.MinorException(payload.message);
+            exception = new common_1.MinorException(error + '');
         }
-        exception.stack = payload.stack;
-        exception['details'] = payload['details'];
         return exception;
     }
 };

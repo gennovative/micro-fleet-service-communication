@@ -149,14 +149,14 @@ export interface IRpcHandler {
      * Sets up this RPC handler with specified `param`. Each implementation class requires
      * different kinds of `param`.
      */
-    init(params?: any): any
+    init(params?: any): Promise<void>
 
     /**
      * Waits for incoming request, resolves an instance with `dependencyIdentifier`,
      * calls instance's `action` method. If `customAction` is specified,
      * calls instance's `customAction` instead.
      */
-    handle(module: string, actionName: string, handler: RpcHandlerFunction): any | Promise<any>
+    handle(module: string, actionName: string, handler: RpcHandlerFunction): Promise<void>
 
     /**
      * Registers a listener to handle errors.
@@ -245,18 +245,22 @@ export abstract class RpcCallerBase {
         this._emitter.emit('error', err)
     }
 
-    protected rebuildError(error: any) {
-        const payload = error.payload ? error.payload : error
+    protected rebuildError(error: Error | RpcResponse | string) {
         let exception: Exception
-        if (payload.type) {
-            // Expect response.payload.type = MinorException | ValidationError
-            exception = new global.gennova[payload.type](payload.message)
+        if (error['payload']) {
+            const payload: RpcError = (error as RpcResponse).payload
+            if (payload.type) {
+                // Expect response.payload.type = MinorException | ValidationError...
+                exception = new global.gennova[payload.type](payload.message)
+                exception['details'] = payload['details']
+            }
+        }
+        else if (error instanceof Error) {
+            return error
         }
         else {
-            exception = new MinorException(payload.message)
+            exception = new MinorException(error + '')
         }
-        exception.stack = payload.stack
-        exception['details'] = payload['details']
         return exception
     }
 }

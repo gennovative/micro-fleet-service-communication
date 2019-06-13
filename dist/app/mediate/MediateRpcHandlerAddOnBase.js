@@ -27,12 +27,11 @@ let MediateRpcHandlerAddOnBase = class MediateRpcHandlerAddOnBase {
     /**
      * @see IServiceAddOn.init
      */
-    init(moduleName = null) {
-        // this._rpcHandler.module = moduleName;
+    async init() {
         this._rpcHandler.name = this._configProvider.get(S.SERVICE_SLUG).value;
-        this._rpcHandler.init();
-        this.handleRequests();
-        return this._rpcHandler.start();
+        await this._rpcHandler.init();
+        await this.handleRequests();
+        await this._rpcHandler.start();
     }
     /**
      * @see IServiceAddOn.deadLetter
@@ -48,9 +47,6 @@ let MediateRpcHandlerAddOnBase = class MediateRpcHandlerAddOnBase {
         const handler = this._rpcHandler;
         this._rpcHandler = null;
         return handler.dispose();
-    }
-    handleRequests() {
-        // this._rpcHandler.handleCRUD(this.controllerIdentifier);
     }
 };
 MediateRpcHandlerAddOnBase = __decorate([

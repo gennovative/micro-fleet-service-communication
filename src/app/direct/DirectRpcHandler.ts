@@ -129,7 +129,7 @@ export class ExpressRpcHandler
     /**
      * @see IRpcHandler.handle
      */
-    public handle(moduleName: string, actionName: string, handler: rpc.RpcHandlerFunction): void {
+    public handle(moduleName: string, actionName: string, handler: rpc.RpcHandlerFunction): Promise<void> {
         Guard.assertIsDefined(this._routers, '`init` method must be called first!')
         Guard.assertIsMatch(ExpressRpcHandler.URL_TESTER, moduleName, `Module name "${moduleName}" is not URL-safe!`)
         Guard.assertIsMatch(ExpressRpcHandler.URL_TESTER, actionName, `Action name "${actionName}" is not URL-safe!`)
@@ -145,6 +145,7 @@ export class ExpressRpcHandler
         }
         router.post(`/${actionName}`, this.wrapHandler(handler))
         debug(`Register action: ${actionName} to module ${moduleName}`)
+        return Promise.resolve()
     }
 
 

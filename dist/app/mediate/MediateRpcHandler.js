@@ -29,6 +29,7 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
     init() {
         this._handlers = new Map();
         this._msgBrokerConn.onError(err => this.emitError(err));
+        return Promise.resolve();
     }
     /**
      * @see IRpcHandler.start

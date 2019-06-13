@@ -114,6 +114,7 @@ let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rp
         }
         router.post(`/${actionName}`, this.wrapHandler(handler));
         debug(`Register action: ${actionName} to module ${moduleName}`);
+        return Promise.resolve();
     }
     wrapHandler(handler) {
         return (req, res, next) => {

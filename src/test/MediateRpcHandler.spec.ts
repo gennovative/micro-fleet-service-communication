@@ -3,12 +3,12 @@ import * as chai from 'chai'
 import * as spies from 'chai-spies'
 import * as shortid from 'shortid'
 import delay = require('lodash/delay')
+import { MinorException } from '@micro-fleet/common'
 
 import { MessageBrokerRpcHandler, BrokerMessage, IMessageBrokerConnector, IMediateRpcHandler,
     TopicMessageBrokerConnector, RpcRequest, RpcResponse, RpcHandlerFunction, RpcError } from '../app'
 
 import rabbitOpts from './rabbit-options'
-import { MinorException } from '@micro-fleet/common'
 
 chai.use(spies)
 const expect = chai.expect
@@ -220,6 +220,10 @@ describe('MediateRpcHandler', function () {
             // Act
             // Not register any handler (rpcHandler.handle(..));
 
+            // Set small time-to-live to reduce number of warning messages:
+            //      "No handlers for request request.accounts.create"
+            handlerMbConn.messageExpiredIn = 50
+
             // Force subscribing without handling function
             handlerMbConn.subscribe(topic)
                 .then(() => callerMbConn.subscribe(replyTo))
@@ -230,7 +234,7 @@ describe('MediateRpcHandler', function () {
                     expect(response.isSuccess).to.be.true
                     expect(response.payload).to.deep.equal(result)
                     // Wait for all async tasks inside RPC handler to finish
-                    delay(() => done(), 1000)
+                    delay(() => done(), 200)
                 }))
                 .then(() => rpcHandler.start())
                 .then(() => {
@@ -245,7 +249,7 @@ describe('MediateRpcHandler', function () {
                 // Register again... officially
                 .then(() => delay(() => {
                     rpcHandler.handle(moduleName, createAction, createHandler)
-                }, 1000))
+                }, 20)) // Delay time must be smaller than "messageExpiredIn"
         })
 
         it('Should respond with the custom error object for INTENDED rejection', (done) => {

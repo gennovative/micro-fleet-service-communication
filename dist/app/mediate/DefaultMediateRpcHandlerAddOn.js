@@ -14,21 +14,21 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const common_1 = require("@micro-fleet/common");
-const DirectRpcHandlerAddOnBase_1 = require("./DirectRpcHandlerAddOnBase");
 const controller_1 = require("../constants/controller");
 const Types_1 = require("../Types");
 const MetaData_1 = require("../constants/MetaData");
+const MediateRpcHandlerAddOnBase_1 = require("./MediateRpcHandlerAddOnBase");
 const ControllerHunter_1 = require("../ControllerHunter");
 /**
  * Automatically registers classes decorated with `@directController()`
  */
-let DefaultDirectRpcHandlerAddOn = class DefaultDirectRpcHandlerAddOn extends DirectRpcHandlerAddOnBase_1.DirectRpcHandlerAddOnBase {
+let DefaultMediateRpcHandlerAddOn = class DefaultMediateRpcHandlerAddOn extends MediateRpcHandlerAddOnBase_1.MediateRpcHandlerAddOnBase {
     constructor(configProvider, _depContainer, rpcHandler) {
         super(configProvider, rpcHandler);
         this._depContainer = _depContainer;
-        this.name = 'DefaultDirectRpcHandlerAddOn';
+        this.name = 'DefaultMediateRpcHandlerAddOn';
         common_1.Guard.assertArgDefined('_depContainer', _depContainer);
-        this._controllerHunter = new ControllerHunter_1.ControllerHunter(_depContainer, rpcHandler, MetaData_1.MetaData.CONTROLLER_DIRECT, controller_1.ControllerCreationStrategy.SINGLETON);
+        this._controllerHunter = new ControllerHunter_1.ControllerHunter(_depContainer, rpcHandler, MetaData_1.MetaData.CONTROLLER_MEDIATE, controller_1.ControllerCreationStrategy.SINGLETON);
     }
     /**
      * Gets or sets strategy when creating controller instance.
@@ -52,8 +52,7 @@ let DefaultDirectRpcHandlerAddOn = class DefaultDirectRpcHandlerAddOn extends Di
      * @see IServiceAddOn.deadLetter
      */
     deadLetter() {
-        this._rpcHandler.pause();
-        return Promise.resolve();
+        return this._rpcHandler.pause();
     }
     /**
      * @override
@@ -68,12 +67,12 @@ let DefaultDirectRpcHandlerAddOn = class DefaultDirectRpcHandlerAddOn extends Di
         this._rpcHandler.onError(handler);
     }
 };
-DefaultDirectRpcHandlerAddOn = __decorate([
+DefaultMediateRpcHandlerAddOn = __decorate([
     common_1.injectable(),
     __param(0, common_1.inject(common_1.Types.CONFIG_PROVIDER)),
     __param(1, common_1.inject(common_1.Types.DEPENDENCY_CONTAINER)),
-    __param(2, common_1.inject(Types_1.Types.DIRECT_RPC_HANDLER)),
+    __param(2, common_1.inject(Types_1.Types.MEDIATE_RPC_HANDLER)),
     __metadata("design:paramtypes", [Object, Object, Object])
-], DefaultDirectRpcHandlerAddOn);
-exports.DefaultDirectRpcHandlerAddOn = DefaultDirectRpcHandlerAddOn;
-//# sourceMappingURL=DefaultDirectRpcHandlerAddOn.js.map
+], DefaultMediateRpcHandlerAddOn);
+exports.DefaultMediateRpcHandlerAddOn = DefaultMediateRpcHandlerAddOn;
+//# sourceMappingURL=DefaultMediateRpcHandlerAddOn.js.map

@@ -2,11 +2,13 @@ import * as chai from 'chai'
 import * as spies from 'chai-spies'
 
 import { IConfigurationProvider, Types as ConT, constants, Maybe,
-    injectable, inject /*DependencyContainer*/ } from '@micro-fleet/common'
+    injectable, inject } from '@micro-fleet/common'
+
 import { IMediateRpcHandler, IMessageBrokerConnector,
     MessageBrokerConnectionOptions, MessageBrokerPublishOptions, MessageHandleFunction,
     MediateRpcHandlerAddOnBase, MessageBrokerRpcHandler,
     Types as ComT } from '../app'
+
 
 const { SvcSettingKeys: SvcS } = constants
 
@@ -14,9 +16,7 @@ chai.use(spies)
 const expect = chai.expect
 
 
-const SERVICE_SLUG = 'test-service',
-    MODULE_NAME = 'testModule'
-
+const SERVICE_SLUG = 'test-service'
 
 class MockConfigProvider implements IConfigurationProvider {
 
@@ -113,21 +113,21 @@ class CustomAddOn extends MediateRpcHandlerAddOnBase {
 
     public readonly name: string = 'CustomAddOn'
 
-    protected controllerIdentifier: string | symbol
+    // protected controllerIdentifier: string | symbol
 
     constructor(
         @inject(ConT.CONFIG_PROVIDER) configProvider: IConfigurationProvider,
         @inject(ComT.MEDIATE_RPC_HANDLER) rpcHandler: IMediateRpcHandler
     ) {
         super(configProvider, rpcHandler)
-        this.controllerIdentifier = 'CustomController'
+        // this.controllerIdentifier = 'CustomController'
     }
 
     /**
      * @see IServiceAddOn.init
      */
     public init(): Promise<void> {
-        return super.init(MODULE_NAME)
+        return super.init()
     }
 
     /**
@@ -147,8 +147,8 @@ class CustomAddOn extends MediateRpcHandlerAddOnBase {
     /**
      * @override
      */
-    protected handleRequests(): void {
-        super.handleRequests()
+    protected handleRequests(): Promise<void> {
+        return Promise.resolve()
         // this._rpcHandler.handle('add', '');
     }
 }

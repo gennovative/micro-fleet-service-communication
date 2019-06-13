@@ -13,8 +13,6 @@ export abstract class MediateRpcHandlerAddOnBase implements IServiceAddOn {
 
     public abstract name: string
 
-    protected abstract controllerIdentifier: string | symbol
-
     constructor(
         @unmanaged() protected _configProvider: IConfigurationProvider,
         @unmanaged() protected _rpcHandler: IMediateRpcHandler
@@ -27,12 +25,11 @@ export abstract class MediateRpcHandlerAddOnBase implements IServiceAddOn {
     /**
      * @see IServiceAddOn.init
      */
-    public init(moduleName: string = null): Promise<void> {
-        // this._rpcHandler.module = moduleName;
+    public async init(): Promise<void> {
         this._rpcHandler.name = this._configProvider.get(S.SERVICE_SLUG).value as string
-        this._rpcHandler.init()
-        this.handleRequests()
-        return this._rpcHandler.start()
+        await this._rpcHandler.init()
+        await this.handleRequests()
+        await this._rpcHandler.start()
     }
 
     /**
@@ -53,7 +50,5 @@ export abstract class MediateRpcHandlerAddOnBase implements IServiceAddOn {
     }
 
 
-    protected handleRequests(): void {
-        // this._rpcHandler.handleCRUD(this.controllerIdentifier);
-    }
+    protected abstract handleRequests(): Promise<any>
 }

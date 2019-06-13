@@ -3,11 +3,11 @@
 import { IConfigurationProvider, inject, injectable,
     IDependencyContainer, Guard, Types as cT } from '@micro-fleet/common'
 
-import { IDirectRpcHandler } from './DirectRpcHandler'
-import { DirectRpcHandlerAddOnBase } from './DirectRpcHandlerAddOnBase'
 import { ControllerCreationStrategy } from '../constants/controller'
 import { Types as T } from '../Types'
 import { MetaData } from '../constants/MetaData'
+import { MediateRpcHandlerAddOnBase } from './MediateRpcHandlerAddOnBase'
+import { IMediateRpcHandler } from './MediateRpcHandler'
 import { ControllerHunter } from '../ControllerHunter'
 
 
@@ -15,11 +15,11 @@ import { ControllerHunter } from '../ControllerHunter'
  * Automatically registers classes decorated with `@directController()`
  */
 @injectable()
-export class DefaultDirectRpcHandlerAddOn
-    extends DirectRpcHandlerAddOnBase {
+export class DefaultMediateRpcHandlerAddOn
+    extends MediateRpcHandlerAddOnBase {
 
-    public name: string = 'DefaultDirectRpcHandlerAddOn'
 
+    public name: string = 'DefaultMediateRpcHandlerAddOn'
 
     private _controllerHunter: ControllerHunter
 
@@ -27,7 +27,7 @@ export class DefaultDirectRpcHandlerAddOn
     constructor(
         @inject(cT.CONFIG_PROVIDER) configProvider: IConfigurationProvider,
         @inject(cT.DEPENDENCY_CONTAINER) protected _depContainer: IDependencyContainer,
-        @inject(T.DIRECT_RPC_HANDLER) rpcHandler: IDirectRpcHandler
+        @inject(T.MEDIATE_RPC_HANDLER) rpcHandler: IMediateRpcHandler,
     ) {
         super(configProvider, rpcHandler)
         Guard.assertArgDefined('_depContainer', _depContainer)
@@ -35,7 +35,7 @@ export class DefaultDirectRpcHandlerAddOn
         this._controllerHunter = new ControllerHunter(
             _depContainer,
             rpcHandler,
-            MetaData.CONTROLLER_DIRECT,
+            MetaData.CONTROLLER_MEDIATE,
             ControllerCreationStrategy.SINGLETON
         )
     }
@@ -68,8 +68,7 @@ export class DefaultDirectRpcHandlerAddOn
      * @see IServiceAddOn.deadLetter
      */
     public deadLetter(): Promise<void> {
-        this._rpcHandler.pause()
-        return Promise.resolve()
+        return this._rpcHandler.pause()
     }
 
     /**
@@ -86,4 +85,5 @@ export class DefaultDirectRpcHandlerAddOn
     public onError(handler: (err: any) => void): void {
         this._rpcHandler.onError(handler)
     }
+
 }

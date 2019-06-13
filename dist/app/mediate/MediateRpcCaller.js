@@ -63,7 +63,7 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
                         resolve(response);
                     }
                     else {
-                        reject(this.rebuildError(response.payload));
+                        reject(this.rebuildError(response));
                     }
                 };
                 // In case this request never has response.
