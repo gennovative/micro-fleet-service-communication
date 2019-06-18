@@ -53,8 +53,8 @@ class MockConfigProvider implements IConfigurationProvider {
 
     public get(key: string): Maybe<number | boolean | string> {
         switch (key) {
-            case SvcS.SERVICE_SLUG: return new Maybe(SERVICE_SLUG)
-            default: return new Maybe
+            case SvcS.SERVICE_SLUG: return Maybe.Just(SERVICE_SLUG)
+            default: return Maybe.Nothing()
         }
     }
 

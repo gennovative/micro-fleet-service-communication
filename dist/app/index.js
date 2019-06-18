@@ -3,8 +3,9 @@ function __export(m) {
     for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
 }
 Object.defineProperty(exports, "__esModule", { value: true });
+const decoratorObj = require("./decorators/index");
+exports.decorators = decoratorObj.decorators;
 __export(require("./RpcCommon"));
-__export(require("./decorators"));
 __export(require("./direct/DefaultDirectRpcHandlerAddOn"));
 __export(require("./direct/DirectRpcCaller"));
 __export(require("./direct/DirectRpcHandler"));

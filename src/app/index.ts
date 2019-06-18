@@ -1,6 +1,8 @@
 
+import decoratorObj = require('./decorators/index')
+export const decorators = decoratorObj.decorators
+
 export * from './RpcCommon'
-export * from './decorators'
 export * from './direct/DefaultDirectRpcHandlerAddOn'
 export * from './direct/DirectRpcCaller'
 export * from './direct/DirectRpcHandler'

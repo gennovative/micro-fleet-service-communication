@@ -20,7 +20,7 @@ class MockConfigAddOn implements IConfigurationProvider {
     }
 
     public get(key: string): Maybe<number | boolean | string> {
-        return new Maybe('')
+        return Maybe.Just('')
     }
 
     public deadLetter(): Promise<void> {

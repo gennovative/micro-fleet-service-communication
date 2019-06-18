@@ -845,8 +845,9 @@ declare module '@micro-fleet/service-communication/dist/app/mediate/MediateRpcCa
 
 }
 declare module '@micro-fleet/service-communication' {
+	import decoratorObj = require('@micro-fleet/service-communication/dist/app/decorators/index');
+	export const decorators: decoratorObj.Decorators;
 	export * from '@micro-fleet/service-communication/dist/app/RpcCommon';
-	export * from '@micro-fleet/service-communication/dist/app/decorators';
 	export * from '@micro-fleet/service-communication/dist/app/direct/DefaultDirectRpcHandlerAddOn';
 	export * from '@micro-fleet/service-communication/dist/app/direct/DirectRpcCaller';
 	export * from '@micro-fleet/service-communication/dist/app/direct/DirectRpcHandler';

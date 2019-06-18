@@ -61,7 +61,7 @@ class ControllerHunter {
                     continue;
                 }
                 const actionFunc = this._extractActionFromPrototype(proto, actionName);
-                if (!actionFunc.hasValue) {
+                if (actionFunc.isNothing) {
                     continue;
                 }
                 allFunctions.set(actionName, actionFunc.value);
@@ -81,7 +81,7 @@ class ControllerHunter {
     }
     _extractActionFromPrototype(prototype, name) {
         if (!prototype || !name) {
-            return new common_1.Maybe;
+            return common_1.Maybe.Nothing();
         }
         const isGetSetter = (proto, funcName) => {
             const desc = Object.getOwnPropertyDescriptor(proto, funcName);
@@ -90,7 +90,7 @@ class ControllerHunter {
         const func = prototype[name];
         const isPureFunction = (name !== 'constructor') && (typeof func === 'function') && !isGetSetter(prototype, name);
         const isDecorated = Reflect.hasMetadata(MetaData_1.MetaData.ACTION, prototype.constructor, name);
-        return isPureFunction && isDecorated ? new common_1.Maybe(func) : new common_1.Maybe;
+        return isPureFunction && isDecorated ? common_1.Maybe.Just(func) : common_1.Maybe.Nothing();
     }
     _proxyActionFunc(actionFunc, CtrlClass) {
         // Returns a proxy function that resolves the actual action function in EVERY incomming request.

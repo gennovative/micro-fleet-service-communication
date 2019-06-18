@@ -90,7 +90,7 @@ export class ControllerHunter {
                 if (allFunctions.has(actionName)) { continue }
 
                 const actionFunc = this._extractActionFromPrototype(proto, actionName)
-                if (!actionFunc.hasValue) { continue }
+                if (actionFunc.isNothing) { continue }
 
                 allFunctions.set(actionName, actionFunc.value)
             }
@@ -111,7 +111,7 @@ export class ControllerHunter {
     }
 
     protected _extractActionFromPrototype(prototype: any, name: string): Maybe<RpcHandlerFunction> {
-        if (!prototype || !name) { return new Maybe }
+        if (!prototype || !name) { return Maybe.Nothing() }
 
         const isGetSetter = (proto: any, funcName: string) => {
             const desc = Object.getOwnPropertyDescriptor(proto, funcName)
@@ -120,7 +120,7 @@ export class ControllerHunter {
         const func = prototype[name]
         const isPureFunction = (name !== 'constructor') && (typeof func === 'function') && !isGetSetter(prototype, name)
         const isDecorated = Reflect.hasMetadata(MetaData.ACTION, prototype.constructor, name)
-        return isPureFunction && isDecorated ? new Maybe(func) : new Maybe
+        return isPureFunction && isDecorated ? Maybe.Just(func) : Maybe.Nothing()
     }
 
 

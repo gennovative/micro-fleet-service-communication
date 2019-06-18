@@ -39,9 +39,9 @@ class MockConfigProvider implements IConfigurationProvider {
 
     public get(key: string): Maybe<number | boolean | string> {
         switch (key) {
-            case RpcS.RPC_HANDLER_PORT: return new Maybe(HANDLER_PORT)
-            case SvcS.SERVICE_SLUG: return new Maybe(SERVICE_SLUG)
-            default: return new Maybe
+            case RpcS.RPC_HANDLER_PORT: return Maybe.Just(HANDLER_PORT)
+            case SvcS.SERVICE_SLUG: return Maybe.Just(SERVICE_SLUG)
+            default: return Maybe.Nothing()
         }
     }
 
