@@ -5,14 +5,16 @@ if (!Reflect || typeof Reflect['hasOwnMetadata'] !== 'function') {
     require('reflect-metadata');
 }
 const controller_1 = require("./controller");
-const model_1 = require("./model");
+// import { model, ModelDecorator } from './model'
+const action_1 = require("./action");
 const filter_1 = require("./filter");
-const act = require("./action");
+const resolveFn_1 = require("./resolveFn");
 exports.decorators = {
-    action: act.action,
+    action: action_1.action,
     directController: controller_1.directController,
     mediateController: controller_1.mediateController,
     filter: filter_1.filter,
-    model: model_1.model,
+    // model,
+    resolveFn: resolveFn_1.resolveFn,
 };
 //# sourceMappingURL=index.js.map

@@ -62,8 +62,22 @@ let HttpRpcCaller = class HttpRpcCaller extends rpc.RpcCallerBase {
             .then((res) => {
             if (!res.isSuccess) {
                 res.payload = this._rebuildError(res.payload);
+                if (res.payload instanceof common_1.InternalErrorException) {
+                    return Promise.reject(res.payload);
+                }
             }
             return res;
+        })
+            .catch((err) => {
+            let ex;
+            if (err.statusCode === 500) {
+                ex = new common_1.InternalErrorException(err.message);
+            }
+            else {
+                ex = new common_1.MinorException(err.message);
+                ex.details = err;
+            }
+            return Promise.reject(ex);
         });
     }
 };

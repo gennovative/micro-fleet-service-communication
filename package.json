@@ -1,6 +1,6 @@
 {
     "name": "@micro-fleet/service-communication",
-    "version": "0.3.0",
+    "version": "0.3.1-rc1",
     "description": "Provides methods for microservices to communicate with each other.",
     "scripts": {
         "build": "npm run compile && npm run test",
@@ -39,6 +39,7 @@
         "@types/shortid": "0.0.29",
         "chai": "~4.1",
         "chai-spies": "git://github.com/chaijs/chai-spies.git#b11aeebf",
+        "inversify": "~4.11",
         "mocha": "~5.2",
         "nyc": "~14.1",
         "rimraf": "~2.6",

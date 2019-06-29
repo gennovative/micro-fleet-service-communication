@@ -5,7 +5,9 @@ import { IDependencyContainer, Guard, CriticalException,
 
 import { ControllerCreationStrategy, ControllerExports } from './constants/controller'
 import { MetaData } from './constants/MetaData'
-import { IRpcHandler, RpcHandlerFunction } from './RpcCommon'
+import { ParamDecorDescriptor } from './decorators/param-decor-base'
+import { RESOLVE_INJECTED } from './decorators/resolveFn'
+import { IRpcHandler, RpcHandlerFunction, RpcHandlerParams } from './RpcCommon'
 
 
 export class ControllerHunter {
@@ -132,12 +134,45 @@ export class ControllerHunter {
             actionFunc.name,
             CtrlClass.name,
             (ctrlInstance, actionName) => {
-                // const thisHunter = this
-                return async function(...args: any[]) {
-                    return await ctrlInstance[actionName](...args)
+                const thisHunter = this
+
+                return async function(params: RpcHandlerParams) {
+                    const args = await thisHunter._resolveParamValues(CtrlClass, actionName, params)
+                    const actionResult = await ctrlInstance[actionName].apply(ctrlInstance, args)
+                    thisHunter._autoResolve(actionResult, params.resolve)
                 }
             }
         ) as RpcHandlerFunction
+    }
+
+    protected async _resolveParamValues(CtrlClass: Newable, actionName: string, params: RpcHandlerParams): Promise<any[]> {
+        const paramDecors: ParamDecorDescriptor = this._getMetadata(MetaData.PARAM_DECOR, CtrlClass, actionName)
+        const args: any = []
+        if (paramDecors) {
+            for (let i = 0; i < paramDecors.length; ++i) {
+                if (typeof paramDecors[i] === 'function') {
+                    const result: any = paramDecors[i].call(this, params)
+                    args[i] = await result
+                } else {
+                    args[i] = undefined
+                }
+            }
+        }
+        return args
+    }
+
+    protected _autoResolve(actionResult: any, resolve: PromiseResolveFn): void {
+        if (!resolve[RESOLVE_INJECTED]) {
+            resolve(actionResult)
+        }
+        // Else, skip if resolve function is injected with @resolveFn
+    }
+
+    protected _autoReject(actionResult: any, reject: PromiseRejectFn): void {
+        if (!reject['REJECT_INJECTED']) {
+            reject(actionResult)
+        }
+        // Else, skip if reject function is injected with @rejectFn
     }
 
     //#endregion Action

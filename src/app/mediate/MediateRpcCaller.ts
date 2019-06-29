@@ -1,5 +1,5 @@
 import * as shortid from 'shortid'
-import { injectable, inject, Guard, MinorException } from '@micro-fleet/common'
+import { injectable, inject, Guard, MinorException, InternalErrorException } from '@micro-fleet/common'
 
 import { Types as T } from '../Types'
 import { IMessageBrokerConnector, BrokerMessage } from '../MessageBrokerConnector'
@@ -69,6 +69,9 @@ export class MessageBrokerRpcCaller
                         const response: rpc.RpcResponse = msg.data
                         if (!response.isSuccess) {
                             response.payload = this._rebuildError(response.payload)
+                            if (response.payload instanceof InternalErrorException) {
+                                return reject(response)
+                            }
                         }
                         resolve(response)
                     }

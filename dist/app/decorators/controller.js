@@ -2,6 +2,7 @@
 /// <reference types="reflect-metadata" />
 Object.defineProperty(exports, "__esModule", { value: true });
 const common_1 = require("@micro-fleet/common");
+const inversify_1 = require("inversify");
 const MetaData_1 = require("../constants/MetaData");
 /**
  * Used to decorate controller class for direct RPC handler.
@@ -24,15 +25,15 @@ function mediateController(moduleName) {
 }
 exports.mediateController = mediateController;
 function createProcessor(metadata, moduleName) {
-    return function (targetClass) {
-        if (Reflect.hasOwnMetadata(metadata, targetClass)) {
+    return function (TargetClass) {
+        if (Reflect.hasOwnMetadata(metadata, TargetClass)) {
             throw new common_1.CriticalException('Duplicate controller decorator');
         }
-        common_1.decorate(common_1.injectable(), targetClass);
+        notInjectable(TargetClass) && common_1.decorate(common_1.injectable(), TargetClass);
         if (!moduleName) {
             // Extract path from controller name.
             // Only if controller name is in format {xxx}Controller.
-            moduleName = targetClass.name.match(/(.+)Controller$/)[1];
+            moduleName = TargetClass.name.match(/(.+)Controller$/)[1];
             moduleName = moduleName[0].toLowerCase() + moduleName.substring(1); // to camel case
             common_1.Guard.assertIsDefined(moduleName, 'Cannot automatically extract path, make sure controller name has "Controller" suffix!');
         }
@@ -46,8 +47,11 @@ function createProcessor(metadata, moduleName) {
                 moduleName = moduleName.substr(0, moduleName.length - 1);
             }
         }
-        Reflect.defineMetadata(metadata, [moduleName], targetClass);
-        return targetClass;
+        Reflect.defineMetadata(metadata, [moduleName], TargetClass);
+        return TargetClass;
     };
+}
+function notInjectable(TargetClass) {
+    return !Reflect.hasOwnMetadata(inversify_1.METADATA_KEY.PARAM_TYPES, TargetClass);
 }
 //# sourceMappingURL=controller.js.map

@@ -4,6 +4,7 @@ const path = require("path");
 const common_1 = require("@micro-fleet/common");
 const controller_1 = require("./constants/controller");
 const MetaData_1 = require("./constants/MetaData");
+const resolveFn_1 = require("./decorators/resolveFn");
 class ControllerHunter {
     constructor(_depContainer, _rpcHandler, _controllerMeta, creationStrategy) {
         this._depContainer = _depContainer;
@@ -97,11 +98,41 @@ class ControllerHunter {
         // If Controller Creation Strategy is SINGLETON, then the same controller instance will handle all requests.
         // Otherwise, a new controller instance will be created for each request.
         return common_1.HandlerContainer.instance.register(actionFunc.name, CtrlClass.name, (ctrlInstance, actionName) => {
-            // const thisHunter = this
-            return async function (...args) {
-                return await ctrlInstance[actionName](...args);
+            const thisHunter = this;
+            return async function (params) {
+                const args = await thisHunter._resolveParamValues(CtrlClass, actionName, params);
+                const actionResult = await ctrlInstance[actionName].apply(ctrlInstance, args);
+                thisHunter._autoResolve(actionResult, params.resolve);
             };
         });
+    }
+    async _resolveParamValues(CtrlClass, actionName, params) {
+        const paramDecors = this._getMetadata(MetaData_1.MetaData.PARAM_DECOR, CtrlClass, actionName);
+        const args = [];
+        if (paramDecors) {
+            for (let i = 0; i < paramDecors.length; ++i) {
+                if (typeof paramDecors[i] === 'function') {
+                    const result = paramDecors[i].call(this, params);
+                    args[i] = await result;
+                }
+                else {
+                    args[i] = undefined;
+                }
+            }
+        }
+        return args;
+    }
+    _autoResolve(actionResult, resolve) {
+        if (!resolve[resolveFn_1.RESOLVE_INJECTED]) {
+            resolve(actionResult);
+        }
+        // Else, skip if resolve function is injected with @resolveFn
+    }
+    _autoReject(actionResult, reject) {
+        if (!reject['REJECT_INJECTED']) {
+            reject(actionResult);
+        }
+        // Else, skip if reject function is injected with @rejectFn
     }
     //#endregion Action
     _getMetadata(metaKey, classOrProto, propName) {

@@ -61,6 +61,9 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
                     const response = msg.data;
                     if (!response.isSuccess) {
                         response.payload = this._rebuildError(response.payload);
+                        if (response.payload instanceof common_1.InternalErrorException) {
+                            return reject(response);
+                        }
                     }
                     resolve(response);
                 };

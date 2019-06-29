@@ -2,9 +2,10 @@
 const debug: debug.IDebugger = require('debug')('mcft:svccom:HttpRpcCaller')
 
 import * as request from 'request-promise'
-import { injectable, Guard } from '@micro-fleet/common'
+import { injectable, Guard, InternalErrorException, MinorException } from '@micro-fleet/common'
 
 import * as rpc from '../RpcCommon'
+import { StatusCodeError } from 'request-promise/errors'
 
 
 export interface IDirectRpcCaller extends rpc.IRpcCaller {
@@ -80,8 +81,22 @@ export class HttpRpcCaller
             .then((res: rpc.RpcResponse) => {
                 if (!res.isSuccess) {
                     res.payload = this._rebuildError(res.payload)
+                    if (res.payload instanceof InternalErrorException) {
+                        return Promise.reject(res.payload) as Promise<any>
+                    }
                 }
                 return res
+            })
+            .catch((err: StatusCodeError) => {
+                let ex
+                if (err.statusCode === 500) {
+                    ex = new InternalErrorException(err.message)
+                }
+                else {
+                    ex = new MinorException(err.message)
+                    ex.details = err
+                }
+                return Promise.reject(ex)
             })
     }
 }

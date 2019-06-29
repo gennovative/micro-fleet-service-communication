@@ -4,9 +4,10 @@ if (!Reflect || typeof Reflect['hasOwnMetadata'] !== 'function') {
 }
 
 import { directController, mediateController, ControllerDecorator } from './controller'
-import { model, ModelDecorator } from './model'
+// import { model, ModelDecorator } from './model'
+import { action, ActionDecorator} from './action'
 import { filter, FilterDecorator } from './filter'
-import * as act from './action'
+import { resolveFn, ResolveFnDecorator } from './resolveFn'
 
 
 export type Decorators = {
@@ -17,7 +18,7 @@ export type Decorators = {
      * @param {string} path Segment of URL pointing to this action.
      *         If not specified, it is default to be the action's function name.
      */
-    action: act.ActionDecorator,
+    action: ActionDecorator,
 
     /**
      * Used to decorate controller class for direct RPC handler.
@@ -44,13 +45,21 @@ export type Decorators = {
      */
     filter: FilterDecorator,
 
-    model: ModelDecorator,
+    // model: ModelDecorator,
+
+    /**
+     * For action parameter decoration.
+     * Resolves the parameter's value with the Promise `resolve` function that
+     *      responds and ends the request.
+     */
+    resolveFn: ResolveFnDecorator,
 }
 
 export const decorators: Decorators = {
-    action: act.action,
+    action: action,
     directController,
     mediateController,
     filter,
-    model,
+    // model,
+    resolveFn,
 }

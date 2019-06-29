@@ -3,6 +3,7 @@ import http from 'http'
 import { expect } from 'chai'
 import * as express from 'express'
 import * as bodyParser from 'body-parser'
+import { MinorException } from '@micro-fleet/common'
 
 import { HttpRpcCaller, IDirectRpcCaller, RpcRequest, RpcResponse } from '../app'
 
@@ -105,9 +106,9 @@ describe('HttpRpcCaller', () => {
                 // Assert
                 expect(res).to.not.exist
             })
-            .catch((err: Error) => {
+            .catch((err: MinorException) => {
                 expect(err).to.exist
-                expect(err).to.be.instanceOf(Error)
+                expect(err).to.be.instanceOf(MinorException)
                 expect(err.message).to.include('ECONNREFUSED')
                 done()
             })

@@ -3,6 +3,7 @@
     Note: Will be marked as v1.0.0 when test coverage >= 90%
 
 ## 0.3.1
+- Added parameters decorators for action methods.
 - Upgraded to new version of `@micro-fleet/common` with breaking change.
 
 ## 0.3.0

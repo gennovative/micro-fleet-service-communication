@@ -72,7 +72,7 @@ let depContainer: DependencyContainer,
     caller: IMediateRpcCaller,
     addon: DefaultMediateRpcHandlerAddOn
 
-describe('DefaultMediateRpcHandlerAddOn', function() {
+describe.skip('DefaultMediateRpcHandlerAddOn', function() {
     this.timeout(20000)
     // For debugging
     // this.timeout(60000)

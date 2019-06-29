@@ -2,6 +2,8 @@
 
 import { CriticalException, Guard, decorate, injectable } from '@micro-fleet/common'
 
+import { METADATA_KEY } from 'inversify'
+
 import { MetaData } from '../constants/MetaData'
 
 
@@ -30,16 +32,17 @@ export function mediateController(moduleName?: string): Function {
 
 
 function createProcessor(metadata: string, moduleName?: string) {
-    return function (targetClass: Function): Function {
-        if (Reflect.hasOwnMetadata(metadata, targetClass)) {
+    return function (TargetClass: Function): Function {
+        if (Reflect.hasOwnMetadata(metadata, TargetClass)) {
             throw new CriticalException('Duplicate controller decorator')
         }
-        decorate(injectable(), targetClass)
+
+        notInjectable(TargetClass) && decorate(injectable(), TargetClass)
 
         if (!moduleName) {
             // Extract path from controller name.
             // Only if controller name is in format {xxx}Controller.
-            moduleName = targetClass.name.match(/(.+)Controller$/)[1]
+            moduleName = TargetClass.name.match(/(.+)Controller$/)[1]
             moduleName = moduleName[0].toLowerCase() + moduleName.substring(1) // to camel case
             Guard.assertIsDefined(moduleName, 'Cannot automatically extract path, make sure controller name has "Controller" suffix!')
         } else if (moduleName.length > 1) {
@@ -53,8 +56,13 @@ function createProcessor(metadata: string, moduleName?: string) {
             }
         }
 
-        Reflect.defineMetadata(metadata, [moduleName], targetClass)
+        Reflect.defineMetadata(metadata, [moduleName], TargetClass)
 
-        return targetClass
+        return TargetClass
     }
+}
+
+function notInjectable(TargetClass: Function): boolean {
+    return !Reflect.hasOwnMetadata(METADATA_KEY.PARAM_TYPES, TargetClass)
+
 }
