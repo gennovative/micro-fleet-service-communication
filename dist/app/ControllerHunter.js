@@ -96,7 +96,12 @@ class ControllerHunter {
         // Returns a proxy function that resolves the actual action function in EVERY incomming request.
         // If Controller Creation Strategy is SINGLETON, then the same controller instance will handle all requests.
         // Otherwise, a new controller instance will be created for each request.
-        return common_1.HandlerContainer.instance.register(actionFunc.name, CtrlClass.name, (ctrlInstance, actionName) => (...args) => ctrlInstance[actionName](...args));
+        return common_1.HandlerContainer.instance.register(actionFunc.name, CtrlClass.name, (ctrlInstance, actionName) => {
+            // const thisHunter = this
+            return async function (...args) {
+                return await ctrlInstance[actionName](...args);
+            };
+        });
     }
     //#endregion Action
     _getMetadata(metaKey, classOrProto, propName) {

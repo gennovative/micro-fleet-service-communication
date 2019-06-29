@@ -17,6 +17,7 @@ const descriptor = {
     configurable: false,
     value: null,
 };
+/* istanbul ignore else */
 if (!global.gennova) {
     descriptor.value = {};
     Object.defineProperty(global, 'gennova', descriptor);
@@ -73,25 +74,13 @@ let RpcCallerBase = class RpcCallerBase {
     onError(handler) {
         this._emitter.on('error', handler);
     }
-    emitError(err) {
+    _emitError(err) {
         this._emitter.emit('error', err);
     }
-    rebuildError(error) {
-        let exception;
-        if (error['payload']) {
-            const payload = error.payload;
-            if (payload.type) {
-                // Expect response.payload.type = MinorException | ValidationError...
-                exception = new global.gennova[payload.type](payload.message);
-                exception['details'] = payload['details'];
-            }
-        }
-        else if (error instanceof Error) {
-            return error;
-        }
-        else {
-            exception = new common_1.MinorException(error + '');
-        }
+    _rebuildError(error) {
+        // Expect response.payload.type = MinorException | ValidationError...
+        const exception = new global.gennova[error.type](error.message);
+        exception.details = error.details;
         return exception;
     }
 };
@@ -111,10 +100,10 @@ let RpcHandlerBase = class RpcHandlerBase {
     onError(handler) {
         this._emitter.on('error', handler);
     }
-    emitError(err) {
+    _emitError(err) {
         this._emitter.emit('error', err);
     }
-    createResponse(isSuccess, payload, replyTo) {
+    _createResponse(isSuccess, payload, replyTo) {
         return {
             isSuccess,
             from: this.name,
@@ -122,29 +111,25 @@ let RpcHandlerBase = class RpcHandlerBase {
             payload,
         };
     }
-    createError({ isIntended, reason }) {
+    _createError({ isIntended, reason }) {
         // TODO: Should log this unexpected error.
         const rpcError = {
             type: 'InternalErrorException',
         };
         if (!isIntended) {
-            // If error type is unidentified, we should not send it back to caller.
-            this.emitError(reason);
+            // If this error is unintended, we should not send it back to caller.
             return rpcError;
         }
         if (reason instanceof common_1.Exception) {
-            // If this is a minor error, or the action method sends this error
-            // back to caller on purpose.
+            // If this error is intended, send this error back to caller to blame it.
             rpcError.type = reason.name;
             rpcError.message = reason.message;
-            rpcError.details = reason['details']; // In case of ValidationError
+            rpcError.details = reason.details; // In case of ValidationError
         }
         else {
-            // If error is an uncaught Exception/Error object, that means the action method
-            // has a problem. We should not send it back to caller.
+            // If this error is intended but has no type, we cast it to MinorException.
             rpcError.type = 'MinorException';
-            rpcError.message = reason.message;
-            rpcError.details = reason;
+            rpcError.message = (typeof reason === 'string') ? reason : JSON.stringify(reason);
         }
         return rpcError;
     }

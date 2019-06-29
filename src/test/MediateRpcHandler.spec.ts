@@ -258,7 +258,8 @@ describe('MediateRpcHandler', function () {
             const createAction = 'create'
             const correlationId = shortid.generate()
             const spy = chai.spy()
-            const REASON = {
+            const REASON = new MinorException('IntendedException')
+            REASON.details = {
                 why: 'An error string',
             }
             const createHandler: RpcHandlerFunction = function ({ reject }) {
@@ -287,7 +288,7 @@ describe('MediateRpcHandler', function () {
                     const rpcError: RpcError = response.payload
                     expect(rpcError).to.exist
                     expect(rpcError.type).to.equal('MinorException')
-                    expect(rpcError.details.why).to.equal(REASON.why)
+                    expect(rpcError.details).to.deep.equal(REASON.details)
                     expect(spy).not.to.be.called
                     done()
                 }))
@@ -354,7 +355,7 @@ describe('MediateRpcHandler', function () {
                 })
         })
 
-        it('Should respond with InternalErrorException when the handler returns rejected Promise', (done) => {
+        it('Should respond with error type="InternalErrorException" when the handler returns rejected Promise', (done) => {
             // Arrange
             const moduleName = 'accounts'
             const createAction = 'create'
@@ -402,7 +403,7 @@ describe('MediateRpcHandler', function () {
                 })
         })
 
-        it('Should respond with InternalErrorException when the handler throws Exception', (done) => {
+        it('Should respond with error type="InternalErrorException" when the handler throws Exception', (done) => {
             // Arrange
             const moduleName = 'accounts'
             const createAction = 'create'
@@ -450,7 +451,7 @@ describe('MediateRpcHandler', function () {
                 })
         })
 
-        it('Should respond with InternalErrorException when the handler throws Error.', (done) => {
+        it('Should respond with error type="InternalErrorException" when the handler throws Error.', (done) => {
             // Arrange
             const moduleName = 'accounts'
             const deleteAction = 'delete'

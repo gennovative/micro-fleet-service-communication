@@ -131,7 +131,12 @@ export class ControllerHunter {
         return HandlerContainer.instance.register(
             actionFunc.name,
             CtrlClass.name,
-            (ctrlInstance, actionName) => (...args: any[]) => ctrlInstance[actionName](...args)
+            (ctrlInstance, actionName) => {
+                // const thisHunter = this
+                return async function(...args: any[]) {
+                    return await ctrlInstance[actionName](...args)
+                }
+            }
         ) as RpcHandlerFunction
     }
 

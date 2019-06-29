@@ -77,6 +77,11 @@ export class HttpRpcCaller
             }
 
         return this._requestMaker(options)
-            .catch(rawResponse => Promise.reject(this.rebuildError(rawResponse.error)))
+            .then((res: rpc.RpcResponse) => {
+                if (!res.isSuccess) {
+                    res.payload = this._rebuildError(res.payload)
+                }
+                return res
+            })
     }
 }

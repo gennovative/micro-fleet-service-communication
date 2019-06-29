@@ -28,7 +28,7 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
      */
     init() {
         this._handlers = new Map();
-        this._msgBrokerConn.onError(err => this.emitError(err));
+        this._msgBrokerConn.onError(err => this._emitError(err));
         return Promise.resolve();
     }
     /**
@@ -87,7 +87,7 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
         const request = msg.data;
         const correlationId = msg.properties.correlationId;
         const replyTo = msg.properties.replyTo;
-        (new Promise((resolve, reject) => {
+        (new Promise(async (resolve, reject) => {
             const wrappedReject = (isIntended) => (reason) => reject({
                 isIntended,
                 reason,
@@ -95,16 +95,13 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
             try {
                 const actionFn = this._handlers.get(key);
                 // Execute controller's action
-                const output = actionFn({
+                await actionFn({
                     payload: request.payload,
                     resolve,
                     reject: wrappedReject(true),
                     rpcRequest: request,
                     rawMessage: msg,
                 });
-                if (output instanceof Promise) {
-                    output.catch(wrappedReject(false)); // Catch async exceptions.
-                }
             }
             catch (err) { // Catch normal exceptions.
                 wrappedReject(false)(err);
@@ -112,15 +109,23 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
         }))
             .then(result => {
             // Sends response to reply topic
-            return this._msgBrokerConn.publish(replyTo, this.createResponse(true, result, request.from), { correlationId });
+            return this._msgBrokerConn.publish(replyTo, this._createResponse(true, result, request.from), { correlationId });
         })
-            .catch(error => {
-            const errObj = this.createError(error);
-            // nack(); // Disable this, because we use auto-ack.
-            return this._msgBrokerConn.publish(replyTo, this.createResponse(false, errObj, request.from), { correlationId });
+            .catch((error) => {
+            // If error from `publish()`
+            if (error.isIntended == null) {
+                this._emitError(error);
+                return Promise.resolve();
+            }
+            else if (error.isIntended === false) {
+                this._emitError(error.reason);
+            }
+            // If HandlerRejection error, let caller know
+            const errObj = this._createError(error);
+            return this._msgBrokerConn.publish(replyTo, this._createResponse(false, errObj, request.from), { correlationId });
         })
-            // Catch error thrown by `createError()`
-            .catch(this.emitError.bind(this));
+            // Catch error thrown by `createError()` or `publish()` in above catch
+            .catch(this._emitError.bind(this));
     }
 };
 MessageBrokerRpcHandler = __decorate([

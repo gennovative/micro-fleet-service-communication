@@ -29,7 +29,7 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
     init(params) {
         const expire = this._msgBrokerConn.messageExpiredIn;
         this._msgBrokerConn.messageExpiredIn = expire > 0 ? expire : 30000; // Make sure we only use temporary unique queue.
-        this._msgBrokerConn.onError(err => this.emitError(err));
+        this._msgBrokerConn.onError(err => this._emitError(err));
     }
     /**
      * @see IRpcCaller.dispose
@@ -59,12 +59,10 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
                     await conn.unsubscribe(replyTo);
                     await conn.stopListen();
                     const response = msg.data;
-                    if (response.isSuccess) {
-                        resolve(response);
+                    if (!response.isSuccess) {
+                        response.payload = this._rebuildError(response.payload);
                     }
-                    else {
-                        reject(this.rebuildError(response));
-                    }
+                    resolve(response);
                 };
                 // In case this request never has response.
                 token = setTimeout(() => {

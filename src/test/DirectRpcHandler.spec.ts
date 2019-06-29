@@ -128,15 +128,15 @@ describe('ExpressDirectRpcHandler', function () {
                         json: true,
                     }
 
-                    requestMaker(options)
-                        .catch(rawResponse => {
-                            console.error(rawResponse.error)
-                            expect(true, 'Request should be successful!').to.be.false
-                        })
+                    return requestMaker(options)
+                })
+                .catch(rawResponse => {
+                    console.dir(rawResponse, { depth: 3 })
+                    expect(false, 'Request should be successful!').to.be.true
                 })
         })
 
-        it('Should respond with expected result', (done) => {
+        it('Should respond with expected result', () => {
             // Arrange
             const moduleName = 'accounts'
             const createAction = 'create'
@@ -152,31 +152,29 @@ describe('ExpressDirectRpcHandler', function () {
             handler.port = port
             handler.handle(moduleName, createAction, createHandler)
 
-            handler.start()
-                .then(() => {
-                    const options = {
-                        method: 'POST',
-                        uri: `http://localhost:${port}/${moduleName}/${createAction}`,
-                        body: {},
-                        json: true,
-                    }
-
-                    requestMaker(options).then((res: RpcResponse) => {
-                        expect(res.payload).to.deep.equal(result)
-                        done()
-                    })
-                    .catch(rawResponse => {
-                        expect(true, 'Request should be successful!').to.be.false
-                    })
+            return handler.start()
+                .then(() => requestMaker({
+                    method: 'POST',
+                    uri: `http://localhost:${port}/${moduleName}/${createAction}`,
+                    body: {},
+                    json: true,
+                }))
+                .then((res: RpcResponse) => {
+                    expect(res.payload).to.deep.equal(result)
+                })
+                .catch(rawResponse => {
+                    console.dir(rawResponse, { depth: 3 })
+                    expect(false, 'Request should be successful!').to.be.true
                 })
         })
 
-        it('Should respond with the custom error object for INTENDED rejection', (done) => {
+        it('Should respond with the custom error object for INTENDED rejection', () => {
             // Arrange
             const moduleName = 'accounts'
             const createAction = 'create'
             const spy = chai.spy()
-            const REASON = {
+            const REASON = new MinorException('IntendedException')
+            REASON.details = {
                 why: 'An error string',
             }
             const createHandler: RpcHandlerFunction = function ({ reject }) {
@@ -193,35 +191,29 @@ describe('ExpressDirectRpcHandler', function () {
                 spy()
             })
 
-            handler.start()
-                .then(() => {
-                    const options = {
-                        method: 'POST',
-                        uri: `http://localhost:${handler.port}/${moduleName}/${createAction}`,
-                        body: {},
-                        json: true,
-                    }
-
-                    requestMaker(options).then((res: RpcResponse) => {
-                        expect(res, 'Request should not be successful!').not.to.exist
-                    })
-                    .catch(httpResponse => {
-                        // Assert: Falsey response is returned
-                        expect(httpResponse.statusCode).to.equal(500)
-                        const rpcResponse: RpcResponse = httpResponse.error
-                        expect(rpcResponse.isSuccess).to.be.false
-
-                        const rpcError: RpcError = rpcResponse.payload
-                        expect(rpcError).to.exist
-                        expect(rpcError.type).to.equal('MinorException')
-                        expect(rpcError.details.why).to.equal(REASON.why)
-                        expect(spy).not.to.be.called
-                        done()
-                    })
+            return handler.start()
+                .then(() => requestMaker({
+                    method: 'POST',
+                    uri: `http://localhost:${handler.port}/${moduleName}/${createAction}`,
+                    body: {},
+                    json: true,
+                }))
+                .then((res: RpcResponse) => {
+                    // Assert: Response still has status 200
+                    expect(res.isSuccess).to.be.false
+                    const rpcError: RpcError = res.payload
+                    expect(rpcError).to.exist
+                    expect(rpcError.type).to.equal('MinorException')
+                    expect(rpcError.details).to.deep.equal(REASON.details)
+                    expect(spy).not.to.be.called
+                })
+                .catch(httpResponse => {
+                    console.dir(httpResponse, { depth: 3 })
+                    expect(true, 'Request should be successful!').to.be.false
                 })
         })
 
-        it('Should respond with the exception instance for INTENDED rejection', (done) => {
+        it('Should respond with the exception instance for INTENDED rejection', () => {
             // Arrange
             const moduleName = 'products'
             const deleteAction = 'delete'
@@ -241,36 +233,30 @@ describe('ExpressDirectRpcHandler', function () {
                 spy()
             })
 
-            handler.start()
-                .then(() => {
-                    const options = {
-                        method: 'POST',
-                        uri: `http://localhost:${handler.port}/${moduleName}/${deleteAction}`,
-                        body: {},
-                        json: true,
-                    }
+            return handler.start()
+                .then(() => requestMaker({
+                    method: 'POST',
+                    uri: `http://localhost:${handler.port}/${moduleName}/${deleteAction}`,
+                    body: {},
+                    json: true,
+                }))
+                .then((res: RpcResponse) => {
+                    // Assert: Response still has status 200
+                    expect(res.isSuccess).to.be.false
 
-                    requestMaker(options).then((res: RpcResponse) => {
-                        // If status 200
-                        expect(res, 'Request should NOT be successful!').not.to.exist
-                    })
-                    .catch(httpResponse => {
-                        // Assert: Falsey response is returned
-                        expect(httpResponse.statusCode).to.equal(500)
-                        const rpcResponse: RpcResponse = httpResponse.error
-                        expect(rpcResponse.isSuccess).to.be.false
-
-                        const rpcError: RpcError = rpcResponse.payload
-                        expect(rpcError).to.exist
-                        expect(rpcError.type).to.equal('MinorException')
-                        expect(rpcError.message).to.equal(errMsg)
-                        expect(spy).not.to.be.called
-                        done()
-                    })
+                    const rpcError: RpcError = res.payload
+                    expect(rpcError).to.exist
+                    expect(rpcError.type).to.equal('MinorException')
+                    expect(rpcError.message).to.equal(errMsg)
+                    expect(spy).not.to.be.called
+                })
+                .catch(httpResponse => {
+                    console.dir(httpResponse, { depth: 3 })
+                    expect(true, 'Request should be successful!').to.be.false
                 })
         })
 
-        it('Should respond with InternalErrorException when the handler returns rejected Promise', (done) => {
+        it('Should respond with status 500 when the handler returns rejected Promise', () => {
             // Arrange
             const moduleName = 'products'
             const deleteAction = 'delete'
@@ -290,35 +276,25 @@ describe('ExpressDirectRpcHandler', function () {
             })
 
             // Assert
-            handler.start()
-                .then(() => {
-                    const options = {
-                        method: 'POST',
-                        uri: `http://localhost:${handler.port}/${moduleName}/${deleteAction}`,
-                        body: {},
-                        json: true,
-                    }
-
-                    requestMaker(options).then((res: RpcResponse) => {
-                        // If status 200
-                        expect(res, 'Request should NOT be successful!').not.to.exist
-                    })
-                    .catch(httpResponse => {
-                        // Assert: Falsey response is returned
-                        expect(httpResponse.statusCode).to.equal(500)
-                        const rpcResponse: RpcResponse = httpResponse.error
-                        expect(rpcResponse.isSuccess).to.be.false
-
-                        const rpcError: RpcError = rpcResponse.payload
-                        expect(rpcError).to.exist
-                        expect(rpcError.type).to.equal('InternalErrorException')
-                        expect(spy).to.be.called.once
-                        done()
-                    })
+            return handler.start()
+                .then(() => requestMaker({
+                    method: 'POST',
+                    uri: `http://localhost:${handler.port}/${moduleName}/${deleteAction}`,
+                    body: {},
+                    json: true,
+                }))
+                .then((res: RpcResponse) => {
+                    // If status 200
+                    expect(res, 'Request should NOT be successful!').not.to.exist
+                })
+                .catch(httpResponse => {
+                    // Assert: Falsey response is returned
+                    expect(httpResponse.statusCode).to.equal(500)
+                    expect(spy).to.be.called.once
                 })
         })
 
-        it('Should respond with InternalErrorException when the handler throws Exception', (done) => {
+        it('Should respond with status 500 when the handler throws Exception', () => {
             // Arrange
             const moduleName = 'products'
             const deleteAction = 'delete'
@@ -337,35 +313,25 @@ describe('ExpressDirectRpcHandler', function () {
                 spy()
             })
 
-            handler.start()
-                .then(() => {
-                    const options = {
-                        method: 'POST',
-                        uri: `http://localhost:${handler.port}/${moduleName}/${deleteAction}`,
-                        body: {},
-                        json: true,
-                    }
-
-                    requestMaker(options).then((res: RpcResponse) => {
-                        // If status 200
-                        expect(res, 'Request should NOT be successful!').not.to.exist
-                    })
-                    .catch(httpResponse => {
-                        // Assert: Falsey response is returned
-                        expect(httpResponse.statusCode).to.equal(500)
-                        const rpcResponse: RpcResponse = httpResponse.error
-                        expect(rpcResponse.isSuccess).to.be.false
-
-                        const rpcError: RpcError = rpcResponse.payload
-                        expect(rpcError).to.exist
-                        expect(rpcError.type).to.equal('InternalErrorException')
-                        expect(spy).to.be.called.once
-                        done()
-                    })
+            return handler.start()
+                .then(() => requestMaker({
+                    method: 'POST',
+                    uri: `http://localhost:${handler.port}/${moduleName}/${deleteAction}`,
+                    body: {},
+                    json: true,
+                }))
+                .then((res: RpcResponse) => {
+                    // If status 200
+                    expect(res, 'Request should NOT be successful!').not.to.exist
+                })
+                .catch(httpResponse => {
+                    // Assert: Falsey response is returned
+                    expect(httpResponse.statusCode).to.equal(500)
+                    expect(spy).to.be.called.once
                 })
         })
 
-        it('Should respond with InternalErrorException when the handler throws Error.', (done) => {
+        it('Should respond with status 500 when the handler throws Error.', () => {
             // Arrange
             const moduleName = 'products'
             const editAction = 'edit'
@@ -384,30 +350,21 @@ describe('ExpressDirectRpcHandler', function () {
                 spy()
             })
 
-            handler.start()
-                .then(() => {
-                    const options = {
-                        method: 'POST',
-                        uri: `http://localhost:${handler.port}/${moduleName}/${editAction}`,
-                        body: {},
-                        json: true,
-                    }
-
-                    requestMaker(options).then((res: RpcResponse) => {
-                        // If status 200
-                        expect(res, 'Request should NOT be successful!').not.to.exist
-                    })
-                    .catch(httpResponse => {
-                        // If status 500 or request error.
-                        expect(httpResponse.statusCode).to.equal(500)
-                        const rpcResponse: RpcResponse = httpResponse.error
-                        expect(rpcResponse.isSuccess).to.be.false
-                        const rpcError: RpcError = rpcResponse.payload
-                        expect(rpcError).to.exist
-                        expect(rpcError.type).to.equal('InternalErrorException')
-                        expect(spy).to.be.called.once
-                        done()
-                    })
+            return handler.start()
+                .then(() => requestMaker({
+                    method: 'POST',
+                    uri: `http://localhost:${handler.port}/${moduleName}/${editAction}`,
+                    body: {},
+                    json: true,
+                }))
+                .then((res: RpcResponse) => {
+                    // If status 200
+                    expect(res, 'Request should NOT be successful!').not.to.exist
+                })
+                .catch(httpResponse => {
+                    // If status 500 or request error.
+                    expect(httpResponse.statusCode).to.equal(500)
+                    expect(spy).to.be.called.once
                 })
         })
 

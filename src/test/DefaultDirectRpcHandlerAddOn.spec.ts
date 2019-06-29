@@ -1,15 +1,15 @@
-import * as chai from 'chai'
-import * as spies from 'chai-spies'
 import * as path from 'path'
 
+import * as chai from 'chai'
+import * as spies from 'chai-spies'
+import { StatusCodeError } from 'request-promise/errors'
+
 import { IConfigurationProvider, constants, Maybe,
-    DependencyContainer, serviceContext, Types as CmT,
-    CriticalException, MinorException,
+    DependencyContainer, serviceContext, Types as CmT, MinorException, CriticalException,
     } from '@micro-fleet/common'
 
 import { IDirectRpcHandler, IDirectRpcCaller, ExpressRpcHandler, HttpRpcCaller,
-    DefaultDirectRpcHandlerAddOn,
-    RpcResponse
+    DefaultDirectRpcHandlerAddOn, RpcResponse, RpcError,
     } from '../app'
 
 import * as dc from './shared/direct-controllers'
@@ -144,7 +144,7 @@ describe('DefaultDirectRpcHandlerAddOn', function() {
 
         })
 
-        it('Should return expected error message', async () => {
+        it('Should respond with expected error message if unsuccessful', async () => {
             // Arrange
             const AUTO_MODULE_NAME = 'directAuto'
             let handlerError
@@ -156,23 +156,28 @@ describe('DefaultDirectRpcHandlerAddOn', function() {
             // Act
             try {
                 const res: RpcResponse = await caller.call(AUTO_MODULE_NAME, dc.ACT_REFUSE_IT)
+                // Assert: Must have status 200 but isSuccess false
+                expect(res).to.exist
+                expect(res.isSuccess).to.be.false
 
-                // Assert: Must not success
-                expect(res).not.to.exist
-            }
-            catch (resError) {
-                // Assert: Must fail with exception
-                expect(resError).to.exist
-                expect(resError).to.be.instanceOf(MinorException)
-                expect(resError['details']).to.equal(dc.FAIL_MESSAGE)
+                const resError: RpcError = res.payload
+                expect(resError).is.instanceOf(MinorException)
+                expect(resError.message).to.equal(dc.FAIL_MESSAGE)
+
                 // Assert: Not handler's fault
                 expect(handlerError).not.to.exist
                 const controller = depContainer.resolve<dc.DirectAutoController>(dc.DirectAutoController.name)
                 expect(controller.spyFn).to.be.called.with(CALLER_NAME, AUTO_MODULE_NAME)
+
+            }
+            catch (resError) {
+                // Assert: Must success
+                console.error(resError)
+                expect(resError).not.to.exist
             }
         })
 
-        it('Should rebuild the response exception', async () => {
+        it('Should rebuild the correct Exception if unsuccessful', async () => {
             // Arrange
             const AUTO_MODULE_NAME = 'directAuto'
             let handlerError
@@ -186,16 +191,53 @@ describe('DefaultDirectRpcHandlerAddOn', function() {
                 const res: RpcResponse = await caller.call(AUTO_MODULE_NAME, dc.ACT_EXCEPT_IT)
 
                 // Assert
-                expect(res).not.to.exist
-            }
-            catch (resError) {
-                expect(resError).to.exist
-                expect(resError).to.be.instanceOf(CriticalException)
+                expect(res).to.exist
+                expect(res.isSuccess).to.be.false
+
+                const resError: RpcError = res.payload
+                expect(resError).is.instanceOf(CriticalException)
                 expect(resError.message).to.equal(dc.FAIL_MESSAGE)
+
                 // Assert: Not handler's fault
                 expect(handlerError).not.to.exist
                 const controller = depContainer.resolve<dc.DirectAutoController>(dc.DirectAutoController.name)
                 expect(controller.spyFn).to.be.called.with(CALLER_NAME, AUTO_MODULE_NAME)
+            }
+            catch (resError) {
+                console.error(resError)
+                expect(resError).not.to.exist
+            }
+        })
+
+        it('Should rebuild the error object as MinorException if unsuccessful', async () => {
+            // Arrange
+            const AUTO_MODULE_NAME = 'directAuto'
+            let handlerError
+            addon.onError((err) => {
+                handlerError = err
+            })
+            await addon.init()
+
+            // Act
+            try {
+                const res: RpcResponse = await caller.call(AUTO_MODULE_NAME, dc.ACT_OBJ_IT)
+
+                // Assert
+                expect(res).to.exist
+                expect(res.isSuccess).to.be.false
+
+                const resError: RpcError = res.payload
+                expect(resError).is.instanceOf(MinorException)
+                expect(resError.message).to.equal(JSON.stringify(dc.FAIL_OBJ))
+
+                // Assert: Not handler's fault
+                expect(handlerError).not.to.exist
+                const controller = depContainer.resolve<dc.DirectAutoController>(dc.DirectAutoController.name)
+                expect(controller.spyFn).to.be.called.with(CALLER_NAME, AUTO_MODULE_NAME)
+            }
+            catch (resError) {
+                console.error(resError)
+                expect(resError).not.to.exist
             }
         })
     }) // END describe 'handleRequests'
@@ -235,7 +277,7 @@ describe('DefaultDirectRpcHandlerAddOn', function() {
                         }
                         catch (err) {
                             expect(err).to.exist
-                            expect(err.message).to.equal('Gone')
+                            expect((err as StatusCodeError).statusCode).to.equal(410) // Gone
                         }
                     }
                     return sleep(1000)

@@ -12,6 +12,7 @@ const descriptor = {
     value: null as any,
 }
 
+/* istanbul ignore else */
 if (!global.gennova) {
     descriptor.value = {}
     Object.defineProperty(global, 'gennova', descriptor)
@@ -240,27 +241,14 @@ export abstract class RpcCallerBase {
         this._emitter.on('error', handler)
     }
 
-
-    protected emitError(err: any): void {
+    protected _emitError(err: any): void {
         this._emitter.emit('error', err)
     }
 
-    protected rebuildError(error: Error | RpcResponse | string) {
-        let exception: Exception
-        if (error['payload']) {
-            const payload: RpcError = (error as RpcResponse).payload
-            if (payload.type) {
-                // Expect response.payload.type = MinorException | ValidationError...
-                exception = new global.gennova[payload.type](payload.message)
-                exception['details'] = payload['details']
-            }
-        }
-        else if (error instanceof Error) {
-            return error
-        }
-        else {
-            exception = new MinorException(error + '')
-        }
+    protected _rebuildError(error: RpcError): any {
+        // Expect response.payload.type = MinorException | ValidationError...
+        const exception: Exception = new global.gennova[error.type](error.message)
+        exception.details = error.details
         return exception
     }
 }
@@ -289,11 +277,11 @@ export abstract class RpcHandlerBase {
     }
 
 
-    protected emitError(err: any): void {
+    protected _emitError(err: any): void {
         this._emitter.emit('error', err)
     }
 
-    protected createResponse(isSuccess: boolean, payload: any, replyTo: string): RpcResponse {
+    protected _createResponse(isSuccess: boolean, payload: any, replyTo: string): RpcResponse {
         return {
             isSuccess,
             from: this.name,
@@ -302,30 +290,26 @@ export abstract class RpcHandlerBase {
         }
     }
 
-    protected createError({ isIntended, reason}: HandlerRejection): RpcError {
+    protected _createError({ isIntended, reason}: HandlerRejection): RpcError {
         // TODO: Should log this unexpected error.
         const rpcError: RpcError = {
             type: 'InternalErrorException',
         }
         if (!isIntended) {
-            // If error type is unidentified, we should not send it back to caller.
-            this.emitError(reason)
+            // If this error is unintended, we should not send it back to caller.
             return rpcError
         }
 
         if (reason instanceof Exception) {
-            // If this is a minor error, or the action method sends this error
-            // back to caller on purpose.
+            // If this error is intended, send this error back to caller to blame it.
             rpcError.type = reason.name
             rpcError.message = reason.message
-            rpcError.details = reason['details'] // In case of ValidationError
+            rpcError.details = reason.details // In case of ValidationError
         }
         else {
-            // If error is an uncaught Exception/Error object, that means the action method
-            // has a problem. We should not send it back to caller.
+            // If this error is intended but has no type, we cast it to MinorException.
             rpcError.type = 'MinorException'
-            rpcError.message = reason.message
-            rpcError.details = reason
+            rpcError.message = (typeof reason === 'string') ? reason : JSON.stringify(reason)
         }
         return rpcError
     }

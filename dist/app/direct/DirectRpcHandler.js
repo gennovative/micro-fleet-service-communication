@@ -64,7 +64,7 @@ let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rp
                 this._isOpen = true;
                 resolve();
             });
-            this._server.on('error', err => this.emitError(err));
+            this._server.on('error', err => this._emitError(err));
         });
     }
     /**
@@ -117,39 +117,43 @@ let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rp
         return Promise.resolve();
     }
     wrapHandler(handler) {
-        return (req, res, next) => {
-            // const actionName = req.url.match(/[^\/]+$/)[0];
+        return (req, res) => {
             const request = req.body;
-            (new Promise((resolve, reject) => {
+            (new Promise(async (resolve, reject) => {
                 const wrappedReject = (isIntended) => (reason) => reject({
                     isIntended,
                     reason,
                 });
                 try {
-                    const output = handler({
+                    await handler({
                         payload: request.payload,
                         resolve,
                         reject: wrappedReject(true),
                         rpcRequest: request,
                         rawMessage: req,
                     });
-                    if (output && typeof output.catch === 'function') {
-                        output.catch(wrappedReject(false)); // Catch async exceptions.
-                    }
                 }
                 catch (err) { // Catch normal exceptions.
                     wrappedReject(false)(err);
                 }
             }))
                 .then(result => {
-                res.status(200).send(this.createResponse(true, result, request.from));
+                res.status(200).send(this._createResponse(true, result, request.from));
             })
                 .catch((error) => {
-                const errObj = this.createError(error);
-                res.status(500).send(this.createResponse(false, errObj, request.from));
+                if (!error.isIntended) {
+                    this._emitError(error.reason);
+                    res.sendStatus(500);
+                    return;
+                }
+                const errObj = this._createError(error);
+                res.status(200).send(this._createResponse(false, errObj, request.from));
             })
-                // Catch error thrown by `createError()`
-                .catch(this.emitError.bind(this));
+                // Catch error thrown by `createError()` or `createResponse()`
+                .catch((error) => {
+                this._emitError(error);
+                res.sendStatus(500);
+            });
         };
     }
 };

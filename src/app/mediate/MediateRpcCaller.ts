@@ -30,7 +30,7 @@ export class MessageBrokerRpcCaller
     public init(params?: any): void {
         const expire = this._msgBrokerConn.messageExpiredIn
         this._msgBrokerConn.messageExpiredIn = expire > 0 ? expire : 30000 // Make sure we only use temporary unique queue.
-        this._msgBrokerConn.onError(err => this.emitError(err))
+        this._msgBrokerConn.onError(err => this._emitError(err))
     }
 
     /**
@@ -67,11 +67,10 @@ export class MessageBrokerRpcCaller
                         await conn.stopListen()
 
                         const response: rpc.RpcResponse = msg.data
-                        if (response.isSuccess) {
-                            resolve(response)
-                        } else {
-                            reject(this.rebuildError(response))
+                        if (!response.isSuccess) {
+                            response.payload = this._rebuildError(response.payload)
                         }
+                        resolve(response)
                     }
 
                     // In case this request never has response.
