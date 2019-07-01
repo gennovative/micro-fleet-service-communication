@@ -16,15 +16,6 @@ export function action(name?: string): Function {
     return function (proto: any, funcName: string): Function {
         if (!name) {
             name = funcName
-        } else if (name.length > 1) {
-            if (name.startsWith('/')) {
-                // Remove heading slash
-                name = name.substr(1)
-            }
-            if (name.endsWith('/')) {
-                // Remove trailing slash
-                name = name.substr(0, name.length - 1)
-            }
         }
 
         Reflect.defineMetadata(MetaData.ACTION, [ name ], proto.constructor, funcName)

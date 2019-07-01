@@ -72,7 +72,7 @@ let depContainer: DependencyContainer,
     caller: IMediateRpcCaller,
     addon: DefaultMediateRpcHandlerAddOn
 
-describe.skip('DefaultMediateRpcHandlerAddOn', function() {
+describe('DefaultMediateRpcHandlerAddOn', function() {
     this.timeout(20000)
     // For debugging
     // this.timeout(60000)
@@ -156,7 +156,7 @@ describe.skip('DefaultMediateRpcHandlerAddOn', function() {
 
                 // Assert
                 expect(res).to.exist
-                expect(res.payload).to.equal(mc.SUCCESS_MESSAGE)
+                expect(res.payload).to.equal(mc.RES_GET_IT)
                 const controller = depContainer.resolve<mc.MediateNamedController>(mc.MediateNamedController.name)
                 expect(controller.spyFn).to.be.spy
                 expect(controller.spyFn).to.be.called.with(CALLER_NAME, mc.MODULE_NAME)
@@ -187,7 +187,7 @@ describe.skip('DefaultMediateRpcHandlerAddOn', function() {
 
                 const resError: RpcError = res.payload
                 expect(resError).is.instanceOf(MinorException)
-                expect(resError.message).to.equal(mc.FAIL_MESSAGE)
+                expect(resError.message).to.equal(mc.RES_REFUSE_IT)
 
                 // Assert: Not handler's fault
                 expect(handlerError).not.to.exist
@@ -220,7 +220,7 @@ describe.skip('DefaultMediateRpcHandlerAddOn', function() {
 
                 const resError: RpcError = res.payload
                 expect(resError).is.instanceOf(CriticalException)
-                expect(resError.message).to.equal(mc.FAIL_MESSAGE)
+                expect(resError.message).to.equal(mc.RES_EXCEPT_IT)
 
                 // Assert: Not handler's fault
                 expect(handlerError).not.to.exist
@@ -252,7 +252,7 @@ describe.skip('DefaultMediateRpcHandlerAddOn', function() {
 
                 const resError: RpcError = res.payload
                 expect(resError).is.instanceOf(MinorException)
-                expect(resError.message).to.equal(JSON.stringify(mc.FAIL_OBJ))
+                expect(resError.details).to.deep.equal(mc.RES_OBJ_IT)
 
                 // Assert: Not handler's fault
                 expect(handlerError).not.to.exist
@@ -279,7 +279,7 @@ describe.skip('DefaultMediateRpcHandlerAddOn', function() {
             addon.init()
                 .then(() => {
                     const controller = depContainer.resolve<mc.MediateNamedController>(mc.MediateNamedController.name)
-                    controller.doSomething = ({ resolve }) => {
+                    controller.getSomethingCb = (resolve: PromiseResolveFn) => {
                         const curCount = ++acceptCounter
                         console.log(`Accepted the ${curCount}-th request`)
                         resolve(curCount)
@@ -288,7 +288,7 @@ describe.skip('DefaultMediateRpcHandlerAddOn', function() {
                     caller.timeout = 3000
                     // Act 1
                     for (i = 1; i <= INIT_CALL_NUM; ++i) {
-                        caller.call(mc.MODULE_NAME, mc.ACT_DO_IT)
+                        caller.call(mc.MODULE_NAME, mc.ACT_GET_IT)
                     }
                     return sleep(3000) // Need more delay time than DirectHandler
                 })
@@ -306,7 +306,7 @@ describe.skip('DefaultMediateRpcHandlerAddOn', function() {
                     for (; i <= INIT_CALL_NUM + MORE_CALL_NUM; ++i) {
                         const cur = i
                         tasks.push(
-                            caller.call(mc.MODULE_NAME, mc.ACT_DO_IT)
+                            caller.call(mc.MODULE_NAME, mc.ACT_GET_IT)
                                 .then(res => expect(res).not.to.exist)
                                 .catch(err => {
                                     expect(err).to.exist
@@ -345,7 +345,7 @@ describe.skip('DefaultMediateRpcHandlerAddOn', function() {
             addon.init()
                 .then(() => {
                     const controller = depContainer.resolve<mc.MediateNamedController>(mc.MediateNamedController.name)
-                    controller.doSomething = ({ resolve }) => {
+                    controller.getSomethingCb = (resolve: PromiseResolveFn) => {
                         const curCount = ++acceptCounter
                         console.log(`Accepted the ${curCount}-th request`)
 
@@ -359,7 +359,7 @@ describe.skip('DefaultMediateRpcHandlerAddOn', function() {
                     caller.timeout = 6000
                     // Act 1
                     for (i = 1; i <= INIT_CALL_NUM; ++i) {
-                        caller.call(mc.MODULE_NAME, mc.ACT_DO_IT)
+                        caller.call(mc.MODULE_NAME, mc.ACT_GET_IT)
                             .then((res: RpcResponse) => {
                                 console.log(`Got the ${res.payload}-th response`)
                             })
@@ -379,7 +379,7 @@ describe.skip('DefaultMediateRpcHandlerAddOn', function() {
                     caller.timeout = 3000
                     for (; i <= INIT_CALL_NUM + MORE_CALL_NUM; ++i) {
                         tasks.push(
-                            caller.call(mc.MODULE_NAME, mc.ACT_DO_IT)
+                            caller.call(mc.MODULE_NAME, mc.ACT_GET_IT)
                                 .then(res => expect(res).not.to.exist)
                                 .catch(err => {
                                     expect(err).to.exist

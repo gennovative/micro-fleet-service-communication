@@ -37,16 +37,6 @@ function createProcessor(metadata, moduleName) {
             moduleName = moduleName[0].toLowerCase() + moduleName.substring(1); // to camel case
             common_1.Guard.assertIsDefined(moduleName, 'Cannot automatically extract path, make sure controller name has "Controller" suffix!');
         }
-        else if (moduleName.length > 1) {
-            if (moduleName.startsWith('/')) {
-                // Remove heading slash
-                moduleName = moduleName.substr(1);
-            }
-            if (moduleName.endsWith('/')) {
-                // Remove trailing slash
-                moduleName = moduleName.substr(0, moduleName.length - 1);
-            }
-        }
         Reflect.defineMetadata(metadata, [moduleName], TargetClass);
         return TargetClass;
     };

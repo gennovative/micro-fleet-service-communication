@@ -248,7 +248,9 @@ export abstract class RpcCallerBase {
     protected _rebuildError(error: RpcError): any {
         // Expect response.payload.type = MinorException | ValidationError...
         const exception: Exception = new global.gennova[error.type](error.message)
-        exception.details = error.details
+        exception.details = (typeof error.details === 'string')
+            ? JSON.parse(error.details)
+            : error.details
         return exception
     }
 }
@@ -309,7 +311,12 @@ export abstract class RpcHandlerBase {
         else {
             // If this error is intended but has no type, we cast it to MinorException.
             rpcError.type = 'MinorException'
-            rpcError.message = (typeof reason === 'string') ? reason : JSON.stringify(reason)
+            if (typeof reason === 'string') {
+                rpcError.message = reason
+            }
+            else {
+                rpcError.details = JSON.stringify(reason)
+            }
         }
         return rpcError
     }

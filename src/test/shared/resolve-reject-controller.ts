@@ -1,12 +1,12 @@
 import * as chai from 'chai'
+import { MinorException } from '@micro-fleet/common'
 
 import { decorators as d } from '../../app'
-import { MinorException } from '@micro-fleet/common'
 
 
 //#region Exports
 
-export const MODULE_NAME = 'respond'
+export const MODULE_NAME = 'resolve-reject'
 
 export const ACT_AUTO_SYNC = 'auto-sync'
 export const ACT_AUTO_SYNC_ERROR = 'auto-sync-error'
@@ -17,22 +17,29 @@ export const ACT_MANUAL_SYNC = 'manual-sync'
 export const ACT_MANUAL_SYNC_ERROR = 'manual-sync-error'
 export const ACT_MANUAL_ASYNC = 'manual-async'
 export const ACT_MANUAL_ASYNC_ERROR = 'manual-async-error'
+export const ACT_MANUAL_SYNC_REJECT = 'manual-sync-reject'
+export const ACT_MANUAL_ASYNC_REJECT = 'manual-async-reject'
 
-export const RES_AUTO_SYNC = 'RespondingController.getAutoSync'
+
+export const RES_AUTO_SYNC = 'ResolveRejectController.getAutoSync'
 export const RES_AUTO_ASYNC = {
-    info: 'RespondingController.getAutoAsync',
+    info: 'ResolveRejectController.getAutoAsync',
 }
 export const RES_AUTO_SYNC_ERROR = 1234567890
 export const RES_AUTO_ASYNC_ERROR = {
-    reason: 'RespondingController.getAutoFailAsync',
+    reason: 'ResolveRejectController.getAutoFailAsync',
 }
-export const RES_MANUAL_SYNC = 'RespondingController.getManualSync'
+export const RES_MANUAL_SYNC = 'ResolveRejectController.getManualSync'
 export const RES_MANUAL_ASYNC = {
-    info: 'RespondingController.getManualAsync',
+    info: 'ResolveRejectController.getManualAsync',
 }
 export const RES_MANUAL_SYNC_ERROR = new MinorException('Just a small exception')
 export const RES_MANUAL_ASYNC_ERROR = {
-    reason: 'RespondingController.getManualFailAsync',
+    reason: 'ResolveRejectController.getManualFailAsync',
+}
+export const RES_MANUAL_SYNC_REJECT = new MinorException('Intended exception')
+export const RES_MANUAL_ASYNC_REJECT = {
+    reason: 'ResolveRejectController.getManualRejectAsync',
 }
 
 //#endregion Exports
@@ -40,7 +47,7 @@ export const RES_MANUAL_ASYNC_ERROR = {
 
 @d.directController(MODULE_NAME)
 @d.mediateController(MODULE_NAME)
-export class RespondingController {
+export class ResolveRejectController {
 
     public spyFn: Function
 
@@ -88,18 +95,40 @@ export class RespondingController {
     }
 
     @d.action(ACT_MANUAL_SYNC_ERROR)
-    public getManualFailSync(@d.resolveFn() resolve: PromiseResolveFn): void {
+    public getManualFailSync(
+            @d.resolveFn() resolve: PromiseResolveFn,
+            @d.rejectFn() reject: PromiseRejectFn,
+        ): void {
+
         this.spyFn()
         throw RES_MANUAL_SYNC_ERROR
     }
 
     @d.action(ACT_MANUAL_ASYNC_ERROR)
-    public async getManualFailAsync(@d.resolveFn() resolve: PromiseResolveFn): Promise<void> {
+    public async getManualFailAsync(
+            @d.resolveFn() resolveFn: PromiseResolveFn,
+            @d.rejectFn() rejectFn: PromiseRejectFn,
+        ): Promise<void> {
+
         this.spyFn()
         await new Promise((_, reject) => {
             setTimeout(() => {
                 reject(RES_MANUAL_ASYNC_ERROR)
             }, 100)
         })
+    }
+
+    @d.action(ACT_MANUAL_SYNC_REJECT)
+    public getManualRejectSync(@d.rejectFn() reject: PromiseRejectFn): void {
+        this.spyFn()
+        reject(RES_MANUAL_SYNC_REJECT)
+    }
+
+    @d.action(ACT_MANUAL_ASYNC_REJECT)
+    public async getManualRejectAsync(@d.rejectFn() reject: PromiseRejectFn): Promise<void> {
+        this.spyFn()
+        setTimeout(() => {
+            reject(RES_MANUAL_ASYNC_REJECT)
+        }, 100)
     }
 }

@@ -104,7 +104,11 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
                 });
             }
             catch (err) { // Catch normal exceptions.
-                wrappedReject(false)(err);
+                let isIntended = false;
+                if (err instanceof common_1.ValidationError) {
+                    isIntended = true;
+                }
+                wrappedReject(isIntended)(err);
             }
         }))
             .then(result => {

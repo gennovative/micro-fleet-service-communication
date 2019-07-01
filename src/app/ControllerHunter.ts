@@ -7,6 +7,7 @@ import { ControllerCreationStrategy, ControllerExports } from './constants/contr
 import { MetaData } from './constants/MetaData'
 import { ParamDecorDescriptor } from './decorators/param-decor-base'
 import { RESOLVE_INJECTED } from './decorators/resolveFn'
+import { REJECT_INJECTED } from './decorators/rejectFn'
 import { IRpcHandler, RpcHandlerFunction, RpcHandlerParams } from './RpcCommon'
 
 
@@ -139,7 +140,7 @@ export class ControllerHunter {
                 return async function(params: RpcHandlerParams) {
                     const args = await thisHunter._resolveParamValues(CtrlClass, actionName, params)
                     const actionResult = await ctrlInstance[actionName].apply(ctrlInstance, args)
-                    thisHunter._autoResolve(actionResult, params.resolve)
+                    thisHunter._autoResolve(actionResult, params)
                 }
             }
         ) as RpcHandlerFunction
@@ -161,19 +162,19 @@ export class ControllerHunter {
         return args
     }
 
-    protected _autoResolve(actionResult: any, resolve: PromiseResolveFn): void {
-        if (!resolve[RESOLVE_INJECTED]) {
-            resolve(actionResult)
+    protected _autoResolve(actionResult: any, params: RpcHandlerParams): void {
+        if (!params[RESOLVE_INJECTED] && !params[REJECT_INJECTED]) {
+            params.resolve(actionResult)
         }
         // Else, skip if resolve function is injected with @resolveFn
     }
 
-    protected _autoReject(actionResult: any, reject: PromiseRejectFn): void {
-        if (!reject['REJECT_INJECTED']) {
-            reject(actionResult)
-        }
-        // Else, skip if reject function is injected with @rejectFn
-    }
+    // protected _autoReject(actionResult: any, reject: PromiseRejectFn): void {
+    //     if (!reject['REJECT_INJECTED']) {
+    //         reject(actionResult)
+    //     }
+    //     // Else, skip if reject function is injected with @rejectFn
+    // }
 
     //#endregion Action
 

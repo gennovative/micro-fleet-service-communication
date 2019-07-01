@@ -6,7 +6,8 @@ chai.use(spies)
 const expect = chai.expect
 
 import { IConfigurationProvider, constants, Maybe,
-    DependencyContainer, serviceContext, Types as CmT, InternalErrorException,
+    DependencyContainer, serviceContext, Types as CmT,
+    InternalErrorException, MinorException,
     } from '@micro-fleet/common'
 
 import { IDirectRpcHandler, IDirectRpcCaller, ExpressRpcHandler, HttpRpcCaller,
@@ -61,14 +62,13 @@ class MockConfigProvider implements IConfigurationProvider {
 }
 
 
-
 let depContainer: DependencyContainer,
     handler: IDirectRpcHandler,
     caller: IDirectRpcCaller,
     addon: DefaultDirectRpcHandlerAddOn
 
 
-describe('@resolveFn() - direct', function() {
+describe('@rejectFn() - direct', function() {
     this.timeout(5000)
     // this.timeout(60000) // For debugging
 
@@ -97,49 +97,7 @@ describe('@resolveFn() - direct', function() {
     })
 
     describe('Auto', function() {
-        it('Should respond with sync value if @resolveFn is not present', async () => {
-            // Arrange
-            await addon.init()
-
-            // Act
-            try {
-                const res: RpcResponse = await caller.call(rc.MODULE_NAME, rc.ACT_AUTO_SYNC)
-
-                // Assert
-                expect(res).to.exist
-                const controller = depContainer.resolve<rc.ResolveRejectController>(rc.ResolveRejectController.name)
-                expect(controller.spyFn).to.be.called.once
-                expect(res.isSuccess).to.be.true
-                expect(res.payload).to.equal(rc.RES_AUTO_SYNC)
-            }
-            catch (err) {
-                err && console.error(err)
-                expect(err).to.not.exist
-            }
-        })
-
-        it('Should respond with async value if @resolveFn is not present', async () => {
-            // Arrange
-            await addon.init()
-
-            // Act
-            try {
-                const res: RpcResponse = await caller.call(rc.MODULE_NAME, rc.ACT_AUTO_ASYNC)
-
-                // Assert
-                expect(res).to.exist
-                const controller = depContainer.resolve<rc.ResolveRejectController>(rc.ResolveRejectController.name)
-                expect(controller.spyFn).to.be.called.once
-                expect(res.isSuccess).to.be.true
-                expect(res.payload).to.deep.equal(rc.RES_AUTO_ASYNC)
-            }
-            catch (err) {
-                err && console.error(err)
-                expect(err).to.not.exist
-            }
-        })
-
-        it('Should throw sync error despite @resolveFn presence', async () => {
+        it('Caller should throw SYNC error if @rejectFn is not present', async () => {
             // Arrange
             let handerError
             addon.onError((err) => {
@@ -163,7 +121,7 @@ describe('@resolveFn() - direct', function() {
             }
         })
 
-        it('Should throw async error despite @resolveFn presence', async () => {
+        it('Caller should throw ASYNC error if @rejectFn is not present', async () => {
             // Arrange
             let handerError
             addon.onError((err) => {
@@ -189,49 +147,7 @@ describe('@resolveFn() - direct', function() {
     })
 
     describe('Manual', function() {
-        it('Should respond with sync value with injected @resolveFn', async () => {
-            // Arrange
-            await addon.init()
-
-            // Act
-            try {
-                const res: RpcResponse = await caller.call(rc.MODULE_NAME, rc.ACT_MANUAL_SYNC)
-
-                // Assert
-                expect(res).to.exist
-                const controller = depContainer.resolve<rc.ResolveRejectController>(rc.ResolveRejectController.name)
-                expect(controller.spyFn).to.be.called.once
-                expect(res.isSuccess).to.be.true
-                expect(res.payload).to.deep.equal(rc.RES_MANUAL_SYNC)
-            }
-            catch (err) {
-                err && console.error(err)
-                expect(err).to.not.exist
-            }
-        })
-
-        it('Should respond with async value with injected @resolveFn', async () => {
-            // Arrange
-            await addon.init()
-
-            // Act
-            try {
-                const res: RpcResponse = await caller.call(rc.MODULE_NAME, rc.ACT_MANUAL_ASYNC)
-
-                // Assert
-                expect(res).to.exist
-                const controller = depContainer.resolve<rc.ResolveRejectController>(rc.ResolveRejectController.name)
-                expect(controller.spyFn).to.be.called.once
-                expect(res.isSuccess).to.be.true
-                expect(res.payload).to.deep.equal(rc.RES_MANUAL_ASYNC)
-            }
-            catch (err) {
-                err && console.error(err)
-                expect(err).to.not.exist
-            }
-        })
-
-        it('Should throw sync error despite @resolveFn presence', async () => {
+        it('Should respond SYNC-ly with isSuccess=false if @rejectFn is present', async () => {
             // Arrange
             let handerError
             addon.onError((err) => {
@@ -241,21 +157,24 @@ describe('@resolveFn() - direct', function() {
 
             // Act
             try {
-                const res: RpcResponse = await caller.call(rc.MODULE_NAME, rc.ACT_MANUAL_SYNC_ERROR)
+                const res: RpcResponse = await caller.call(rc.MODULE_NAME, rc.ACT_MANUAL_SYNC_REJECT)
 
                 // Assert
-                expect(res).not.to.exist
-            }
-            catch (err) {
-                expect(err).to.exist
-                expect(err).to.be.instanceOf(InternalErrorException)
-                expect(handerError).to.equal(rc.RES_MANUAL_SYNC_ERROR)
+                expect(res).to.exist
+                expect(res.isSuccess).to.be.false
+                expect(res.payload).to.be.instanceOf(MinorException)
+                expect(res.payload.message).to.equal(rc.RES_MANUAL_SYNC_REJECT.message)
+                expect(handerError).not.to.exist
                 const controller = depContainer.resolve<rc.ResolveRejectController>(rc.ResolveRejectController.name)
                 expect(controller.spyFn).to.be.called.once
             }
+            catch (err) {
+                console.error(err)
+                expect(err).not.to.exist
+            }
         })
 
-        it('Should throw async error despite @resolveFn presence', async () => {
+        it('Should respond ASYNC-ly with isSuccess=false if @rejectFn is present', async () => {
             // Arrange
             let handerError
             addon.onError((err) => {
@@ -265,20 +184,23 @@ describe('@resolveFn() - direct', function() {
 
             // Act
             try {
-                const res: RpcResponse = await caller.call(rc.MODULE_NAME, rc.ACT_MANUAL_ASYNC_ERROR)
+                const res: RpcResponse = await caller.call(rc.MODULE_NAME, rc.ACT_MANUAL_ASYNC_REJECT)
 
                 // Assert
-                expect(res).not.to.exist
-            }
-            catch (err) {
-                expect(err).to.exist
-                expect(err).to.be.instanceOf(InternalErrorException)
-                expect(handerError).to.equal(rc.RES_MANUAL_ASYNC_ERROR)
+                expect(res).to.exist
+                expect(res.isSuccess).to.be.false
+                expect(res.payload).to.be.instanceOf(MinorException)
+                expect(res.payload.details).to.deep.equal(rc.RES_MANUAL_ASYNC_REJECT)
+                expect(handerError).not.to.exist
                 const controller = depContainer.resolve<rc.ResolveRejectController>(rc.ResolveRejectController.name)
                 expect(controller.spyFn).to.be.called.once
+            }
+            catch (err) {
+                console.error(err)
+                expect(err).not.to.exist
             }
         })
     })
 
 
-}) // describe '@resolveFn()'
+}) // describe '@rejectFn()'

@@ -4,10 +4,13 @@ if (!Reflect || typeof Reflect['hasOwnMetadata'] !== 'function') {
 }
 
 import { directController, mediateController, ControllerDecorator } from './controller'
-// import { model, ModelDecorator } from './model'
 import { action, ActionDecorator} from './action'
 import { filter, FilterDecorator } from './filter'
+import { rawMessage, RawMessageDecorator } from './rawMessage'
 import { resolveFn, ResolveFnDecorator } from './resolveFn'
+import { rejectFn, RejectFnDecorator } from './rejectFn'
+import { rpcRequest, RpcRequestDecorator } from './rpcRequest'
+import { payloadDecor, PayloadDecorator } from './payload'
 
 
 export type Decorators = {
@@ -49,10 +52,38 @@ export type Decorators = {
 
     /**
      * For action parameter decoration.
+     * Resolves the parameter's value with the raw request message,
+     * which is either HTTP request (direct RPC) or Message broker message (mediate RPC).
+     */
+    rawMessage: RawMessageDecorator,
+
+    /**
+     * For action parameter decoration.
      * Resolves the parameter's value with the Promise `resolve` function that
      *      responds and ends the request.
      */
     resolveFn: ResolveFnDecorator,
+
+    /**
+     * For action parameter decoration.
+     * Resolves the parameter's value with the Promise `reject` function that
+     *      responds and ends the request.
+     */
+    rejectFn: RejectFnDecorator,
+
+    /**
+     * For action parameter decoration.
+     * Resolves the parameter's value with the request payload.
+     * @param {class | PayloadModelOptions} options A class or options of how to
+     *      translate the payload into instance of specified class.
+     */
+    payload: PayloadDecorator,
+
+    /**
+     * For action parameter decoration.
+     * Resolves the parameter's value with the RPC request instance.
+     */
+    rpcRequest: RpcRequestDecorator,
 }
 
 export const decorators: Decorators = {
@@ -61,5 +92,9 @@ export const decorators: Decorators = {
     mediateController,
     filter,
     // model,
+    rawMessage,
     resolveFn,
+    rejectFn,
+    rpcRequest,
+    payload: payloadDecor,
 }

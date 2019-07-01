@@ -64,14 +64,13 @@ class MockConfigProvider implements IConfigurationProvider {
 }
 
 
-
 let depContainer: DependencyContainer,
     handler: IDirectRpcHandler,
     caller: IDirectRpcCaller,
     addon: DefaultDirectRpcHandlerAddOn
 
 // TODO: inject @resolve to direct-controller
-describe.skip('DefaultDirectRpcHandlerAddOn', function() {
+describe('DefaultDirectRpcHandlerAddOn', function() {
     this.timeout(5000)
     // For debugging
     // this.timeout(60000)
@@ -133,7 +132,7 @@ describe.skip('DefaultDirectRpcHandlerAddOn', function() {
 
                 // Assert
                 expect(res).to.exist
-                expect(res.payload).to.equal(dc.SUCCESS_MESSAGE)
+                expect(res.payload).to.equal(dc.RES_GET_IT)
                 const controller = depContainer.resolve<dc.DirectNamedController>(dc.DirectNamedController.name)
                 expect(controller.spyFn).to.be.spy
                 expect(controller.spyFn).to.be.called.with(CALLER_NAME, dc.MODULE_NAME)
@@ -163,7 +162,7 @@ describe.skip('DefaultDirectRpcHandlerAddOn', function() {
 
                 const resError: RpcError = res.payload
                 expect(resError).is.instanceOf(MinorException)
-                expect(resError.message).to.equal(dc.FAIL_MESSAGE)
+                expect(resError.message).to.equal(dc.RES_REFUSE_IT)
 
                 // Assert: Not handler's fault
                 expect(handlerError).not.to.exist
@@ -197,7 +196,7 @@ describe.skip('DefaultDirectRpcHandlerAddOn', function() {
 
                 const resError: RpcError = res.payload
                 expect(resError).is.instanceOf(CriticalException)
-                expect(resError.message).to.equal(dc.FAIL_MESSAGE)
+                expect(resError.message).to.equal(dc.RES_EXCEPT_IT)
 
                 // Assert: Not handler's fault
                 expect(handlerError).not.to.exist
@@ -229,7 +228,7 @@ describe.skip('DefaultDirectRpcHandlerAddOn', function() {
 
                 const resError: RpcError = res.payload
                 expect(resError).is.instanceOf(MinorException)
-                expect(resError.message).to.equal(JSON.stringify(dc.FAIL_OBJ))
+                expect(resError.details).to.deep.equal(dc.RES_OBJ_IT)
 
                 // Assert: Not handler's fault
                 expect(handlerError).not.to.exist
@@ -254,14 +253,14 @@ describe.skip('DefaultDirectRpcHandlerAddOn', function() {
             addon.init()
                 .then(() => {
                     const controller = depContainer.resolve<dc.DirectNamedController>(dc.DirectNamedController.name)
-                    controller.doSomething = ({ resolve }) => {
+                    controller.getSomethingCb = (resolve: PromiseResolveFn) => {
                         ++counter
                         resolvers.push(resolve)
                     }
 
                     // Act 1
                     for (let i = 0; i < CALL_NUM; ++i) {
-                        caller.call(dc.MODULE_NAME, dc.ACT_DO_IT)
+                        caller.call(dc.MODULE_NAME, dc.ACT_GET_IT)
                     }
                     return sleep(1000)
                 })
@@ -273,12 +272,12 @@ describe.skip('DefaultDirectRpcHandlerAddOn', function() {
                     // Act 2
                     for (let i = 0; i < CALL_NUM; ++i) {
                         try {
-                            const res = await caller.call(dc.MODULE_NAME, dc.ACT_DO_IT)
+                            const res = await caller.call(dc.MODULE_NAME, dc.ACT_GET_IT)
                             expect(res).not.to.exist
                         }
                         catch (err) {
                             expect(err).to.exist
-                            expect((err as StatusCodeError).statusCode).to.equal(410) // Gone
+                            expect((err.details as StatusCodeError).statusCode).to.equal(410) // Gone
                         }
                     }
                     return sleep(1000)

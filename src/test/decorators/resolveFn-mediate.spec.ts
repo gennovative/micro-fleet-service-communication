@@ -9,18 +9,17 @@ import { IConfigurationProvider, constants, Maybe,
     DependencyContainer, serviceContext, Types as CmT, InternalErrorException,
     } from '@micro-fleet/common'
 
-import { IDirectRpcHandler, IDirectRpcCaller, ExpressRpcHandler, HttpRpcCaller,
-    DefaultDirectRpcHandlerAddOn, RpcResponse,
+import { IMediateRpcHandler, IMediateRpcCaller, MessageBrokerRpcCaller,
+    TopicMessageBrokerConnector, MessageBrokerRpcHandler, DefaultMediateRpcHandlerAddOn,
+    RpcResponse,
     } from '../../app'
-
 import * as rc from '../shared/resolve-reject-controller'
+import rabbitOpts from '../rabbit-options'
 
 
-const { RpcSettingKeys: RpcS, SvcSettingKeys: SvcS } = constants
+const { SvcSettingKeys: SvcS } = constants
 
 const SERVICE_SLUG = 'test-service',
-    HANDLER_PORT = 30000,
-    HANDLER_ADDR = `localhost:${HANDLER_PORT}`,
     CALLER_NAME = 'caller'
 
 class MockConfigProvider implements IConfigurationProvider {
@@ -49,7 +48,6 @@ class MockConfigProvider implements IConfigurationProvider {
 
     public get(key: string): Maybe<number | boolean | string> {
         switch (key) {
-            case RpcS.RPC_HANDLER_PORT: return Maybe.Just(HANDLER_PORT)
             case SvcS.SERVICE_SLUG: return Maybe.Just(SERVICE_SLUG)
             default: return Maybe.Nothing()
         }
@@ -61,14 +59,15 @@ class MockConfigProvider implements IConfigurationProvider {
 }
 
 
-
 let depContainer: DependencyContainer,
-    handler: IDirectRpcHandler,
-    caller: IDirectRpcCaller,
-    addon: DefaultDirectRpcHandlerAddOn
+    handlerMbConn: TopicMessageBrokerConnector,
+    callerMbConn: TopicMessageBrokerConnector,
+    handler: IMediateRpcHandler,
+    caller: IMediateRpcCaller,
+    addon: DefaultMediateRpcHandlerAddOn
 
 
-describe('@resolveFn() - direct', function() {
+describe('@resolveFn() - mediate', function() {
     this.timeout(5000)
     // this.timeout(60000) // For debugging
 
@@ -77,22 +76,41 @@ describe('@resolveFn() - direct', function() {
         serviceContext.setDependencyContainer(depContainer)
         depContainer.bindConstant(CmT.DEPENDENCY_CONTAINER, depContainer)
 
-        caller = new HttpRpcCaller()
-        caller.name = CALLER_NAME
-        caller.baseAddress = HANDLER_ADDR
+        callerMbConn = new TopicMessageBrokerConnector()
+        handlerMbConn = new TopicMessageBrokerConnector()
 
-        handler = new ExpressRpcHandler()
-        addon = new DefaultDirectRpcHandlerAddOn(
+        caller = new MessageBrokerRpcCaller(callerMbConn)
+        caller.name = CALLER_NAME
+
+        handler = new MessageBrokerRpcHandler(handlerMbConn)
+        addon = new DefaultMediateRpcHandlerAddOn(
             new MockConfigProvider(),
             depContainer,
             handler
         )
-        addon.controllerPath = path.join(process.cwd(), 'dist', 'test', 'shared', 'resolve-reject-controller')
+        addon.controllerPath = path.join(
+            process.cwd(),
+            'dist', 'test', 'shared', 'resolve-reject-controller'
+        )
+        return Promise.all([
+            callerMbConn.connect(rabbitOpts.caller),
+            handlerMbConn.connect(rabbitOpts.handler),
+        ])
     })
 
     afterEach(async () => {
-        await addon.dispose()
+        await handlerMbConn.stopListen()
+        await handlerMbConn.deleteQueue()
+
         await caller.dispose()
+        await addon.dispose() // Addon also disposes underlying RPC handler
+
+        // Connection must be disconnect separately
+        // Upper layers don't dispose connection when they are disposed.
+        await Promise.all([
+            handlerMbConn.disconnect(),
+            callerMbConn.disconnect(),
+        ])
         depContainer.dispose()
     })
 

@@ -5,6 +5,7 @@ const common_1 = require("@micro-fleet/common");
 const controller_1 = require("./constants/controller");
 const MetaData_1 = require("./constants/MetaData");
 const resolveFn_1 = require("./decorators/resolveFn");
+const rejectFn_1 = require("./decorators/rejectFn");
 class ControllerHunter {
     constructor(_depContainer, _rpcHandler, _controllerMeta, creationStrategy) {
         this._depContainer = _depContainer;
@@ -102,7 +103,7 @@ class ControllerHunter {
             return async function (params) {
                 const args = await thisHunter._resolveParamValues(CtrlClass, actionName, params);
                 const actionResult = await ctrlInstance[actionName].apply(ctrlInstance, args);
-                thisHunter._autoResolve(actionResult, params.resolve);
+                thisHunter._autoResolve(actionResult, params);
             };
         });
     }
@@ -122,18 +123,18 @@ class ControllerHunter {
         }
         return args;
     }
-    _autoResolve(actionResult, resolve) {
-        if (!resolve[resolveFn_1.RESOLVE_INJECTED]) {
-            resolve(actionResult);
+    _autoResolve(actionResult, params) {
+        if (!params[resolveFn_1.RESOLVE_INJECTED] && !params[rejectFn_1.REJECT_INJECTED]) {
+            params.resolve(actionResult);
         }
         // Else, skip if resolve function is injected with @resolveFn
     }
-    _autoReject(actionResult, reject) {
-        if (!reject['REJECT_INJECTED']) {
-            reject(actionResult);
-        }
-        // Else, skip if reject function is injected with @rejectFn
-    }
+    // protected _autoReject(actionResult: any, reject: PromiseRejectFn): void {
+    //     if (!reject['REJECT_INJECTED']) {
+    //         reject(actionResult)
+    //     }
+    //     // Else, skip if reject function is injected with @rejectFn
+    // }
     //#endregion Action
     _getMetadata(metaKey, classOrProto, propName) {
         return (propName)

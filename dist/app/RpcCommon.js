@@ -80,7 +80,9 @@ let RpcCallerBase = class RpcCallerBase {
     _rebuildError(error) {
         // Expect response.payload.type = MinorException | ValidationError...
         const exception = new global.gennova[error.type](error.message);
-        exception.details = error.details;
+        exception.details = (typeof error.details === 'string')
+            ? JSON.parse(error.details)
+            : error.details;
         return exception;
     }
 };
@@ -129,7 +131,12 @@ let RpcHandlerBase = class RpcHandlerBase {
         else {
             // If this error is intended but has no type, we cast it to MinorException.
             rpcError.type = 'MinorException';
-            rpcError.message = (typeof reason === 'string') ? reason : JSON.stringify(reason);
+            if (typeof reason === 'string') {
+                rpcError.message = reason;
+            }
+            else {
+                rpcError.details = JSON.stringify(reason);
+            }
         }
         return rpcError;
     }

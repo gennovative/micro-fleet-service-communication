@@ -70,7 +70,7 @@ export class MessageBrokerRpcCaller
                         if (!response.isSuccess) {
                             response.payload = this._rebuildError(response.payload)
                             if (response.payload instanceof InternalErrorException) {
-                                return reject(response)
+                                return reject(response.payload)
                             }
                         }
                         resolve(response)

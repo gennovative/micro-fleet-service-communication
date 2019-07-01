@@ -14,16 +14,6 @@ function action(name) {
         if (!name) {
             name = funcName;
         }
-        else if (name.length > 1) {
-            if (name.startsWith('/')) {
-                // Remove heading slash
-                name = name.substr(1);
-            }
-            if (name.endsWith('/')) {
-                // Remove trailing slash
-                name = name.substr(0, name.length - 1);
-            }
-        }
         Reflect.defineMetadata(MetaData_1.MetaData.ACTION, [name], proto.constructor, funcName);
         return proto;
     };

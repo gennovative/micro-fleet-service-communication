@@ -4,9 +4,7 @@ const debug: debug.IDebugger = require('debug')('mcft:svccom:ExpressRpcHandler')
 import * as http from 'http'
 
 import * as express from 'express'
-// import * as bodyParser from 'body-parser'
-// import * as shortid from 'shortid';
-import { injectable, Guard, CriticalException } from '@micro-fleet/common'
+import { injectable, Guard, CriticalException, ValidationError } from '@micro-fleet/common'
 
 import * as rpc from '../RpcCommon'
 
@@ -168,7 +166,11 @@ export class ExpressRpcHandler
                         rawMessage: req,
                     })
                 } catch (err) { // Catch normal exceptions.
-                    wrappedReject(false)(err)
+                    let isIntended = false
+                    if (err instanceof ValidationError) {
+                        isIntended = true
+                    }
+                    wrappedReject(isIntended)(err)
                 }
             }))
             .then(result => {

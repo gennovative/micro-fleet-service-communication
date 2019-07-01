@@ -1,7 +1,7 @@
 /// <reference types="debug" />
 const debug: debug.IDebugger = require('debug')('mcft:svccom:MessageBrokerRpcHandler')
 
-import { injectable, inject, Guard } from '@micro-fleet/common'
+import { injectable, inject, Guard, ValidationError } from '@micro-fleet/common'
 
 import { Types as T } from '../Types'
 import { IMessageBrokerConnector, BrokerMessage } from '../MessageBrokerConnector'
@@ -115,7 +115,11 @@ export class MessageBrokerRpcHandler
                     rawMessage: msg,
                 })
             } catch (err) { // Catch normal exceptions.
-                wrappedReject(false)(err)
+                let isIntended = false
+                if (err instanceof ValidationError) {
+                    isIntended = true
+                }
+                wrappedReject(isIntended)(err)
             }
         }))
         .then(result => { // When `actionFn` calls `resolve` from inside.

@@ -1,17 +1,10 @@
 import * as chai from 'chai'
 import { CriticalException } from '@micro-fleet/common'
 
-import { decorators as d, RpcHandlerParams } from '../../app'
+import { decorators as d, RpcRequest } from '../../app'
+
 
 export const MODULE_NAME = 'direct-module'
-
-export const SUCCESS_MESSAGE = 'Gotcha!'
-
-export const FAIL_MESSAGE = 'Hatecha!'
-
-export const FAIL_OBJ = {
-    why: FAIL_MESSAGE,
-}
 
 export const ACT_DO_IT = 'doIt'
 export const ACT_GET_IT = 'getIt'
@@ -19,26 +12,47 @@ export const ACT_REFUSE_IT = 'refuseIt'
 export const ACT_EXCEPT_IT = 'exceptIt'
 export const ACT_OBJ_IT = 'objectifyIt'
 
+export const RES_GET_IT = 'Gotcha!'
+export const RES_REFUSE_IT = 'Hatecha!'
+export const RES_EXCEPT_IT = 'Exceptcha!'
+export const RES_OBJ_IT = {
+    why: RES_REFUSE_IT,
+}
+
 
 @d.directController(MODULE_NAME)
 export class DirectNamedController {
 
     public spyFn: Function
 
+    /**
+     * A callback invoked every time method `getSomething` is called.
+     */
+    public getSomethingCb: (resolve: PromiseResolveFn) => void
+
     constructor() {
         this.spyFn = chai.spy()
     }
 
-    @d.action('doIt')
-    public doSomething({ payload, resolve, rpcRequest }: RpcHandlerParams): void {
+    @d.action(ACT_DO_IT)
+    public doSomething(
+            @d.payload() payload: any,
+            @d.resolveFn() resolve: PromiseResolveFn,
+            @d.rpcRequest() rpcRequest: RpcRequest,
+        ): void {
+
         this.spyFn(payload.id, rpcRequest.from, rpcRequest.to)
         resolve()
     }
 
-    @d.action('getIt')
-    public getSomething({ resolve, rpcRequest }: RpcHandlerParams): void {
+    @d.action(ACT_GET_IT)
+    public getSomething(
+            @d.resolveFn() resolve: PromiseResolveFn,
+            @d.rpcRequest() rpcRequest: RpcRequest,
+        ): void {
+
         this.spyFn(rpcRequest.from, rpcRequest.to)
-        resolve(SUCCESS_MESSAGE)
+        Boolean(this.getSomethingCb) ? this.getSomethingCb(resolve) : resolve(RES_GET_IT)
     }
 }
 
@@ -51,20 +65,32 @@ export class DirectAutoController {
     }
 
     @d.action()
-    public refuseIt({ reject, rpcRequest}: RpcHandlerParams): void {
+    public refuseIt(
+            @d.rejectFn() reject: PromiseRejectFn,
+            @d.rpcRequest() rpcRequest: RpcRequest,
+        ): void {
+
         this.spyFn(rpcRequest.from, rpcRequest.to)
-        reject(FAIL_MESSAGE)
+        reject(RES_REFUSE_IT)
     }
 
     @d.action()
-    public exceptIt({ reject, rpcRequest }: RpcHandlerParams): void {
+    public exceptIt(
+            @d.rejectFn() reject: PromiseRejectFn,
+            @d.rpcRequest() rpcRequest: RpcRequest,
+        ): void {
+
         this.spyFn(rpcRequest.from, rpcRequest.to)
-        reject(new CriticalException(FAIL_MESSAGE))
+        reject(new CriticalException(RES_EXCEPT_IT))
     }
 
     @d.action()
-    public objectifyIt({ reject, rpcRequest}: RpcHandlerParams): void {
+    public objectifyIt(
+            @d.rejectFn() reject: PromiseRejectFn,
+            @d.rpcRequest() rpcRequest: RpcRequest,
+        ): void {
+
         this.spyFn(rpcRequest.from, rpcRequest.to)
-        reject(FAIL_OBJ)
+        reject(RES_OBJ_IT)
     }
 }

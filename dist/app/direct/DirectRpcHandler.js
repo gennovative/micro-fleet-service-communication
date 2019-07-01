@@ -14,8 +14,6 @@ var ExpressRpcHandler_1;
 /// <reference types="debug" />
 const debug = require('debug')('mcft:svccom:ExpressRpcHandler');
 const express = require("express");
-// import * as bodyParser from 'body-parser'
-// import * as shortid from 'shortid';
 const common_1 = require("@micro-fleet/common");
 const rpc = require("../RpcCommon");
 let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rpc.RpcHandlerBase {
@@ -134,7 +132,11 @@ let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rp
                     });
                 }
                 catch (err) { // Catch normal exceptions.
-                    wrappedReject(false)(err);
+                    let isIntended = false;
+                    if (err instanceof common_1.ValidationError) {
+                        isIntended = true;
+                    }
+                    wrappedReject(isIntended)(err);
                 }
             }))
                 .then(result => {

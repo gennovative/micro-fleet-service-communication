@@ -11,12 +11,13 @@ declare module '@micro-fleet/service-communication/dist/app/constants/controller
 
 }
 declare module '@micro-fleet/service-communication/dist/app/constants/MetaData' {
-	export class MetaData {
-	    static readonly ACTION = "micro-fleet-svc-com:action";
-	    static readonly ACTION_FILTER = "micro-fleet-svc-com:actionFilter";
-	    static readonly CONTROLLER_DIRECT = "micro-fleet-svc-com:directController";
-	    static readonly CONTROLLER_MEDIATE = "micro-fleet-svc-com:mediateController";
-	    static readonly CONTROLLER_FILTER = "micro-fleet-svc-com:controllerFilter";
+	export enum MetaData {
+	    ACTION = "micro-fleet-svc-com:action",
+	    ACTION_FILTER = "micro-fleet-svc-com:actionFilter",
+	    CONTROLLER_DIRECT = "micro-fleet-svc-com:directController",
+	    CONTROLLER_MEDIATE = "micro-fleet-svc-com:mediateController",
+	    CONTROLLER_FILTER = "micro-fleet-svc-com:controllerFilter",
+	    PARAM_DECOR = "micro-fleet-web:paramDecor"
 	}
 
 }
@@ -158,8 +159,8 @@ declare module '@micro-fleet/service-communication/dist/app/RpcCommon' {
 	     * @see IRpcCaller.onError
 	     */
 	    onError(handler: (err: any) => void): void;
-	    protected emitError(err: any): void;
-	    protected rebuildError(error: Error | RpcResponse | string): Error;
+	    protected _emitError(err: any): void;
+	    protected _rebuildError(error: RpcError): any;
 	}
 	export abstract class RpcHandlerBase {
 	    protected _depContainer?: IDependencyContainer;
@@ -173,16 +174,67 @@ declare module '@micro-fleet/service-communication/dist/app/RpcCommon' {
 	     * @see IRpcHandler.onError
 	     */
 	    onError(handler: (err: any) => void): void;
-	    protected emitError(err: any): void;
-	    protected createResponse(isSuccess: boolean, payload: any, replyTo: string): RpcResponse;
-	    protected createError({ isIntended, reason }: HandlerRejection): RpcError;
+	    protected _emitError(err: any): void;
+	    protected _createResponse(isSuccess: boolean, payload: any, replyTo: string): RpcResponse;
+	    protected _createError({ isIntended, reason }: HandlerRejection): RpcError;
 	}
+
+}
+declare module '@micro-fleet/service-communication/dist/app/decorators/param-decor-base' {
+	import { RpcHandlerParams } from '@micro-fleet/service-communication/dist/app/RpcCommon';
+	export type ParseFunction = (input: string) => any;
+	export type DecorateParamOptions = {
+	    /**
+	     * The class that has the method to which the decorated parameter belongs.
+	     */
+	    TargetClass: Newable;
+	    /**
+	     * The function name whose signature contains the decorated parameter.
+	     */
+	    method: string;
+	    /**
+	     * Position of the decorated parameter in function signature.
+	     */
+	    paramIndex: number;
+	    /**
+	     * The function to figure out the value for the decorated parameter
+	     */
+	    resolverFn: (params: RpcHandlerParams) => Promise<any> | any;
+	};
+	export type ParamDecorDescriptor = Function[];
+	/**
+	 * Stored the `resolverFn` for later use to resolve value for
+	 * param `paramIndex` of the `method` of `TargetClass`.
+	 */
+	export function decorateParam(opts: DecorateParamOptions): void;
+
+}
+declare module '@micro-fleet/service-communication/dist/app/decorators/resolveFn' {
+	export const RESOLVE_INJECTED: unique symbol;
+	export type ResolveFnDecorator = () => Function;
+	/**
+	 * For action parameter decoration.
+	 * Resolves the parameter's value with the Promise `resolve` function that
+	 *      responds and ends the request.
+	 */
+	export function resolveFn(): Function;
+
+}
+declare module '@micro-fleet/service-communication/dist/app/decorators/rejectFn' {
+	export const REJECT_INJECTED: unique symbol;
+	export type RejectFnDecorator = () => Function;
+	/**
+	 * For action parameter decoration.
+	 * Resolves the parameter's value with the Promise `reject` function that
+	 *      responds and ends the request.
+	 */
+	export function rejectFn(): Function;
 
 }
 declare module '@micro-fleet/service-communication/dist/app/ControllerHunter' {
 	import { IDependencyContainer, Maybe } from '@micro-fleet/common';
 	import { ControllerCreationStrategy, ControllerExports } from '@micro-fleet/service-communication/dist/app/constants/controller';
-	import { IRpcHandler, RpcHandlerFunction } from '@micro-fleet/service-communication/dist/app/RpcCommon';
+	import { IRpcHandler, RpcHandlerFunction, RpcHandlerParams } from '@micro-fleet/service-communication/dist/app/RpcCommon';
 	export class ControllerHunter {
 	    	    	    	    /**
 	     * Gets or sets strategy when creating controller instance.
@@ -206,6 +258,8 @@ declare module '@micro-fleet/service-communication/dist/app/ControllerHunter' {
 	    protected _extractActionRoute(CtrlClass: Newable, funcName: string): string;
 	    protected _extractActionFromPrototype(prototype: any, name: string): Maybe<RpcHandlerFunction>;
 	    protected _proxyActionFunc(actionFunc: Function, CtrlClass: Newable): RpcHandlerFunction;
+	    protected _resolveParamValues(CtrlClass: Newable, actionName: string, params: RpcHandlerParams): Promise<any[]>;
+	    protected _autoResolve(actionResult: any, params: RpcHandlerParams): void;
 	    protected _getMetadata(metaKey: string, classOrProto: any, propName?: string): any;
 	}
 
@@ -451,6 +505,18 @@ declare module '@micro-fleet/service-communication/dist/app/decorators/controlle
 	export function mediateController(moduleName?: string): Function;
 
 }
+declare module '@micro-fleet/service-communication/dist/app/decorators/action' {
+	export type ActionDecorator = (name?: string) => Function;
+	/**
+	 * Used to decorate action function of REST controller class.
+	 * @param {string} method Case-insensitive HTTP verb supported by Express
+	     *         (see full list at https://expressjs.com/en/4x/api.html#routing-methods)
+	 * @param {string} name Segment of URL pointing to this action.
+	 *         If not specified, it is default to be the action's function name.
+	 */
+	export function action(name?: string): Function;
+
+}
 declare module '@micro-fleet/service-communication/dist/app/decorators/filter' {
 	/**
 	 * Provides operations to intercept HTTP requests to a controller.
@@ -500,16 +566,27 @@ declare module '@micro-fleet/service-communication/dist/app/decorators/filter' {
 	export function pushFilterToArray<T extends ActionInterceptor>(filters: PrioritizedFilterArray, FilterClass: Newable<T>, priority?: FilterPriority, ...filterParams: any[]): void;
 
 }
-declare module '@micro-fleet/service-communication/dist/app/filters/ActionFilterBase' {
-	export abstract class ActionFilterBase {
-	    protected addReadonlyProp(obj: object, prop: string, value: any): void;
-	}
+declare module '@micro-fleet/service-communication/dist/app/decorators/rawMessage' {
+	export type RawMessageDecorator = () => Function;
+	/**
+	 * For action parameter decoration.
+	 * Resolves the parameter's value with the raw request message,
+	 * which is either HTTP request (direct RPC) or Message broker message (mediate RPC).
+	 */
+	export function rawMessage(): Function;
 
 }
-declare module '@micro-fleet/service-communication/dist/app/filters/ModelFilter' {
-	import { IActionFilter } from '@micro-fleet/service-communication/dist/app/decorators/filter';
-	import { ActionFilterBase } from '@micro-fleet/service-communication/dist/app/filters/ActionFilterBase';
-	export type ModelFilterOptions = {
+declare module '@micro-fleet/service-communication/dist/app/decorators/rpcRequest' {
+	export type RpcRequestDecorator = () => Function;
+	/**
+	 * For action parameter decoration.
+	 * Resolves the parameter's value with the RPC request instance.
+	 */
+	export function rpcRequest(): Function;
+
+}
+declare module '@micro-fleet/service-communication/dist/app/decorators/payload' {
+	export type PayloadModelOptions = {
 	    /**
 	     * Result object will be instance of this class.
 	     */
@@ -521,47 +598,30 @@ declare module '@micro-fleet/service-communication/dist/app/filters/ModelFilter'
 	     */
 	    isPartial?: boolean;
 	    /**
-	     * Function to extract model object from request body.
-	     * As default, model object is extracted from `request.body.model`.
+	     * Function to extract model object from payload.
+	     * As default, model object is the payload itself.
 	     */
-	    modelPropFn?: <T extends object = object>(request: any) => any;
-	    /**
-	     * If true, this filter attaches tenantId to result object.
-	     * tenantId should be resolved by `TenantResolverFilter`.
-	     */
-	    hasTenantId?: boolean;
+	    extractFn?: (payload: any) => any;
 	};
-	export class ModelFilter extends ActionFilterBase implements IActionFilter {
-	    execute(request: any, response: any, next: Function, options: ModelFilterOptions): void;
-	}
-
-}
-declare module '@micro-fleet/service-communication/dist/app/decorators/model' {
-	import { ModelFilterOptions } from '@micro-fleet/service-communication/dist/app/filters/ModelFilter';
-	export type ModelDecorator = (opts: ModelFilterOptions) => Function;
+	export type PayloadDecorator = (options?: Newable | PayloadModelOptions) => Function;
 	/**
-	 * Attempts to translate request body to desired model class.
+	 * For action parameter decoration.
+	 * Resolves the parameter's value with the request payload.
+	 * @param {class | PayloadModelOptions} options A class or options of how to
+	 *      translate the payload into instance of specified class.
 	 */
-	export function model(opts: ModelFilterOptions): Function;
-
-}
-declare module '@micro-fleet/service-communication/dist/app/decorators/action' {
-	export type ActionDecorator = (name?: string) => Function;
-	/**
-	 * Used to decorate action function of REST controller class.
-	 * @param {string} method Case-insensitive HTTP verb supported by Express
-	     *         (see full list at https://expressjs.com/en/4x/api.html#routing-methods)
-	 * @param {string} name Segment of URL pointing to this action.
-	 *         If not specified, it is default to be the action's function name.
-	 */
-	export function action(name?: string): Function;
+	export function payloadDecor(options?: Newable | PayloadModelOptions): Function;
 
 }
 declare module '@micro-fleet/service-communication/dist/app/decorators/index' {
 	import { ControllerDecorator } from '@micro-fleet/service-communication/dist/app/decorators/controller';
-	import { ModelDecorator } from '@micro-fleet/service-communication/dist/app/decorators/model';
+	import { ActionDecorator } from '@micro-fleet/service-communication/dist/app/decorators/action';
 	import { FilterDecorator } from '@micro-fleet/service-communication/dist/app/decorators/filter';
-	import * as act from '@micro-fleet/service-communication/dist/app/decorators/action';
+	import { RawMessageDecorator } from '@micro-fleet/service-communication/dist/app/decorators/rawMessage';
+	import { ResolveFnDecorator } from '@micro-fleet/service-communication/dist/app/decorators/resolveFn';
+	import { RejectFnDecorator } from '@micro-fleet/service-communication/dist/app/decorators/rejectFn';
+	import { RpcRequestDecorator } from '@micro-fleet/service-communication/dist/app/decorators/rpcRequest';
+	import { PayloadDecorator } from '@micro-fleet/service-communication/dist/app/decorators/payload';
 	export type Decorators = {
 	    /**
 	     * Used to decorate action function of REST controller class.
@@ -570,7 +630,7 @@ declare module '@micro-fleet/service-communication/dist/app/decorators/index' {
 	     * @param {string} path Segment of URL pointing to this action.
 	     *         If not specified, it is default to be the action's function name.
 	     */
-	    action: act.ActionDecorator;
+	    action: ActionDecorator;
 	    /**
 	     * Used to decorate controller class for direct RPC handler.
 	     * @param {string} moduleName Module name, must be URL-safe
@@ -593,7 +653,36 @@ declare module '@micro-fleet/service-communication/dist/app/decorators/index' {
 	     * @param {number} priority A number from 0 to 10, filters with greater priority run before ones with less priority.
 	     */
 	    filter: FilterDecorator;
-	    model: ModelDecorator;
+	    /**
+	     * For action parameter decoration.
+	     * Resolves the parameter's value with the raw request message,
+	     * which is either HTTP request (direct RPC) or Message broker message (mediate RPC).
+	     */
+	    rawMessage: RawMessageDecorator;
+	    /**
+	     * For action parameter decoration.
+	     * Resolves the parameter's value with the Promise `resolve` function that
+	     *      responds and ends the request.
+	     */
+	    resolveFn: ResolveFnDecorator;
+	    /**
+	     * For action parameter decoration.
+	     * Resolves the parameter's value with the Promise `reject` function that
+	     *      responds and ends the request.
+	     */
+	    rejectFn: RejectFnDecorator;
+	    /**
+	     * For action parameter decoration.
+	     * Resolves the parameter's value with the request payload.
+	     * @param {class | PayloadModelOptions} options A class or options of how to
+	     *      translate the payload into instance of specified class.
+	     */
+	    payload: PayloadDecorator;
+	    /**
+	     * For action parameter decoration.
+	     * Resolves the parameter's value with the RPC request instance.
+	     */
+	    rpcRequest: RpcRequestDecorator;
 	};
 	export const decorators: Decorators;
 
@@ -859,16 +948,5 @@ declare module '@micro-fleet/service-communication' {
 	export * from '@micro-fleet/service-communication/dist/app/MessageBrokerAddOn';
 	export * from '@micro-fleet/service-communication/dist/app/MessageBrokerConnector';
 	export * from '@micro-fleet/service-communication/dist/app/Types';
-
-}
-declare module '@micro-fleet/service-communication/dist/app/filters/ErrorHandlerFilter' {
-	import { IActionErrorHandler } from '@micro-fleet/service-communication/dist/app/decorators/filter';
-	/**
-	 * Catches unhandled exceptions from action methods.
-	 */
-	export class ErrorHandlerFilter implements IActionErrorHandler {
-	    constructor();
-	    execute(error: Error, req: any, res: any, next: Function): void;
-	}
 
 }
