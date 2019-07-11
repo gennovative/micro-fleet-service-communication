@@ -32,6 +32,7 @@ const CONTROLLER_NAME = 'rpcRequest-rawMessage-controller',
 class MockConfigProvider implements IConfigurationProvider {
 
     public readonly name: string = 'MockConfigProvider'
+    public configFilePath: string
 
     get enableRemote(): boolean {
         return true

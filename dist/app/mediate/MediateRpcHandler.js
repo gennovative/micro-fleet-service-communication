@@ -15,7 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 /// <reference types="debug" />
 const debug = require('debug')('mcft:svccom:MessageBrokerRpcHandler');
 const common_1 = require("@micro-fleet/common");
-const Types_1 = require("../Types");
+const Types_1 = require("../constants/Types");
 const rpc = require("../RpcCommon");
 let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandlerBase {
     constructor(_msgBrokerConn) {

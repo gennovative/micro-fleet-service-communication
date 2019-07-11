@@ -4,7 +4,7 @@ import { IConfigurationProvider, inject, injectable,
     IDependencyContainer, Guard, Types as cT } from '@micro-fleet/common'
 
 import { ControllerCreationStrategy } from '../constants/controller'
-import { Types as T } from '../Types'
+import { Types as T } from '../constants/Types'
 import { MetaData } from '../constants/MetaData'
 import { MediateRpcHandlerAddOnBase } from './MediateRpcHandlerAddOnBase'
 import { IMediateRpcHandler } from './MediateRpcHandler'

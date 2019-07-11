@@ -27,6 +27,7 @@ const SERVICE_SLUG = 'test-service',
 class MockConfigProvider implements IConfigurationProvider {
 
     public readonly name: string = 'MockConfigProvider'
+    public configFilePath: string
 
     get enableRemote(): boolean {
         return true
@@ -300,7 +301,7 @@ describe('@payload() - mediate', function() {
             try {
                 const res: RpcResponse = await caller.call(
                     rc.MODULE_NAME,
-                    rc.ACT_TRANSLATE_WHOLE,
+                    rc.ACT_VALIDATE,
                     PAYLOAD,
                 )
 

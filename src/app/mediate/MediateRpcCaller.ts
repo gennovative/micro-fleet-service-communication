@@ -1,7 +1,7 @@
 import * as shortid from 'shortid'
 import { injectable, inject, Guard, MinorException, InternalErrorException } from '@micro-fleet/common'
 
-import { Types as T } from '../Types'
+import { Types as T } from '../constants/Types'
 import { IMessageBrokerConnector, BrokerMessage } from '../MessageBrokerConnector'
 import * as rpc from '../RpcCommon'
 

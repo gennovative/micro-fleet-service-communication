@@ -3,6 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 class Types {
 }
 Types.BROKER_ADDON = 'service-communication.MessageBrokerAddOn';
+Types.RPC_CALLER = 'service-communication.IRpcCaller';
+Types.RPC_HANDLER = 'service-communication.IRpcHandler';
 Types.DIRECT_RPC_CALLER = 'service-communication.IDirectRpcCaller';
 Types.DIRECT_RPC_HANDLER = 'service-communication.IDirectRpcHandler';
 Types.MEDIATE_RPC_CALLER = 'service-communication.IMediateRpcCaller';

@@ -6,7 +6,7 @@ import { IConfigurationProvider, inject, injectable,
 import { IDirectRpcHandler } from './DirectRpcHandler'
 import { DirectRpcHandlerAddOnBase } from './DirectRpcHandlerAddOnBase'
 import { ControllerCreationStrategy } from '../constants/controller'
-import { Types as T } from '../Types'
+import { Types as T } from '../constants/Types'
 import { MetaData } from '../constants/MetaData'
 import { ControllerHunter } from '../ControllerHunter'
 

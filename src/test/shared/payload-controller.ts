@@ -84,7 +84,11 @@ export class PayloadController {
 
     @d.action(ACT_VALIDATE)
     public validateFailed(
-            @d.payload(SampleModel) invalidModel: SampleModel
+            @d.payload({
+                ModelClass: SampleModel,
+                enableValidation: true,
+            })
+            invalidModel: SampleModel
         ): void {
 
         this.spyFn()

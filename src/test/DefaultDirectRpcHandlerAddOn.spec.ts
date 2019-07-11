@@ -29,6 +29,7 @@ const SERVICE_SLUG = 'test-service',
 class MockConfigProvider implements IConfigurationProvider {
 
     public readonly name: string = 'MockConfigProvider'
+    public configFilePath: string
 
     get enableRemote(): boolean {
         return true

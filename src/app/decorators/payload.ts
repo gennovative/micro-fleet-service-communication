@@ -17,6 +17,12 @@ export type PayloadModelOptions = {
     isPartial?: boolean,
 
     /**
+     * Turns on or off model validation before translating.
+     * Default `false`.
+     */
+    enableValidation?: boolean,
+
+    /**
      * Function to extract model object from payload.
      * As default, model object is the payload itself.
      */
@@ -27,13 +33,14 @@ function translateModel(payload: any, opts: PayloadModelOptions): any {
     if (!payload) { return null }
 
     const { ModelClass, isPartial, extractFn } = opts
+    const enableValidation = opts.enableValidation != null ? opts.enableValidation : false
     const rawModel = Boolean(extractFn) ? extractFn(payload) : payload
 
     if (typeof rawModel === 'object' && ModelClass) {
         Guard.assertArgDefined(`${ModelClass}.translator`, ModelClass['translator'])
         const translator: IModelAutoMapper<any> = ModelClass['translator']
         const func: Function = (!!isPartial) ? translator.partial : translator.whole
-        return func.call(translator, rawModel)
+        return func.call(translator, rawModel, { enableValidation })
     }
     return rawModel
 }

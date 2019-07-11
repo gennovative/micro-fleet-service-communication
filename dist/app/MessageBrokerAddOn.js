@@ -13,7 +13,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const common_1 = require("@micro-fleet/common");
-const Types_1 = require("./Types");
+const Types_1 = require("./constants/Types");
 const { MbSettingKeys: S } = common_1.constants;
 let MessageBrokerAddOn = class MessageBrokerAddOn {
     constructor(_configProvider, _msgBrokerCnn) {

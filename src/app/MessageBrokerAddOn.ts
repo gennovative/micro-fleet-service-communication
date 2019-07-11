@@ -2,7 +2,7 @@ import { IConfigurationProvider, Types as ConT, constants, injectable,
     inject, Guard } from '@micro-fleet/common'
 
 import { IMessageBrokerConnector, MessageBrokerConnectionOptions} from './MessageBrokerConnector'
-import { Types as T } from './Types'
+import { Types as T } from './constants/Types'
 
 const { MbSettingKeys: S } = constants
 

@@ -7,12 +7,13 @@ function translateModel(payload, opts) {
         return null;
     }
     const { ModelClass, isPartial, extractFn } = opts;
+    const enableValidation = opts.enableValidation != null ? opts.enableValidation : false;
     const rawModel = Boolean(extractFn) ? extractFn(payload) : payload;
     if (typeof rawModel === 'object' && ModelClass) {
         common_1.Guard.assertArgDefined(`${ModelClass}.translator`, ModelClass['translator']);
         const translator = ModelClass['translator'];
         const func = (!!isPartial) ? translator.partial : translator.whole;
-        return func.call(translator, rawModel);
+        return func.call(translator, rawModel, { enableValidation });
     }
     return rawModel;
 }

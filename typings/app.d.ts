@@ -455,9 +455,11 @@ declare module '@micro-fleet/service-communication/dist/app/MessageBrokerConnect
 	    	    	    	    	    	    	    	    	    	    	    	    	    	}
 
 }
-declare module '@micro-fleet/service-communication/dist/app/Types' {
+declare module '@micro-fleet/service-communication/dist/app/constants/Types' {
 	export class Types {
 	    static readonly BROKER_ADDON = "service-communication.MessageBrokerAddOn";
+	    static readonly RPC_CALLER = "service-communication.IRpcCaller";
+	    static readonly RPC_HANDLER = "service-communication.IRpcHandler";
 	    static readonly DIRECT_RPC_CALLER = "service-communication.IDirectRpcCaller";
 	    static readonly DIRECT_RPC_HANDLER = "service-communication.IDirectRpcHandler";
 	    static readonly MEDIATE_RPC_CALLER = "service-communication.IMediateRpcCaller";
@@ -597,6 +599,11 @@ declare module '@micro-fleet/service-communication/dist/app/decorators/payload' 
 	     * Default: false
 	     */
 	    isPartial?: boolean;
+	    /**
+	     * Turns on or off model validation before translating.
+	     * Default `false`.
+	     */
+	    enableValidation?: boolean;
 	    /**
 	     * Function to extract model object from payload.
 	     * As default, model object is the payload itself.
@@ -947,6 +954,6 @@ declare module '@micro-fleet/service-communication' {
 	export * from '@micro-fleet/service-communication/dist/app/mediate/MediateRpcHandlerAddOnBase';
 	export * from '@micro-fleet/service-communication/dist/app/MessageBrokerAddOn';
 	export * from '@micro-fleet/service-communication/dist/app/MessageBrokerConnector';
-	export * from '@micro-fleet/service-communication/dist/app/Types';
+	export * from '@micro-fleet/service-communication/dist/app/constants/Types';
 
 }

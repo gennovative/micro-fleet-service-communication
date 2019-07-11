@@ -16,7 +16,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const common_1 = require("@micro-fleet/common");
 const DirectRpcHandlerAddOnBase_1 = require("./DirectRpcHandlerAddOnBase");
 const controller_1 = require("../constants/controller");
-const Types_1 = require("../Types");
+const Types_1 = require("../constants/Types");
 const MetaData_1 = require("../constants/MetaData");
 const ControllerHunter_1 = require("../ControllerHunter");
 /**

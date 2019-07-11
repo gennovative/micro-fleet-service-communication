@@ -3,7 +3,7 @@ const debug: debug.IDebugger = require('debug')('mcft:svccom:MessageBrokerRpcHan
 
 import { injectable, inject, Guard, ValidationError } from '@micro-fleet/common'
 
-import { Types as T } from '../Types'
+import { Types as T } from '../constants/Types'
 import { IMessageBrokerConnector, BrokerMessage } from '../MessageBrokerConnector'
 import * as rpc from '../RpcCommon'
 
