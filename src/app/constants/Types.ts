@@ -1,10 +1,12 @@
-export class Types {
-    public static readonly BROKER_ADDON = 'service-communication.MessageBrokerAddOn'
-    public static readonly RPC_CALLER = 'service-communication.IRpcCaller'
-    public static readonly RPC_HANDLER = 'service-communication.IRpcHandler'
-    public static readonly DIRECT_RPC_CALLER = 'service-communication.IDirectRpcCaller'
-    public static readonly DIRECT_RPC_HANDLER = 'service-communication.IDirectRpcHandler'
-    public static readonly MEDIATE_RPC_CALLER = 'service-communication.IMediateRpcCaller'
-    public static readonly MEDIATE_RPC_HANDLER = 'service-communication.IMediateRpcHandler'
-    public static readonly MSG_BROKER_CONNECTOR = 'service-communication.IMessageBrokerConnector'
+export enum Types {
+    BROKER_ADDON = 'service-communication.MessageBrokerAddOn',
+    RPC_CALLER = 'service-communication.IRpcCaller',
+    RPC_HANDLER = 'service-communication.IRpcHandler',
+    DIRECT_RPC_HANDLER_ADDON = 'service-communication.DirectRpcHandlerAddOn',
+    DIRECT_RPC_CALLER = 'service-communication.IDirectRpcCaller',
+    DIRECT_RPC_HANDLER = 'service-communication.IDirectRpcHandler',
+    MEDIATE_RPC_HANDLER_ADDON = 'service-communication.MediateRpcHandlerAddOn',
+    MEDIATE_RPC_CALLER = 'service-communication.IMediateRpcCaller',
+    MEDIATE_RPC_HANDLER = 'service-communication.IMediateRpcHandler',
+    MSG_BROKER_CONNECTOR = 'service-communication.IMessageBrokerConnector',
 }

@@ -2,6 +2,7 @@
 
 import { MetaData } from '../constants/MetaData'
 import { RpcHandlerParams } from '../RpcCommon'
+import { Newable } from '@micro-fleet/common';
 
 
 export type ParseFunction = (input: string) => any

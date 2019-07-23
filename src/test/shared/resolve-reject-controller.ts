@@ -81,13 +81,13 @@ export class ResolveRejectController {
 
 
     @d.action(ACT_MANUAL_SYNC)
-    public getManualSync(@d.resolveFn() resolve: PromiseResolveFn): void {
+    public getManualSync(@d.resolveFn() resolve: Function): void {
         this.spyFn()
         resolve(RES_MANUAL_SYNC)
     }
 
     @d.action(ACT_MANUAL_ASYNC)
-    public getManualAsync(@d.resolveFn() resolve: PromiseResolveFn): void {
+    public getManualAsync(@d.resolveFn() resolve: Function): void {
         this.spyFn()
         setTimeout(() => {
             resolve(RES_MANUAL_ASYNC)
@@ -96,8 +96,8 @@ export class ResolveRejectController {
 
     @d.action(ACT_MANUAL_SYNC_ERROR)
     public getManualFailSync(
-            @d.resolveFn() resolve: PromiseResolveFn,
-            @d.rejectFn() reject: PromiseRejectFn,
+            @d.resolveFn() resolve: Function,
+            @d.rejectFn() reject: Function,
         ): void {
 
         this.spyFn()
@@ -106,8 +106,8 @@ export class ResolveRejectController {
 
     @d.action(ACT_MANUAL_ASYNC_ERROR)
     public async getManualFailAsync(
-            @d.resolveFn() resolveFn: PromiseResolveFn,
-            @d.rejectFn() rejectFn: PromiseRejectFn,
+            @d.resolveFn() resolveFn: Function,
+            @d.rejectFn() rejectFn: Function,
         ): Promise<void> {
 
         this.spyFn()
@@ -119,13 +119,13 @@ export class ResolveRejectController {
     }
 
     @d.action(ACT_MANUAL_SYNC_REJECT)
-    public getManualRejectSync(@d.rejectFn() reject: PromiseRejectFn): void {
+    public getManualRejectSync(@d.rejectFn() reject: Function): void {
         this.spyFn()
         reject(RES_MANUAL_SYNC_REJECT)
     }
 
     @d.action(ACT_MANUAL_ASYNC_REJECT)
-    public async getManualRejectAsync(@d.rejectFn() reject: PromiseRejectFn): Promise<void> {
+    public async getManualRejectAsync(@d.rejectFn() reject: Function): Promise<void> {
         this.spyFn()
         setTimeout(() => {
             reject(RES_MANUAL_ASYNC_REJECT)

@@ -1,5 +1,6 @@
 /// <reference path="./global.d.ts" />
 declare module '@micro-fleet/service-communication/dist/app/constants/controller' {
+	import { Newable } from '@micro-fleet/common';
 	export const INVERSIFY_INJECTABLE = "inversify:paramtypes";
 	export type ControllerExports = {
 	    [name: string]: Newable;
@@ -84,11 +85,11 @@ declare module '@micro-fleet/service-communication/dist/app/RpcCommon' {
 	    /**
 	     * Responds with success state.
 	     */
-	    resolve: PromiseResolveFn;
+	    resolve: Function;
 	    /**
 	     * Responds with failure state.
 	     */
-	    reject: PromiseRejectFn;
+	    reject: Function;
 	    /**
 	     * The RPC request that contains payload.
 	     */
@@ -182,6 +183,7 @@ declare module '@micro-fleet/service-communication/dist/app/RpcCommon' {
 }
 declare module '@micro-fleet/service-communication/dist/app/decorators/param-decor-base' {
 	import { RpcHandlerParams } from '@micro-fleet/service-communication/dist/app/RpcCommon';
+	import { Newable } from '@micro-fleet/common';
 	export type ParseFunction = (input: string) => any;
 	export type DecorateParamOptions = {
 	    /**
@@ -232,7 +234,7 @@ declare module '@micro-fleet/service-communication/dist/app/decorators/rejectFn'
 
 }
 declare module '@micro-fleet/service-communication/dist/app/ControllerHunter' {
-	import { IDependencyContainer, Maybe } from '@micro-fleet/common';
+	import { IDependencyContainer, Maybe, Newable } from '@micro-fleet/common';
 	import { ControllerCreationStrategy, ControllerExports } from '@micro-fleet/service-communication/dist/app/constants/controller';
 	import { IRpcHandler, RpcHandlerFunction, RpcHandlerParams } from '@micro-fleet/service-communication/dist/app/RpcCommon';
 	export class ControllerHunter {
@@ -456,20 +458,22 @@ declare module '@micro-fleet/service-communication/dist/app/MessageBrokerConnect
 
 }
 declare module '@micro-fleet/service-communication/dist/app/constants/Types' {
-	export class Types {
-	    static readonly BROKER_ADDON = "service-communication.MessageBrokerAddOn";
-	    static readonly RPC_CALLER = "service-communication.IRpcCaller";
-	    static readonly RPC_HANDLER = "service-communication.IRpcHandler";
-	    static readonly DIRECT_RPC_CALLER = "service-communication.IDirectRpcCaller";
-	    static readonly DIRECT_RPC_HANDLER = "service-communication.IDirectRpcHandler";
-	    static readonly MEDIATE_RPC_CALLER = "service-communication.IMediateRpcCaller";
-	    static readonly MEDIATE_RPC_HANDLER = "service-communication.IMediateRpcHandler";
-	    static readonly MSG_BROKER_CONNECTOR = "service-communication.IMessageBrokerConnector";
+	export enum Types {
+	    BROKER_ADDON = "service-communication.MessageBrokerAddOn",
+	    RPC_CALLER = "service-communication.IRpcCaller",
+	    RPC_HANDLER = "service-communication.IRpcHandler",
+	    DIRECT_RPC_HANDLER_ADDON = "service-communication.DirectRpcHandlerAddOn",
+	    DIRECT_RPC_CALLER = "service-communication.IDirectRpcCaller",
+	    DIRECT_RPC_HANDLER = "service-communication.IDirectRpcHandler",
+	    MEDIATE_RPC_HANDLER_ADDON = "service-communication.MediateRpcHandlerAddOn",
+	    MEDIATE_RPC_CALLER = "service-communication.IMediateRpcCaller",
+	    MEDIATE_RPC_HANDLER = "service-communication.IMediateRpcHandler",
+	    MSG_BROKER_CONNECTOR = "service-communication.IMessageBrokerConnector"
 	}
 
 }
 declare module '@micro-fleet/service-communication/dist/app/MessageBrokerAddOn' {
-	import { IConfigurationProvider } from '@micro-fleet/common';
+	import { IConfigurationProvider, IServiceAddOn } from '@micro-fleet/common';
 	import { IMessageBrokerConnector } from '@micro-fleet/service-communication/dist/app/MessageBrokerConnector';
 	export class MessageBrokerAddOn implements IServiceAddOn {
 	    	    	    readonly name: string;
@@ -520,6 +524,7 @@ declare module '@micro-fleet/service-communication/dist/app/decorators/action' {
 
 }
 declare module '@micro-fleet/service-communication/dist/app/decorators/filter' {
+	import { Newable } from '@micro-fleet/common';
 	/**
 	 * Provides operations to intercept HTTP requests to a controller.
 	 */
@@ -588,6 +593,7 @@ declare module '@micro-fleet/service-communication/dist/app/decorators/rpcReques
 
 }
 declare module '@micro-fleet/service-communication/dist/app/decorators/payload' {
+	import { Newable } from '@micro-fleet/common';
 	export type PayloadModelOptions = {
 	    /**
 	     * Result object will be instance of this class.
@@ -733,7 +739,7 @@ declare module '@micro-fleet/service-communication/dist/app/direct/DirectRpcHand
 
 }
 declare module '@micro-fleet/service-communication/dist/app/direct/DirectRpcHandlerAddOnBase' {
-	import { IConfigurationProvider } from '@micro-fleet/common';
+	import { IConfigurationProvider, IServiceAddOn } from '@micro-fleet/common';
 	import { IDirectRpcHandler } from '@micro-fleet/service-communication/dist/app/direct/DirectRpcHandler';
 	/**
 	 * Base class for DirectRpcAddOn.
@@ -794,34 +800,6 @@ declare module '@micro-fleet/service-communication/dist/app/direct/DefaultDirect
 	}
 
 }
-declare module '@micro-fleet/service-communication/dist/app/direct/DirectRpcCaller' {
-	import * as rpc from '@micro-fleet/service-communication/dist/app/RpcCommon';
-	export interface IDirectRpcCaller extends rpc.IRpcCaller {
-	    /**
-	     * IP address or host name including port number.
-	     * Do not include protocol (http, ftp...) because different class implementations
-	     * will prepend different protocols.
-	     */
-	    baseAddress: string;
-	}
-	export class HttpRpcCaller extends rpc.RpcCallerBase implements IDirectRpcCaller {
-	    	    	    constructor();
-	    baseAddress: string;
-	    /**
-	     * @see IRpcCaller.init
-	     */
-	    init(param?: any): void;
-	    /**
-	     * @see IRpcCaller.dispose
-	     */
-	    dispose(): Promise<void>;
-	    /**
-	     * @see IRpcCaller.call
-	     */
-	    call(moduleName: string, action: string, params?: any): Promise<rpc.RpcResponse>;
-	}
-
-}
 declare module '@micro-fleet/service-communication/dist/app/mediate/MediateRpcHandler' {
 	import { IMessageBrokerConnector } from '@micro-fleet/service-communication/dist/app/MessageBrokerConnector';
 	import * as rpc from '@micro-fleet/service-communication/dist/app/RpcCommon';
@@ -857,7 +835,7 @@ declare module '@micro-fleet/service-communication/dist/app/mediate/MediateRpcHa
 
 }
 declare module '@micro-fleet/service-communication/dist/app/mediate/MediateRpcHandlerAddOnBase' {
-	import { IConfigurationProvider } from '@micro-fleet/common';
+	import { IConfigurationProvider, IServiceAddOn } from '@micro-fleet/common';
 	import { IMediateRpcHandler } from '@micro-fleet/service-communication/dist/app/mediate/MediateRpcHandler';
 	/**
 	 * Base class for MediateRpcAddOn.
@@ -918,6 +896,41 @@ declare module '@micro-fleet/service-communication/dist/app/mediate/DefaultMedia
 	}
 
 }
+declare module '@micro-fleet/service-communication/dist/app/register-addon' {
+	import { IServiceAddOn } from '@micro-fleet/common';
+	export function registerMessageBrokerAddOn(): IServiceAddOn;
+	export function registerDirectHandlerAddOn(): IServiceAddOn;
+	export function registerMediateHandlerAddOn(): IServiceAddOn;
+
+}
+declare module '@micro-fleet/service-communication/dist/app/direct/DirectRpcCaller' {
+	import * as rpc from '@micro-fleet/service-communication/dist/app/RpcCommon';
+	export interface IDirectRpcCaller extends rpc.IRpcCaller {
+	    /**
+	     * IP address or host name including port number.
+	     * Do not include protocol (http, ftp...) because different class implementations
+	     * will prepend different protocols.
+	     */
+	    baseAddress: string;
+	}
+	export class HttpRpcCaller extends rpc.RpcCallerBase implements IDirectRpcCaller {
+	    	    	    constructor();
+	    baseAddress: string;
+	    /**
+	     * @see IRpcCaller.init
+	     */
+	    init(param?: any): void;
+	    /**
+	     * @see IRpcCaller.dispose
+	     */
+	    dispose(): Promise<void>;
+	    /**
+	     * @see IRpcCaller.call
+	     */
+	    call(moduleName: string, action: string, params?: any): Promise<rpc.RpcResponse>;
+	}
+
+}
 declare module '@micro-fleet/service-communication/dist/app/mediate/MediateRpcCaller' {
 	import { IMessageBrokerConnector } from '@micro-fleet/service-communication/dist/app/MessageBrokerConnector';
 	import * as rpc from '@micro-fleet/service-communication/dist/app/RpcCommon';
@@ -943,6 +956,7 @@ declare module '@micro-fleet/service-communication/dist/app/mediate/MediateRpcCa
 declare module '@micro-fleet/service-communication' {
 	import decoratorObj = require('@micro-fleet/service-communication/dist/app/decorators/index');
 	export const decorators: decoratorObj.Decorators;
+	export * from '@micro-fleet/service-communication/dist/app/register-addon';
 	export * from '@micro-fleet/service-communication/dist/app/RpcCommon';
 	export * from '@micro-fleet/service-communication/dist/app/direct/DefaultDirectRpcHandlerAddOn';
 	export * from '@micro-fleet/service-communication/dist/app/direct/DirectRpcCaller';

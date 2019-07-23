@@ -1,6 +1,6 @@
 /// <reference types="reflect-metadata" />
 
-import { Guard } from '@micro-fleet/common'
+import { Guard, Newable } from '@micro-fleet/common'
 
 import { MetaData } from '../constants/MetaData'
 

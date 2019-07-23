@@ -1,3 +1,4 @@
+import { Newable } from '@micro-fleet/common'
 
 export const INVERSIFY_INJECTABLE = 'inversify:paramtypes'
 

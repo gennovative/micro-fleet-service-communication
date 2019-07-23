@@ -5,6 +5,7 @@ function __export(m) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const decoratorObj = require("./decorators/index");
 exports.decorators = decoratorObj.decorators;
+__export(require("./register-addon"));
 __export(require("./RpcCommon"));
 __export(require("./direct/DefaultDirectRpcHandlerAddOn"));
 __export(require("./direct/DirectRpcCaller"));

@@ -13,12 +13,12 @@ const descriptor = {
 }
 
 /* istanbul ignore else */
-if (!global.gennova) {
+if (!global['gennova']) {
     descriptor.value = {}
     Object.defineProperty(global, 'gennova', descriptor)
 }
 
-const gennova = global.gennova
+const gennova = global['gennova']
 
 /* istanbul ignore else */
 if (!gennova['ValidationError']) {
@@ -120,12 +120,12 @@ export type RpcHandlerParams = {
     /**
      * Responds with success state.
      */
-    resolve: PromiseResolveFn,
+    resolve: Function,
 
     /**
      * Responds with failure state.
      */
-    reject: PromiseRejectFn,
+    reject: Function,
 
     /**
      * The RPC request that contains payload.
@@ -247,7 +247,7 @@ export abstract class RpcCallerBase {
 
     protected _rebuildError(error: RpcError): any {
         // Expect response.payload.type = MinorException | ValidationError...
-        const exception: Exception = new global.gennova[error.type](error.message)
+        const exception: Exception = new global['gennova'][error.type](error.message)
         exception.details = (typeof error.details === 'string')
             ? JSON.parse(error.details)
             : error.details

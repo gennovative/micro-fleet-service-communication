@@ -87,7 +87,7 @@ class MockMbConnector implements IMessageBrokerConnector {
         return Promise.resolve()
     }
 
-    public publish(topic: string, payload: string | Json | JsonArray, options?: MessageBrokerPublishOptions): Promise<void> {
+    public publish(topic: string, payload: any, options?: MessageBrokerPublishOptions): Promise<void> {
         return Promise.resolve()
     }
 

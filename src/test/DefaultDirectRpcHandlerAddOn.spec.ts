@@ -248,13 +248,13 @@ describe('DefaultDirectRpcHandlerAddOn', function() {
         it('Should stop accepting more request', (done) => {
             // Arrange
             const CALL_NUM = 5
-            const resolvers: PromiseResolveFn[] = []
+            const resolvers: Function[] = []
             let counter = 0
 
             addon.init()
                 .then(() => {
                     const controller = depContainer.resolve<dc.DirectNamedController>(dc.DirectNamedController.name)
-                    controller.getSomethingCb = (resolve: PromiseResolveFn) => {
+                    controller.getSomethingCb = (resolve: Function) => {
                         ++counter
                         resolvers.push(resolve)
                     }

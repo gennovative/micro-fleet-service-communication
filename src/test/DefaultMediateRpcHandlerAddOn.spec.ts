@@ -280,7 +280,7 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
             addon.init()
                 .then(() => {
                     const controller = depContainer.resolve<mc.MediateNamedController>(mc.MediateNamedController.name)
-                    controller.getSomethingCb = (resolve: PromiseResolveFn) => {
+                    controller.getSomethingCb = (resolve: Function) => {
                         const curCount = ++acceptCounter
                         console.log(`Accepted the ${curCount}-th request`)
                         resolve(curCount)
@@ -338,7 +338,7 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
             // Arrange
             const INIT_CALL_NUM = 3
             const MORE_CALL_NUM = 2
-            const resolvers: PromiseResolveFn[] = []
+            const resolvers: Function[] = []
             let acceptCounter = 0
             let resolveCounter = 0
             let i: number
@@ -346,7 +346,7 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
             addon.init()
                 .then(() => {
                     const controller = depContainer.resolve<mc.MediateNamedController>(mc.MediateNamedController.name)
-                    controller.getSomethingCb = (resolve: PromiseResolveFn) => {
+                    controller.getSomethingCb = (resolve: Function) => {
                         const curCount = ++acceptCounter
                         console.log(`Accepted the ${curCount}-th request`)
 

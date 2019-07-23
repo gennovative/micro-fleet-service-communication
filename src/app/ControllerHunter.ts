@@ -1,7 +1,7 @@
 import * as path from 'path'
 
 import { IDependencyContainer, Guard, CriticalException,
-    Maybe, HandlerContainer } from '@micro-fleet/common'
+    Maybe, HandlerContainer, Newable } from '@micro-fleet/common'
 
 import { ControllerCreationStrategy, ControllerExports } from './constants/controller'
 import { MetaData } from './constants/MetaData'
@@ -169,7 +169,7 @@ export class ControllerHunter {
         // Else, skip if resolve function is injected with @resolveFn
     }
 
-    // protected _autoReject(actionResult: any, reject: PromiseRejectFn): void {
+    // protected _autoReject(actionResult: any, reject: Function): void {
     //     if (!reject['REJECT_INJECTED']) {
     //         reject(actionResult)
     //     }

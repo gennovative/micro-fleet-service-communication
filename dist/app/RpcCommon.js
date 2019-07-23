@@ -18,11 +18,11 @@ const descriptor = {
     value: null,
 };
 /* istanbul ignore else */
-if (!global.gennova) {
+if (!global['gennova']) {
     descriptor.value = {};
     Object.defineProperty(global, 'gennova', descriptor);
 }
-const gennova = global.gennova;
+const gennova = global['gennova'];
 /* istanbul ignore else */
 if (!gennova['ValidationError']) {
     descriptor.value = common_1.ValidationError;
@@ -79,7 +79,7 @@ let RpcCallerBase = class RpcCallerBase {
     }
     _rebuildError(error) {
         // Expect response.payload.type = MinorException | ValidationError...
-        const exception = new global.gennova[error.type](error.message);
+        const exception = new global['gennova'][error.type](error.message);
         exception.details = (typeof error.details === 'string')
             ? JSON.parse(error.details)
             : error.details;

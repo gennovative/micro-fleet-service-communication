@@ -1,5 +1,5 @@
 import { IConfigurationProvider, constants,
-    injectable, unmanaged, Guard } from '@micro-fleet/common'
+    injectable, unmanaged, Guard, IServiceAddOn } from '@micro-fleet/common'
 
 import { IDirectRpcHandler } from './DirectRpcHandler'
 

@@ -616,7 +616,7 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
         }
     }
 
-    private buildMessage(payload: string | Json | JsonArray, options?: MessageBrokerPublishOptions): Array<any> {
+    private buildMessage(payload: any, options?: MessageBrokerPublishOptions): Array<any> {
         let msg: string
         options = options || {}
 

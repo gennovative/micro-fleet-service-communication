@@ -29,7 +29,7 @@ export class MediateNamedController {
     /**
      * A callback invoked every time method `getSomething` is called.
      */
-    public getSomethingCb: (resolve: PromiseResolveFn) => void
+    public getSomethingCb: (resolve: Function) => void
 
     constructor() {
         this.spyFn = chai.spy()
@@ -38,7 +38,7 @@ export class MediateNamedController {
     @d.action(ACT_DO_IT)
     public doSomething(
             @d.payload() payload: any,
-            @d.resolveFn() resolve: PromiseResolveFn,
+            @d.resolveFn() resolve: Function,
             @d.rpcRequest() rpcRequest: RpcRequest,
         ): void {
 
@@ -48,7 +48,7 @@ export class MediateNamedController {
 
     @d.action(ACT_GET_IT)
     public getSomething(
-            @d.resolveFn() resolve: PromiseResolveFn,
+            @d.resolveFn() resolve: Function,
             @d.rpcRequest() rpcRequest: RpcRequest,
         ): void {
 
@@ -67,7 +67,7 @@ export class MediateAutoController {
 
     @d.action()
     public refuseIt(
-            @d.rejectFn() reject: PromiseRejectFn,
+            @d.rejectFn() reject: Function,
             @d.rpcRequest() rpcRequest: RpcRequest,
         ): void {
 
@@ -77,7 +77,7 @@ export class MediateAutoController {
 
     @d.action()
     public exceptIt(
-            @d.rejectFn() reject: PromiseRejectFn,
+            @d.rejectFn() reject: Function,
             @d.rpcRequest() rpcRequest: RpcRequest,
         ): void {
 
@@ -87,7 +87,7 @@ export class MediateAutoController {
 
     @d.action()
     public objectifyIt(
-            @d.rejectFn() reject: PromiseRejectFn,
+            @d.rejectFn() reject: Function,
             @d.rpcRequest() rpcRequest: RpcRequest,
         ): void {
 

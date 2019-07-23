@@ -28,13 +28,13 @@ let MessageBrokerAddOn = class MessageBrokerAddOn {
      */
     init() {
         const cfgAdt = this._configProvider, opts = {
-            hostAddress: cfgAdt.get(S.MSG_BROKER_HOST).value,
+            hostAddress: cfgAdt.get(S.MSG_BROKER_HOST).tryGetValue('localhost'),
             username: cfgAdt.get(S.MSG_BROKER_USERNAME).value,
             password: cfgAdt.get(S.MSG_BROKER_PASSWORD).value,
             exchange: cfgAdt.get(S.MSG_BROKER_EXCHANGE).value,
             queue: cfgAdt.get(S.MSG_BROKER_QUEUE).value,
-            reconnectDelay: cfgAdt.get(S.MSG_BROKER_RECONN_TIMEOUT).value,
-            messageExpiredIn: cfgAdt.get(S.MSG_BROKER_RECONN_TIMEOUT).value,
+            reconnectDelay: cfgAdt.get(S.MSG_BROKER_RECONN_TIMEOUT).tryGetValue(3000),
+            messageExpiredIn: cfgAdt.get(S.MSG_BROKER_MSG_EXPIRE).tryGetValue(50000),
         };
         return this._msgBrokerCnn.connect(opts);
     }

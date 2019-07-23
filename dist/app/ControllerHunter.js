@@ -129,7 +129,7 @@ class ControllerHunter {
         }
         // Else, skip if resolve function is injected with @resolveFn
     }
-    // protected _autoReject(actionResult: any, reject: PromiseRejectFn): void {
+    // protected _autoReject(actionResult: any, reject: Function): void {
     //     if (!reject['REJECT_INJECTED']) {
     //         reject(actionResult)
     //     }

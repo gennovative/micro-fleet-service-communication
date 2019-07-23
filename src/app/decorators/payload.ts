@@ -1,4 +1,4 @@
-import { Guard, IModelAutoMapper } from '@micro-fleet/common'
+import { Guard, IModelAutoMapper, Newable } from '@micro-fleet/common'
 
 import { decorateParam } from './param-decor-base'
 

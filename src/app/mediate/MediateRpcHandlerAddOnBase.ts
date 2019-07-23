@@ -1,5 +1,5 @@
 import { IConfigurationProvider, constants, injectable, unmanaged,
-    Guard } from '@micro-fleet/common'
+    Guard, IServiceAddOn} from '@micro-fleet/common'
 
 import { IMediateRpcHandler } from './MediateRpcHandler'
 

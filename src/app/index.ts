@@ -2,6 +2,7 @@
 import decoratorObj = require('./decorators/index')
 export const decorators = decoratorObj.decorators
 
+export * from './register-addon'
 export * from './RpcCommon'
 export * from './direct/DefaultDirectRpcHandlerAddOn'
 export * from './direct/DirectRpcCaller'
