@@ -100,7 +100,11 @@ describe('MediateRpcHandler', function () {
             }
 
             // Act
-            rpcHandler.handle(moduleName, createAction, createHandler)
+            rpcHandler.handle({
+                moduleName,
+                actionName: createAction,
+                handler: createHandler,
+            })
 
             const replyTo = `response.${moduleName}.${createAction}@${correlationId}`
 
@@ -138,10 +142,18 @@ describe('MediateRpcHandler', function () {
             }
 
             // Act
-            rpcHandler.handle(moduleName, createAction, oldHandler)
+            rpcHandler.handle({
+                moduleName,
+                actionName: createAction,
+                handler: oldHandler,
+            })
 
             // Intentionally override old handler
-            rpcHandler.handle(moduleName, createAction, newHandler)
+            rpcHandler.handle({
+                moduleName,
+                actionName: createAction,
+                handler: newHandler,
+            })
 
             const replyTo = `response.${moduleName}.${createAction}@${correlationId}`
 
@@ -173,7 +185,11 @@ describe('MediateRpcHandler', function () {
             }
 
             // Act
-            rpcHandler.handle(moduleName, createAction, createHandler)
+            rpcHandler.handle({
+                moduleName,
+                actionName: createAction,
+                handler: createHandler,
+            })
 
             const replyTo = `response.${moduleName}.${createAction}@${correlationId}`
 
@@ -248,7 +264,11 @@ describe('MediateRpcHandler', function () {
                 })
                 // Register again... officially
                 .then(() => delay(() => {
-                    rpcHandler.handle(moduleName, createAction, createHandler)
+                    rpcHandler.handle({
+                        moduleName,
+                        actionName: createAction,
+                        handler: createHandler,
+                    })
                 }, 20)) // Delay time must be smaller than "messageExpiredIn"
         })
 
@@ -267,7 +287,11 @@ describe('MediateRpcHandler', function () {
             }
 
             // Act
-            rpcHandler.handle(moduleName, createAction, createHandler)
+            rpcHandler.handle({
+                moduleName,
+                actionName: createAction,
+                handler: createHandler,
+            })
 
             // Assert: Not handler's fault
             rpcHandler.onError(err => {
@@ -317,7 +341,11 @@ describe('MediateRpcHandler', function () {
             }
 
             // Act
-            rpcHandler.handle(moduleName, createAction, createHandler)
+            rpcHandler.handle({
+                moduleName,
+                actionName: createAction,
+                handler: createHandler,
+            })
 
             // Assert: Not handler's fault
             rpcHandler.onError(err => {
@@ -367,7 +395,11 @@ describe('MediateRpcHandler', function () {
             }
 
             // Act
-            rpcHandler.handle(moduleName, createAction, createHandler)
+            rpcHandler.handle({
+                moduleName,
+                actionName: createAction,
+                handler: createHandler,
+            })
 
             // Assert: Catch handler's fault
             rpcHandler.onError(err => {
@@ -415,7 +447,11 @@ describe('MediateRpcHandler', function () {
             }
 
             // Act
-            rpcHandler.handle(moduleName, createAction, createHandler)
+            rpcHandler.handle({
+                moduleName,
+                actionName: createAction,
+                handler: createHandler,
+            })
 
             // Assert: Catch handler's fault
             rpcHandler.onError(err => {
@@ -463,7 +499,11 @@ describe('MediateRpcHandler', function () {
             }
 
             // Act
-            rpcHandler.handle(moduleName, deleteAction, deleteHandler)
+            rpcHandler.handle({
+                moduleName,
+                actionName: deleteAction,
+                handler: deleteHandler,
+            })
 
             // Assert: Catch handler's fault
             rpcHandler.onError(err => {

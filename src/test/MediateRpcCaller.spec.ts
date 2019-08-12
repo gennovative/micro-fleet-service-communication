@@ -116,7 +116,11 @@ describe('MessageBrokerRpcCaller', function() {
                     done()
                 }))
                 // Act
-                .then(() => globalCaller.call(HANDLER_MODULE, ACTION, { text: TEXT }))
+                .then(() => globalCaller.call({
+                    moduleName: HANDLER_MODULE,
+                    actionName: ACTION,
+                    params: { text: TEXT },
+                }))
                 .catch(err => {
                     if (err.message == 'Response waiting timeout') { return }
                     console.error(err)
@@ -150,7 +154,10 @@ describe('MessageBrokerRpcCaller', function() {
                     })
                 }).then(() => {
                     // Act
-                    return globalCaller.call(HANDLER_MODULE, ACTION)
+                    return globalCaller.call({
+                        moduleName: HANDLER_MODULE,
+                        actionName: ACTION,
+                    })
                 })
                 .then((res: RpcResponse) => {
                     // Assert
@@ -225,7 +232,10 @@ describe('MessageBrokerRpcCaller', function() {
                 })
                 .then(() => {
                     // Act
-                    return globalCaller.call(HANDLER_MODULE, ACTION)
+                    return globalCaller.call({
+                        moduleName: HANDLER_MODULE,
+                        actionName: ACTION,
+                    })
                 })
                 .then((res: RpcResponse) => {
                     expect(res, 'Should NOT get any response!').not.to.exist
@@ -283,7 +293,10 @@ describe('MessageBrokerRpcCaller', function() {
                 .then(() => {
                     // Act
                     // Step 1
-                    return globalCaller.call(HANDLER_MODULE, ACTION)
+                    return globalCaller.call({
+                        moduleName: HANDLER_MODULE,
+                        actionName: ACTION,
+                    })
                 })
                 .then((res: RpcResponse) => {
                     expect(res, 'Should NOT get any response!').not.to.exist

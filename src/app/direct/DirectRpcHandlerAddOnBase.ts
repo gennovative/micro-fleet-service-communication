@@ -14,6 +14,8 @@ export abstract class DirectRpcHandlerAddOnBase implements IServiceAddOn {
 
     public abstract name: string
 
+    protected _errorHandler: (err: any) => void
+
     constructor(
         @unmanaged() protected _configProvider: IConfigurationProvider,
         @unmanaged() protected _rpcHandler: IDirectRpcHandler
@@ -28,6 +30,7 @@ export abstract class DirectRpcHandlerAddOnBase implements IServiceAddOn {
     public init(): Promise<void> {
         this._rpcHandler.name = this._configProvider.get(SvcS.SERVICE_SLUG).value as string
         this._rpcHandler.port = this._configProvider.get(RpcS.RPC_HANDLER_PORT).value as number
+        this._errorHandler && this._rpcHandler.onError(this._errorHandler)
         this._rpcHandler.init()
         return this.handleRequests()
             .then(() => this._rpcHandler.start())
@@ -37,7 +40,8 @@ export abstract class DirectRpcHandlerAddOnBase implements IServiceAddOn {
      * @see IServiceAddOn.deadLetter
      */
     public deadLetter(): Promise<void> {
-        return Promise.resolve()
+        return this._rpcHandler.pause()
+            .then(() => this._rpcHandler.dispose())
     }
 
     /**
@@ -50,6 +54,13 @@ export abstract class DirectRpcHandlerAddOnBase implements IServiceAddOn {
         return handler.dispose()
     }
 
+    /**
+     * Registers a listener to handle errors.
+     */
+    public onError(handler: (err: any) => void): this {
+        this._errorHandler = handler
+        return this
+    }
 
     protected abstract handleRequests(): Promise<any>
 }

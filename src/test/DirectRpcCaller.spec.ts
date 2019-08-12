@@ -79,8 +79,12 @@ describe('HttpRpcCaller', () => {
             })
 
             server = app.listen(3000, () => {
-                caller.call(HANDLER_NAME, ACTION, {
-                    msg: TEXT_REQUEST,
+                caller.call({
+                    moduleName: HANDLER_NAME,
+                    actionName: ACTION,
+                    params: {
+                        msg: TEXT_REQUEST,
+                    },
                 })
                 .then((res: RpcResponse) => {
                     // Assert
@@ -99,8 +103,12 @@ describe('HttpRpcCaller', () => {
             caller.name = CALLER_NAME
             caller.baseAddress = HANDLER_ADDR
 
-            caller.call(HANDLER_NAME, ACTION, {
-                msg: TEXT_REQUEST,
+            caller.call({
+                moduleName: HANDLER_NAME,
+                actionName: ACTION,
+                params: {
+                    msg: TEXT_REQUEST,
+                },
             })
             .then((res: RpcResponse) => {
                 // Assert

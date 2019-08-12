@@ -180,17 +180,17 @@ describe('MediateRpcHandlerAddOnBase', () => {
         })
     }) // END describe 'init'
 
-    describe('dispose', () => {
+    describe('deadLetter', () => {
         it('should call RPC handler.dispose', async () => {
             // Arrange
             const disconnectSpy = chai.spy.on(addon['_rpcHandler'], 'dispose')
 
             // Act
-            await addon.dispose()
+            await addon.deadLetter()
 
             // Assert
             expect(disconnectSpy).to.be.spy
             expect(disconnectSpy).to.be.called.once
         })
-    }) // END describe 'dispose'
+    }) // END describe 'deadLetter'
 })

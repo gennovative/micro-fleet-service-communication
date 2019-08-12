@@ -59,7 +59,11 @@ describe.skip('MediateRpcHandler', function() {
         }
 
         // Act
-        rpcHandler.handle(moduleName, createAction, createHandler)
+        rpcHandler.handle({
+                moduleName,
+                actionName: createAction,
+                handler: createHandler,
+            })
 
         // Assert
         const replyTo = `response.${moduleName}.${createAction}@${correlationId}`

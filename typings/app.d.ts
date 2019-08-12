@@ -46,6 +46,27 @@ declare module '@micro-fleet/service-communication/dist/app/RpcCommon' {
 	    to: string;
 	    payload: any;
 	};
+	export type RpcCallerOptions = {
+	    /**
+	     * Module name.
+	     * Is optionally used to build destination address.
+	     */
+	    moduleName?: string;
+	    /**
+	     * Action name.
+	     * Is optionally used to build destination address.
+	     */
+	    actionName?: string;
+	    /**
+	     * Destination address. If specified, this is used
+	     * instead of building from `moduleName` and `actionName`.
+	     */
+	    rawDest?: string;
+	    /**
+	     * Parameters to pass to function `actionName`
+	     */
+	    params?: any;
+	};
 	export interface IRpcCaller {
 	    /**
 	     * A name used in "from" and "to" request property.
@@ -66,17 +87,41 @@ declare module '@micro-fleet/service-communication/dist/app/RpcCommon' {
 	     */
 	    dispose(): Promise<void>;
 	    /**
-	     * Sends a request to `moduleName` to execute `action` with `params`.
-	     * @param moduleName The module to send request.
-	     * @param action The function name to call on `moduleName`.
-	     * @param params Parameters to pass to function `action`.
+	     * Sends a request to `moduleName` to execute `action` with `params`,
+	     * then WAITS for response.
 	     */
-	    call(moduleName: string, action: string, params?: any): Promise<RpcResponse>;
+	    call(options: RpcCallerOptions): Promise<RpcResponse>;
+	    /**
+	     * Sends a request to `moduleName` to execute `action` with `params`,
+	     * WITHOUT waiting for response.
+	     */
+	    callImpatient(options: RpcCallerOptions): Promise<void>;
 	    /**
 	     * Registers a listener to handle errors.
 	     */
 	    onError(handler: (err: any) => void): void;
 	}
+	export type RpcHandleOptions = {
+	    /**
+	     * Module name.
+	     * Is used to identify handers, and optionally to build destination address.
+	     */
+	    moduleName: string;
+	    /**
+	     * Action name.
+	     * Is used to identify handers, and optionally to build destination address.
+	     */
+	    actionName: string;
+	    /**
+	     * Destination address. If specified, this is used
+	     * instead of building from `moduleName` and `actionName`.
+	     */
+	    rawDest?: string;
+	    /**
+	     * Function to handle incoming packages.
+	     */
+	    handler: RpcHandlerFunction;
+	};
 	export type RpcHandlerParams = {
 	    /**
 	     * The data being sent.
@@ -111,11 +156,9 @@ declare module '@micro-fleet/service-communication/dist/app/RpcCommon' {
 	     */
 	    init(params?: any): Promise<void>;
 	    /**
-	     * Waits for incoming request, resolves an instance with `dependencyIdentifier`,
-	     * calls instance's `action` method. If `customAction` is specified,
-	     * calls instance's `customAction` instead.
+	     * Waits for incoming request, calls registered handler on message coming.
 	     */
-	    handle(module: string, actionName: string, handler: RpcHandlerFunction): Promise<void>;
+	    handle(options: RpcHandleOptions): Promise<void>;
 	    /**
 	     * Registers a listener to handle errors.
 	     */
@@ -170,7 +213,7 @@ declare module '@micro-fleet/service-communication/dist/app/RpcCommon' {
 	     */
 	    name: string;
 	    protected _emitter: EventEmitter;
-	    constructor(_depContainer?: IDependencyContainer);
+	    	    constructor(_depContainer?: IDependencyContainer);
 	    /**
 	     * @see IRpcHandler.onError
 	     */
@@ -233,10 +276,31 @@ declare module '@micro-fleet/service-communication/dist/app/decorators/rejectFn'
 	export function rejectFn(): Function;
 
 }
+declare module '@micro-fleet/service-communication/dist/app/decorators/action' {
+	export type ActionMetadata = {
+	    name: string;
+	    isRawDest: boolean;
+	};
+	/**
+	 * @param {string} name Action name, or full destination address if `isRawDest` is true
+	 * @param {boolean} isRawDest If true, use `name` as raw destination address.
+	 */
+	export type ActionDecorator = (name?: string, isRawDest?: boolean) => Function;
+	/**
+	 * Used to decorate action function of REST controller class.
+	 * @param {string} method Case-insensitive HTTP verb supported by Express
+	     *         (see full list at https://expressjs.com/en/4x/api.html#routing-methods)
+	 * @param {string} name Segment of URL pointing to this action.
+	 *         If not specified, it is default to be the action's function name.
+	 */
+	export function action(name?: string, isRawDest?: boolean): Function;
+
+}
 declare module '@micro-fleet/service-communication/dist/app/ControllerHunter' {
 	import { IDependencyContainer, Maybe, Newable } from '@micro-fleet/common';
 	import { ControllerCreationStrategy, ControllerExports } from '@micro-fleet/service-communication/dist/app/constants/controller';
 	import { IRpcHandler, RpcHandlerFunction, RpcHandlerParams } from '@micro-fleet/service-communication/dist/app/RpcCommon';
+	import { ActionMetadata } from '@micro-fleet/service-communication/dist/app/decorators/action';
 	export class ControllerHunter {
 	    	    	    	    /**
 	     * Gets or sets strategy when creating controller instance.
@@ -257,7 +321,7 @@ declare module '@micro-fleet/service-communication/dist/app/ControllerHunter' {
 	    protected _extractModuleName(CtrlClass: Newable): string;
 	    protected _assertValidController(ctrlName: string, CtrlClass: Newable): void;
 	    protected _initActions(CtrlClass: Newable, moduleName: string): Promise<void>;
-	    protected _extractActionRoute(CtrlClass: Newable, funcName: string): string;
+	    protected _extractActionMetadata(CtrlClass: Newable, funcName: string): ActionMetadata;
 	    protected _extractActionFromPrototype(prototype: any, name: string): Maybe<RpcHandlerFunction>;
 	    protected _proxyActionFunc(actionFunc: Function, CtrlClass: Newable): RpcHandlerFunction;
 	    protected _resolveParamValues(CtrlClass: Newable, actionName: string, params: RpcHandlerParams): Promise<any[]>;
@@ -302,12 +366,10 @@ declare module '@micro-fleet/service-communication/dist/app/MessageBrokerConnect
 	     */
 	    reconnectDelay?: number;
 	    /**
-	     * The default queue name to bind.
+	     * The queue name for RPC handler to bind.
 	     * If not specified or given falsey values (empty string, null,...), a queue with random name will be created.
-	     * IMessageBrokerConnector's implementation may allow connecting to many queues.
-	     * But each TopicMessageBrokerConnector instance connects to only one queue.
 	     */
-	    queue?: string;
+	    handlerQueue?: string;
 	    /**
 	     * Milliseconds to expire messages arriving in the queue.
 	     */
@@ -511,18 +573,6 @@ declare module '@micro-fleet/service-communication/dist/app/decorators/controlle
 	export function mediateController(moduleName?: string): Function;
 
 }
-declare module '@micro-fleet/service-communication/dist/app/decorators/action' {
-	export type ActionDecorator = (name?: string) => Function;
-	/**
-	 * Used to decorate action function of REST controller class.
-	 * @param {string} method Case-insensitive HTTP verb supported by Express
-	     *         (see full list at https://expressjs.com/en/4x/api.html#routing-methods)
-	 * @param {string} name Segment of URL pointing to this action.
-	 *         If not specified, it is default to be the action's function name.
-	 */
-	export function action(name?: string): Function;
-
-}
 declare module '@micro-fleet/service-communication/dist/app/decorators/filter' {
 	import { Newable } from '@micro-fleet/common';
 	/**
@@ -638,10 +688,8 @@ declare module '@micro-fleet/service-communication/dist/app/decorators/index' {
 	export type Decorators = {
 	    /**
 	     * Used to decorate action function of REST controller class.
-	     * @param {string} method Case-insensitive HTTP verb supported by Express
-	     *         (see full list at https://expressjs.com/en/4x/api.html#routing-methods)
-	     * @param {string} path Segment of URL pointing to this action.
-	     *         If not specified, it is default to be the action's function name.
+	     * @param {string} name Action name, or full destination address if `isRawDest` is true
+	     * @param {boolean} isRawDest If true, use `name` as raw destination address.
 	     */
 	    action: ActionDecorator;
 	    /**
@@ -734,7 +782,7 @@ declare module '@micro-fleet/service-communication/dist/app/direct/DirectRpcHand
 	    /**
 	     * @see IRpcHandler.handle
 	     */
-	    handle(moduleName: string, actionName: string, handler: rpc.RpcHandlerFunction): Promise<void>;
+	    handle({ moduleName, actionName, handler, rawDest }: rpc.RpcHandleOptions): Promise<void>;
 	    	}
 
 }
@@ -748,6 +796,7 @@ declare module '@micro-fleet/service-communication/dist/app/direct/DirectRpcHand
 	    protected _configProvider: IConfigurationProvider;
 	    protected _rpcHandler: IDirectRpcHandler;
 	    abstract name: string;
+	    protected _errorHandler: (err: any) => void;
 	    constructor(_configProvider: IConfigurationProvider, _rpcHandler: IDirectRpcHandler);
 	    /**
 	     * @see IServiceAddOn.init
@@ -761,6 +810,10 @@ declare module '@micro-fleet/service-communication/dist/app/direct/DirectRpcHand
 	     * @see IServiceAddOn.dispose
 	     */
 	    dispose(): Promise<void>;
+	    /**
+	     * Registers a listener to handle errors.
+	     */
+	    onError(handler: (err: any) => void): this;
 	    protected abstract handleRequests(): Promise<any>;
 	}
 
@@ -786,17 +839,9 @@ declare module '@micro-fleet/service-communication/dist/app/direct/DefaultDirect
 	     */
 	    controllerPath: string;
 	    /**
-	     * @see IServiceAddOn.deadLetter
-	     */
-	    deadLetter(): Promise<void>;
-	    /**
 	     * @override
 	     */
 	    protected handleRequests(): Promise<any>;
-	    /**
-	     * Registers a listener to handle errors.
-	     */
-	    onError(handler: (err: any) => void): void;
 	}
 
 }
@@ -828,9 +873,9 @@ declare module '@micro-fleet/service-communication/dist/app/mediate/MediateRpcHa
 	     */
 	    resume(): Promise<void>;
 	    /**
-	     * @see IMediateRpcHandler.handle
+	     * @see IRpcHandler.handle
 	     */
-	    handle(moduleName: string, actionName: string, handler: rpc.RpcHandlerFunction): Promise<void>;
+	    handle({ moduleName, actionName, handler, rawDest }: rpc.RpcHandleOptions): Promise<void>;
 	    	}
 
 }
@@ -844,6 +889,7 @@ declare module '@micro-fleet/service-communication/dist/app/mediate/MediateRpcHa
 	    protected _configProvider: IConfigurationProvider;
 	    protected _rpcHandler: IMediateRpcHandler;
 	    abstract name: string;
+	    protected _errorHandler: (err: any) => void;
 	    constructor(_configProvider: IConfigurationProvider, _rpcHandler: IMediateRpcHandler);
 	    /**
 	     * @see IServiceAddOn.init
@@ -857,6 +903,10 @@ declare module '@micro-fleet/service-communication/dist/app/mediate/MediateRpcHa
 	     * @see IServiceAddOn.dispose
 	     */
 	    dispose(): Promise<void>;
+	    /**
+	     * Registers a listener to handle errors.
+	     */
+	    onError(handler: (err: any) => void): this;
 	    protected abstract handleRequests(): Promise<any>;
 	}
 
@@ -882,25 +932,10 @@ declare module '@micro-fleet/service-communication/dist/app/mediate/DefaultMedia
 	     */
 	    controllerPath: string;
 	    /**
-	     * @see IServiceAddOn.deadLetter
-	     */
-	    deadLetter(): Promise<void>;
-	    /**
 	     * @override
 	     */
 	    protected handleRequests(): Promise<any>;
-	    /**
-	     * Registers a listener to handle errors.
-	     */
-	    onError(handler: (err: any) => void): void;
 	}
-
-}
-declare module '@micro-fleet/service-communication/dist/app/register-addon' {
-	import { IServiceAddOn } from '@micro-fleet/common';
-	export function registerMessageBrokerAddOn(): IServiceAddOn;
-	export function registerDirectHandlerAddOn(): IServiceAddOn;
-	export function registerMediateHandlerAddOn(): IServiceAddOn;
 
 }
 declare module '@micro-fleet/service-communication/dist/app/direct/DirectRpcCaller' {
@@ -927,7 +962,11 @@ declare module '@micro-fleet/service-communication/dist/app/direct/DirectRpcCall
 	    /**
 	     * @see IRpcCaller.call
 	     */
-	    call(moduleName: string, action: string, params?: any): Promise<rpc.RpcResponse>;
+	    call({ moduleName, actionName, params, rawDest }: rpc.RpcCallerOptions): Promise<rpc.RpcResponse>;
+	    /**
+	     * @see IRpcCaller.callImpatient
+	     */
+	    callImpatient(options: rpc.RpcCallerOptions): Promise<void>;
 	}
 
 }
@@ -949,8 +988,22 @@ declare module '@micro-fleet/service-communication/dist/app/mediate/MediateRpcCa
 	    /**
 	     * @see IRpcCaller.call
 	     */
-	    call(moduleName: string, action: string, params?: any): Promise<rpc.RpcResponse>;
+	    call({ moduleName, actionName, params, rawDest }: rpc.RpcCallerOptions): Promise<rpc.RpcResponse>;
+	    /**
+	     * @see IRpcCaller.callImpatient
+	     */
+	    callImpatient({ moduleName, actionName, params, rawDest }: rpc.RpcCallerOptions): Promise<void>;
 	}
+
+}
+declare module '@micro-fleet/service-communication/dist/app/register-addon' {
+	import { IServiceAddOn } from '@micro-fleet/common';
+	import { MediateRpcHandlerAddOnBase } from '@micro-fleet/service-communication/dist/app/mediate/MediateRpcHandlerAddOnBase';
+	export function registerMessageBrokerAddOn(): IServiceAddOn;
+	export function registerDirectHandlerAddOn(): IServiceAddOn;
+	export function registerDirectCaller(): void;
+	export function registerMediateHandlerAddOn(): MediateRpcHandlerAddOnBase;
+	export function registerMediateCaller(): void;
 
 }
 declare module '@micro-fleet/service-communication' {

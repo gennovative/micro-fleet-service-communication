@@ -30,6 +30,7 @@ let DirectRpcHandlerAddOnBase = class DirectRpcHandlerAddOnBase {
     init() {
         this._rpcHandler.name = this._configProvider.get(SvcS.SERVICE_SLUG).value;
         this._rpcHandler.port = this._configProvider.get(RpcS.RPC_HANDLER_PORT).value;
+        this._errorHandler && this._rpcHandler.onError(this._errorHandler);
         this._rpcHandler.init();
         return this.handleRequests()
             .then(() => this._rpcHandler.start());
@@ -38,7 +39,8 @@ let DirectRpcHandlerAddOnBase = class DirectRpcHandlerAddOnBase {
      * @see IServiceAddOn.deadLetter
      */
     deadLetter() {
-        return Promise.resolve();
+        return this._rpcHandler.pause()
+            .then(() => this._rpcHandler.dispose());
     }
     /**
      * @see IServiceAddOn.dispose
@@ -48,6 +50,13 @@ let DirectRpcHandlerAddOnBase = class DirectRpcHandlerAddOnBase {
         const handler = this._rpcHandler;
         this._rpcHandler = null;
         return handler.dispose();
+    }
+    /**
+     * Registers a listener to handle errors.
+     */
+    onError(handler) {
+        this._errorHandler = handler;
+        return this;
     }
 };
 DirectRpcHandlerAddOnBase = __decorate([

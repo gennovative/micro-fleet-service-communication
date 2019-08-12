@@ -73,13 +73,17 @@ class ControllerHunter {
         // tslint:disable-next-line:prefer-const
         for (let [, actFn] of allFunctions) {
             const proxyFn = this._proxyActionFunc(actFn, CtrlClass);
-            const route = this._extractActionRoute(CtrlClass, actFn.name);
-            await this._rpcHandler.handle(moduleName, route, proxyFn);
+            const metadata = this._extractActionMetadata(CtrlClass, actFn.name);
+            await this._rpcHandler.handle({
+                moduleName,
+                actionName: metadata.isRawDest ? null : metadata.name,
+                rawDest: metadata.isRawDest ? metadata.name : null,
+                handler: proxyFn,
+            });
         }
     }
-    _extractActionRoute(CtrlClass, funcName) {
-        const [actionRoute] = this._getMetadata(MetaData_1.MetaData.ACTION, CtrlClass, funcName);
-        return actionRoute;
+    _extractActionMetadata(CtrlClass, funcName) {
+        return this._getMetadata(MetaData_1.MetaData.ACTION, CtrlClass, funcName);
     }
     _extractActionFromPrototype(prototype, name) {
         if (!prototype || !name) {

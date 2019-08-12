@@ -57,12 +57,16 @@ export class HttpRpcCaller
     /**
      * @see IRpcCaller.call
      */
-    public call(moduleName: string, action: string, params?: any): Promise<rpc.RpcResponse> {
-        Guard.assertArgDefined('moduleName', moduleName)
-        Guard.assertArgDefined('action', action)
+    public call({ moduleName, actionName, params, rawDest }: rpc.RpcCallerOptions): Promise<rpc.RpcResponse> {
+        if (!rawDest) {
+            Guard.assertArgDefined('moduleName', moduleName)
+            Guard.assertArgDefined('actionName', actionName)
+        }
         Guard.assertIsDefined(this._baseAddress, 'Base URL must be set!')
 
-        const uri = `http://${this._baseAddress}/${moduleName}/${action}`
+        const uri = Boolean(rawDest)
+            ? `http://${this._baseAddress}/${rawDest}`
+            : `http://${this._baseAddress}/${moduleName}/${actionName}`
         debug(`Calling: ${uri}`)
         const rpcRequest: rpc.RpcRequest = {
                 from: this.name,
@@ -98,5 +102,13 @@ export class HttpRpcCaller
                 }
                 return Promise.reject(ex)
             })
+    }
+
+    /**
+     * @see IRpcCaller.callImpatient
+     */
+    public callImpatient(options: rpc.RpcCallerOptions): Promise<void> {
+        this.call(options)
+        return Promise.resolve()
     }
 }

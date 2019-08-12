@@ -50,12 +50,10 @@ export type MessageBrokerConnectionOptions = {
     reconnectDelay?: number;
 
     /**
-     * The default queue name to bind.
+     * The queue name for RPC handler to bind.
      * If not specified or given falsey values (empty string, null,...), a queue with random name will be created.
-     * IMessageBrokerConnector's implementation may allow connecting to many queues.
-     * But each TopicMessageBrokerConnector instance connects to only one queue.
      */
-    queue?: string;
+    handlerQueue?: string;
 
     /**
      * Milliseconds to expire messages arriving in the queue.
@@ -239,7 +237,7 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
         let credentials = ''
 
         this._exchange = options.exchange
-        this.queue = options.queue
+        this.queue = options.handlerQueue
         this.messageExpiredIn = options.messageExpiredIn
         this._isConnecting = true
 
@@ -285,6 +283,9 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
                 // Close publishing channel
                 promises.push(ch.close())
             }
+
+            // This causes `isListening` to be false
+            this._consumerTag = null
 
             // Make sure all channels are closed before we close connection.
             // Otherwise we will have dangling channels until application shuts down.

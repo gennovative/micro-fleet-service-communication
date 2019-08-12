@@ -3,7 +3,13 @@
 import { MetaData } from '../constants/MetaData'
 
 
-export type ActionDecorator = (name?: string) => Function
+export type ActionMetadata = { name: string, isRawDest: boolean }
+
+/**
+ * @param {string} name Action name, or full destination address if `isRawDest` is true
+ * @param {boolean} isRawDest If true, use `name` as raw destination address.
+ */
+export type ActionDecorator = (name?: string, isRawDest?: boolean) => Function
 
 /**
  * Used to decorate action function of REST controller class.
@@ -12,13 +18,14 @@ export type ActionDecorator = (name?: string) => Function
  * @param {string} name Segment of URL pointing to this action.
  *         If not specified, it is default to be the action's function name.
  */
-export function action(name?: string): Function {
+export function action(name?: string, isRawDest: boolean = false): Function {
     return function (proto: any, funcName: string): Function {
         if (!name) {
             name = funcName
         }
 
-        Reflect.defineMetadata(MetaData.ACTION, [ name ], proto.constructor, funcName)
+        const metadata: ActionMetadata = { name, isRawDest }
+        Reflect.defineMetadata(MetaData.ACTION, metadata, proto.constructor, funcName)
         return proto
     }
 }

@@ -24,6 +24,11 @@ if (!global['gennova']) {
 }
 const gennova = global['gennova'];
 /* istanbul ignore else */
+if (!gennova['BusinessInvariantError']) {
+    descriptor.value = common_1.BusinessInvariantError;
+    Object.defineProperty(gennova, 'BusinessInvariantError', descriptor);
+}
+/* istanbul ignore else */
 if (!gennova['ValidationError']) {
     descriptor.value = common_1.ValidationError;
     Object.defineProperty(gennova, 'ValidationError', descriptor);
@@ -95,14 +100,19 @@ let RpcHandlerBase = class RpcHandlerBase {
     constructor(_depContainer) {
         this._depContainer = _depContainer;
         this._emitter = new events_1.EventEmitter();
+        this._hasErrHandler = false;
     }
     /**
      * @see IRpcHandler.onError
      */
     onError(handler) {
         this._emitter.on('error', handler);
+        this._hasErrHandler = true;
     }
     _emitError(err) {
+        if (!this._hasErrHandler) {
+            console.warn('No error handler registered. Emitted error will be thrown as exception.');
+        }
         this._emitter.emit('error', err);
     }
     _createResponse(isSuccess, payload, replyTo) {

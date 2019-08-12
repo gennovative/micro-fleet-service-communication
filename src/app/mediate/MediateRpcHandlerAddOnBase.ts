@@ -13,6 +13,8 @@ export abstract class MediateRpcHandlerAddOnBase implements IServiceAddOn {
 
     public abstract name: string
 
+    protected _errorHandler: (err: any) => void
+
     constructor(
         @unmanaged() protected _configProvider: IConfigurationProvider,
         @unmanaged() protected _rpcHandler: IMediateRpcHandler
@@ -27,6 +29,7 @@ export abstract class MediateRpcHandlerAddOnBase implements IServiceAddOn {
      */
     public async init(): Promise<void> {
         this._rpcHandler.name = this._configProvider.get(S.SERVICE_SLUG).value as string
+        this._errorHandler && this._rpcHandler.onError(this._errorHandler)
         await this._rpcHandler.init()
         await this.handleRequests()
         await this._rpcHandler.start()
@@ -36,7 +39,8 @@ export abstract class MediateRpcHandlerAddOnBase implements IServiceAddOn {
      * @see IServiceAddOn.deadLetter
      */
     public deadLetter(): Promise<void> {
-        return Promise.resolve()
+        return this._rpcHandler.pause()
+            .then(() => this._rpcHandler.dispose())
     }
 
     /**
@@ -44,9 +48,16 @@ export abstract class MediateRpcHandlerAddOnBase implements IServiceAddOn {
      */
     public dispose(): Promise<void> {
         this._configProvider = null
-        const handler = this._rpcHandler
         this._rpcHandler = null
-        return handler.dispose()
+        return Promise.resolve()
+    }
+
+    /**
+     * Registers a listener to handle errors.
+     */
+    public onError(handler: (err: any) => void): this {
+        this._errorHandler = handler
+        return this
     }
 
 

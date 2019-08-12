@@ -62,21 +62,22 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
         return this.start();
     }
     /**
-     * @see IMediateRpcHandler.handle
+     * @see IRpcHandler.handle
      */
-    async handle(moduleName, actionName, handler) {
+    async handle({ moduleName, actionName, handler, rawDest }) {
         common_1.Guard.assertIsDefined(this.name, '`name` property is required.');
-        const key = `${moduleName}.${actionName}`;
-        if (this._handlers.has(key)) {
-            debug(`MediateRpcHandler Warning: Override existing subscription key ${key}`);
+        const dest = Boolean(rawDest)
+            ? rawDest
+            : `request.${moduleName}.${actionName}`;
+        if (this._handlers.has(dest)) {
+            debug(`MediateRpcHandler Warning: Override existing subscription key ${dest}`);
         }
-        this._handlers.set(key, handler);
-        return this._msgBrokerConn.subscribe(`request.${key}`);
+        this._handlers.set(dest, handler);
+        return this._msgBrokerConn.subscribe(dest);
     }
     onMessage(msg, ack, nack) {
         const routingKey = msg.raw.fields.routingKey;
-        const key = routingKey.match(/[^\.]+\.[^\.]+$/)[0];
-        if (!this._handlers.has(key)) {
+        if (!this._handlers.has(routingKey)) {
             // Although we nack this message and re-queue it, it will come back
             // if it's not handled by any other service. And we jut keep nack-ing
             // it until the message expires.
@@ -93,7 +94,7 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
                 reason,
             });
             try {
-                const actionFn = this._handlers.get(key);
+                const actionFn = this._handlers.get(routingKey);
                 // Execute controller's action
                 await actionFn({
                     payload: request.payload,

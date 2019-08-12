@@ -69,7 +69,7 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
     connect(options) {
         let credentials = '';
         this._exchange = options.exchange;
-        this.queue = options.queue;
+        this.queue = options.handlerQueue;
         this.messageExpiredIn = options.messageExpiredIn;
         this._isConnecting = true;
         options.reconnectDelay = (options.reconnectDelay >= 0)
@@ -108,6 +108,8 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
                 // Close publishing channel
                 promises.push(ch.close());
             }
+            // This causes `isListening` to be false
+            this._consumerTag = null;
             // Make sure all channels are closed before we close connection.
             // Otherwise we will have dangling channels until application shuts down.
             await Promise.all(promises);

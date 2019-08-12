@@ -2,7 +2,7 @@ import { EventEmitter } from 'events'
 
 import { injectable, IDependencyContainer, CriticalException,
     MinorException, Exception, InternalErrorException,
-    ValidationError } from '@micro-fleet/common'
+    ValidationError, BusinessInvariantError } from '@micro-fleet/common'
 
 
 const descriptor = {
@@ -19,6 +19,12 @@ if (!global['gennova']) {
 }
 
 const gennova = global['gennova']
+
+/* istanbul ignore else */
+if (!gennova['BusinessInvariantError']) {
+    descriptor.value = BusinessInvariantError
+    Object.defineProperty(gennova, 'BusinessInvariantError', descriptor)
+}
 
 /* istanbul ignore else */
 if (!gennova['ValidationError']) {
@@ -71,6 +77,33 @@ export type RpcResponse = {
     payload: any
 }
 
+
+export type RpcCallerOptions = {
+    /**
+     * Module name.
+     * Is optionally used to build destination address.
+     */
+    moduleName?: string,
+
+    /**
+     * Action name.
+     * Is optionally used to build destination address.
+     */
+    actionName?: string,
+
+    /**
+     * Destination address. If specified, this is used
+     * instead of building from `moduleName` and `actionName`.
+     */
+    rawDest?: string,
+
+    /**
+     * Parameters to pass to function `actionName`
+     */
+    params?: any,
+}
+
+
 // Interface - RPC caller and handler
 
 export interface IRpcCaller {
@@ -97,12 +130,16 @@ export interface IRpcCaller {
     dispose(): Promise<void>
 
     /**
-     * Sends a request to `moduleName` to execute `action` with `params`.
-     * @param moduleName The module to send request.
-     * @param action The function name to call on `moduleName`.
-     * @param params Parameters to pass to function `action`.
+     * Sends a request to `moduleName` to execute `action` with `params`,
+     * then WAITS for response.
      */
-    call(moduleName: string, action: string, params?: any): Promise<RpcResponse>
+    call(options: RpcCallerOptions): Promise<RpcResponse>
+
+    /**
+     * Sends a request to `moduleName` to execute `action` with `params`,
+     * WITHOUT waiting for response.
+     */
+    callImpatient(options: RpcCallerOptions): Promise<void>
 
     /**
      * Registers a listener to handle errors.
@@ -110,6 +147,31 @@ export interface IRpcCaller {
     onError(handler: (err: any) => void): void
 }
 
+
+export type RpcHandleOptions = {
+    /**
+     * Module name.
+     * Is used to identify handers, and optionally to build destination address.
+     */
+    moduleName: string,
+
+    /**
+     * Action name.
+     * Is used to identify handers, and optionally to build destination address.
+     */
+    actionName: string,
+
+    /**
+     * Destination address. If specified, this is used
+     * instead of building from `moduleName` and `actionName`.
+     */
+    rawDest?: string,
+
+    /**
+     * Function to handle incoming packages.
+     */
+    handler: RpcHandlerFunction,
+}
 
 export type RpcHandlerParams = {
     /**
@@ -153,11 +215,9 @@ export interface IRpcHandler {
     init(params?: any): Promise<void>
 
     /**
-     * Waits for incoming request, resolves an instance with `dependencyIdentifier`,
-     * calls instance's `action` method. If `customAction` is specified,
-     * calls instance's `customAction` instead.
+     * Waits for incoming request, calls registered handler on message coming.
      */
-    handle(module: string, actionName: string, handler: RpcHandlerFunction): Promise<void>
+    handle(options: RpcHandleOptions): Promise<void>
 
     /**
      * Registers a listener to handle errors.
@@ -264,10 +324,12 @@ export abstract class RpcHandlerBase {
     public name: string
 
     protected _emitter: EventEmitter
+    private _hasErrHandler: boolean
 
 
     constructor(protected _depContainer?: IDependencyContainer) {
         this._emitter = new EventEmitter()
+        this._hasErrHandler = false
     }
 
 
@@ -276,10 +338,14 @@ export abstract class RpcHandlerBase {
      */
     public onError(handler: (err: any) => void): void {
         this._emitter.on('error', handler)
+        this._hasErrHandler = true
     }
 
 
     protected _emitError(err: any): void {
+        if (!this._hasErrHandler) {
+            console.warn('No error handler registered. Emitted error will be thrown as exception.')
+        }
         this._emitter.emit('error', err)
     }
 

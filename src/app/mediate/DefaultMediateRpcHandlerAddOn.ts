@@ -65,25 +65,10 @@ export class DefaultMediateRpcHandlerAddOn
 
 
     /**
-     * @see IServiceAddOn.deadLetter
-     */
-    public deadLetter(): Promise<void> {
-        return this._rpcHandler.pause()
-    }
-
-    /**
      * @override
      */
     protected async handleRequests(): Promise<any> {
         await this._controllerHunter.hunt()
-    }
-
-
-    /**
-     * Registers a listener to handle errors.
-     */
-    public onError(handler: (err: any) => void): void {
-        this._rpcHandler.onError(handler)
     }
 
 }

@@ -30,7 +30,7 @@ export class MessageBrokerAddOn implements IServiceAddOn {
                 username: cfgAdt.get(S.MSG_BROKER_USERNAME).value as string,
                 password: cfgAdt.get(S.MSG_BROKER_PASSWORD).value as string,
                 exchange: cfgAdt.get(S.MSG_BROKER_EXCHANGE).value as string,
-                queue: cfgAdt.get(S.MSG_BROKER_QUEUE).value as string,
+                handlerQueue: cfgAdt.get(S.MSG_BROKER_HANDLER_QUEUE).tryGetValue(null) as string,
                 reconnectDelay: cfgAdt.get(S.MSG_BROKER_RECONN_TIMEOUT).tryGetValue(3000) as number,
                 messageExpiredIn: cfgAdt.get(S.MSG_BROKER_MSG_EXPIRE).tryGetValue(50000) as number,
             }

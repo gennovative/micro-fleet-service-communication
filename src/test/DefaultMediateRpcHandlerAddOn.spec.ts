@@ -131,8 +131,12 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
 
             // Act
             try {
-                const res: RpcResponse = await caller.call(mc.MODULE_NAME, mc.ACT_DO_IT, {
-                    id: TEXT_REQUEST,
+                const res: RpcResponse = await caller.call({
+                    moduleName: mc.MODULE_NAME,
+                    actionName: mc.ACT_DO_IT,
+                    params: {
+                        id: TEXT_REQUEST,
+                    },
                 })
 
                 // Assert
@@ -153,7 +157,10 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
 
             // Act
             try {
-                const res: RpcResponse = await caller.call(mc.MODULE_NAME, mc.ACT_GET_IT)
+                const res: RpcResponse = await caller.call({
+                    moduleName: mc.MODULE_NAME,
+                    actionName: mc.ACT_GET_IT,
+                })
 
                 // Assert
                 expect(res).to.exist
@@ -180,7 +187,10 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
 
             // Act
             try {
-                const res: RpcResponse = await caller.call(AUTO_MODULE_NAME, mc.ACT_REFUSE_IT)
+                const res: RpcResponse = await caller.call({
+                    moduleName: AUTO_MODULE_NAME,
+                    actionName: mc.ACT_REFUSE_IT,
+                })
 
                 // Assert: Must not success
                 expect(res).to.exist
@@ -213,7 +223,10 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
 
             // Act
             try {
-                const res: RpcResponse = await caller.call(AUTO_MODULE_NAME, mc.ACT_EXCEPT_IT)
+                const res: RpcResponse = await caller.call({
+                    moduleName: AUTO_MODULE_NAME,
+                    actionName: mc.ACT_EXCEPT_IT,
+                })
 
                 // Assert
                 expect(res).to.exist
@@ -245,7 +258,10 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
 
             // Act
             try {
-                const res: RpcResponse = await caller.call(AUTO_MODULE_NAME, mc.ACT_OBJ_IT)
+                const res: RpcResponse = await caller.call({
+                    moduleName: AUTO_MODULE_NAME,
+                    actionName: mc.ACT_OBJ_IT,
+                })
 
                 // Assert
                 expect(res).to.exist
@@ -289,7 +305,10 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
                     caller.timeout = 3000
                     // Act 1
                     for (i = 1; i <= INIT_CALL_NUM; ++i) {
-                        caller.call(mc.MODULE_NAME, mc.ACT_GET_IT)
+                        caller.call({
+                            moduleName: mc.MODULE_NAME,
+                            actionName: mc.ACT_GET_IT,
+                        })
                     }
                     return sleep(3000) // Need more delay time than DirectHandler
                 })
@@ -307,14 +326,17 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
                     for (; i <= INIT_CALL_NUM + MORE_CALL_NUM; ++i) {
                         const cur = i
                         tasks.push(
-                            caller.call(mc.MODULE_NAME, mc.ACT_GET_IT)
-                                .then(res => expect(res).not.to.exist)
-                                .catch(err => {
-                                    expect(err).to.exist
-                                    expect(err.message).to.equal('Response waiting timeout')
-                                    ++rejectCounter
-                                    console.log(`Rejected the ${cur}-th request`)
-                                })
+                            caller.call({
+                                moduleName: mc.MODULE_NAME,
+                                actionName: mc.ACT_GET_IT,
+                            })
+                            .then(res => expect(res).not.to.exist)
+                            .catch(err => {
+                                expect(err).to.exist
+                                expect(err.message).to.equal('Response waiting timeout')
+                                ++rejectCounter
+                                console.log(`Rejected the ${cur}-th request`)
+                            })
                         )
                     }
                     return Promise.all(tasks)
@@ -360,10 +382,13 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
                     caller.timeout = 6000
                     // Act 1
                     for (i = 1; i <= INIT_CALL_NUM; ++i) {
-                        caller.call(mc.MODULE_NAME, mc.ACT_GET_IT)
-                            .then((res: RpcResponse) => {
-                                console.log(`Got the ${res.payload}-th response`)
-                            })
+                        caller.call({
+                            moduleName: mc.MODULE_NAME,
+                            actionName: mc.ACT_GET_IT,
+                        })
+                        .then((res: RpcResponse) => {
+                            console.log(`Got the ${res.payload}-th response`)
+                        })
                     }
                     return sleep(2000) // Need more delay time than DirectHandler
                 })
@@ -380,12 +405,15 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
                     caller.timeout = 3000
                     for (; i <= INIT_CALL_NUM + MORE_CALL_NUM; ++i) {
                         tasks.push(
-                            caller.call(mc.MODULE_NAME, mc.ACT_GET_IT)
-                                .then(res => expect(res).not.to.exist)
-                                .catch(err => {
-                                    expect(err).to.exist
-                                    expect(err.message).to.equal('Response waiting timeout')
-                                })
+                            caller.call({
+                                moduleName: mc.MODULE_NAME,
+                                actionName: mc.ACT_GET_IT,
+                            })
+                            .then(res => expect(res).not.to.exist)
+                            .catch(err => {
+                                expect(err).to.exist
+                                expect(err.message).to.equal('Response waiting timeout')
+                            })
                         )
                     }
                     return Promise.all(tasks)

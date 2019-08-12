@@ -1,3 +1,6 @@
+/// <reference types="debug" />
+const debug: debug.IDebugger = require('debug')('mcft:svccom:MessageBrokerRpcCaller')
+
 import * as shortid from 'shortid'
 import { injectable, inject, Guard, MinorException, InternalErrorException } from '@micro-fleet/common'
 
@@ -20,7 +23,9 @@ export class MessageBrokerRpcCaller
         super()
         Guard.assertArgDefined('_msgBrokerConn', _msgBrokerConn)
 
-        this._msgBrokerConn.queue = '' // Make sure we only use temporary unique queue.
+        if (this._msgBrokerConn.queue) {
+            debug('MessageBrokerRpcCaller should only use temporary unique queue.')
+        }
 
     }
 
@@ -46,15 +51,19 @@ export class MessageBrokerRpcCaller
     /**
      * @see IRpcCaller.call
      */
-    public call(moduleName: string, action: string, params?: any): Promise<rpc.RpcResponse> {
-        Guard.assertArgDefined('moduleName', moduleName)
-        Guard.assertArgDefined('action', action)
+    public call({ moduleName, actionName, params, rawDest }: rpc.RpcCallerOptions): Promise<rpc.RpcResponse> {
+        if (!rawDest) {
+            Guard.assertArgDefined('moduleName', moduleName)
+            Guard.assertArgDefined('actionName', actionName)
+        }
 
         return new Promise<rpc.RpcResponse>((resolve, reject) => {
             // There are many requests to same `requestTopic` and they listen to same `responseTopic`,
             // A request only cares about a response with same `correlationId`.
             const correlationId = shortid.generate(),
-                replyTo = `response.${moduleName}.${action}@${correlationId}`,
+                replyTo = Boolean(rawDest)
+                    ? `response.${rawDest}@${correlationId}`
+                    : `response.${moduleName}.${actionName}@${correlationId}`,
                 conn = this._msgBrokerConn
 
             conn.subscribe(replyTo)
@@ -98,12 +107,31 @@ export class MessageBrokerRpcCaller
                     }
 
                     // Send request, marking the message with correlationId.
-                    return this._msgBrokerConn.publish(`request.${moduleName}.${action}`, request,
+                    return conn.publish(rawDest || `request.${moduleName}.${actionName}`, request,
                         { correlationId, replyTo })
                 })
                 .catch(err => {
                     reject(new MinorException(`RPC error: ${err}`))
                 })
         })
+    }
+
+    /**
+     * @see IRpcCaller.callImpatient
+     */
+    public callImpatient({ moduleName, actionName, params, rawDest }: rpc.RpcCallerOptions): Promise<void> {
+        if (!rawDest) {
+            Guard.assertArgDefined('moduleName', moduleName)
+            Guard.assertArgDefined('actionName', actionName)
+        }
+        const request: rpc.RpcRequest = {
+            from: this.name,
+            to: moduleName,
+            payload: params,
+        }
+
+        // Send request, marking the message with correlationId.
+        return this._msgBrokerConn.publish(rawDest || `request.${moduleName}.${actionName}`, request)
+            .catch(err => new MinorException(`RPC error: ${err}`)) as any
     }
 }

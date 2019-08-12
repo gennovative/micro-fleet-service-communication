@@ -9,12 +9,13 @@ const MetaData_1 = require("../constants/MetaData");
  * @param {string} name Segment of URL pointing to this action.
  *         If not specified, it is default to be the action's function name.
  */
-function action(name) {
+function action(name, isRawDest = false) {
     return function (proto, funcName) {
         if (!name) {
             name = funcName;
         }
-        Reflect.defineMetadata(MetaData_1.MetaData.ACTION, [name], proto.constructor, funcName);
+        const metadata = { name, isRawDest };
+        Reflect.defineMetadata(MetaData_1.MetaData.ACTION, metadata, proto.constructor, funcName);
         return proto;
     };
 }

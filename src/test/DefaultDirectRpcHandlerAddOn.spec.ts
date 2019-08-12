@@ -2,7 +2,7 @@ import * as path from 'path'
 
 import * as chai from 'chai'
 import * as spies from 'chai-spies'
-import { StatusCodeError } from 'request-promise/errors'
+// import { StatusCodeError } from 'request-promise/errors'
 
 import { IConfigurationProvider, constants, Maybe,
     DependencyContainer, serviceContext, Types as CmT, MinorException, CriticalException,
@@ -107,8 +107,12 @@ describe('DefaultDirectRpcHandlerAddOn', function() {
 
             // Act
             try {
-                const res: RpcResponse = await caller.call(dc.MODULE_NAME, dc.ACT_DO_IT, {
-                    id: TEXT_REQUEST,
+                const res: RpcResponse = await caller.call({
+                    moduleName: dc.MODULE_NAME,
+                    actionName: dc.ACT_DO_IT,
+                    params: {
+                        id: TEXT_REQUEST,
+                    },
                 })
 
                 // Assert
@@ -129,7 +133,10 @@ describe('DefaultDirectRpcHandlerAddOn', function() {
 
             // Act
             try {
-                const res: RpcResponse = await caller.call(dc.MODULE_NAME, dc.ACT_GET_IT)
+                const res: RpcResponse = await caller.call({
+                    moduleName: dc.MODULE_NAME,
+                    actionName: dc.ACT_GET_IT,
+                })
 
                 // Assert
                 expect(res).to.exist
@@ -156,7 +163,10 @@ describe('DefaultDirectRpcHandlerAddOn', function() {
 
             // Act
             try {
-                const res: RpcResponse = await caller.call(AUTO_MODULE_NAME, dc.ACT_REFUSE_IT)
+                const res: RpcResponse = await caller.call({
+                    moduleName: AUTO_MODULE_NAME,
+                    actionName: dc.ACT_REFUSE_IT,
+                })
                 // Assert: Must have status 200 but isSuccess false
                 expect(res).to.exist
                 expect(res.isSuccess).to.be.false
@@ -189,7 +199,10 @@ describe('DefaultDirectRpcHandlerAddOn', function() {
 
             // Act
             try {
-                const res: RpcResponse = await caller.call(AUTO_MODULE_NAME, dc.ACT_EXCEPT_IT)
+                const res: RpcResponse = await caller.call({
+                    moduleName: AUTO_MODULE_NAME,
+                    actionName: dc.ACT_EXCEPT_IT,
+                })
 
                 // Assert
                 expect(res).to.exist
@@ -221,7 +234,10 @@ describe('DefaultDirectRpcHandlerAddOn', function() {
 
             // Act
             try {
-                const res: RpcResponse = await caller.call(AUTO_MODULE_NAME, dc.ACT_OBJ_IT)
+                const res: RpcResponse = await caller.call({
+                    moduleName: AUTO_MODULE_NAME,
+                    actionName: dc.ACT_OBJ_IT,
+                })
 
                 // Assert
                 expect(res).to.exist
@@ -245,25 +261,28 @@ describe('DefaultDirectRpcHandlerAddOn', function() {
 
 
     describe('deadLetter', () => {
-        it('Should stop accepting more request', (done) => {
+        it('Should stop accepting more request', function(done) {
+            this.timeout(50000)
             // Arrange
             const CALL_NUM = 5
-            const resolvers: Function[] = []
             let counter = 0
 
             addon.init()
-                .then(() => {
+                .then(async () => {
                     const controller = depContainer.resolve<dc.DirectNamedController>(dc.DirectNamedController.name)
                     controller.getSomethingCb = (resolve: Function) => {
                         ++counter
-                        resolvers.push(resolve)
+                        resolve()
                     }
 
                     // Act 1
                     for (let i = 0; i < CALL_NUM; ++i) {
-                        caller.call(dc.MODULE_NAME, dc.ACT_GET_IT)
+                        await caller.call({
+                            moduleName: dc.MODULE_NAME,
+                            actionName: dc.ACT_GET_IT,
+                        })
                     }
-                    return sleep(1000)
+                    // return sleep(1000)
                 })
                 .then(() => addon.deadLetter())
                 .then(async () => {
@@ -271,16 +290,20 @@ describe('DefaultDirectRpcHandlerAddOn', function() {
                     expect(counter).to.equal(CALL_NUM)
 
                     // Act 2
-                    for (let i = 0; i < CALL_NUM; ++i) {
-                        try {
-                            const res = await caller.call(dc.MODULE_NAME, dc.ACT_GET_IT)
-                            expect(res).not.to.exist
-                        }
-                        catch (err) {
-                            expect(err).to.exist
-                            expect((err.details as StatusCodeError).statusCode).to.equal(410) // Gone
-                        }
+                    let exception: MinorException
+                    try {
+                        const res = await caller.call({
+                            moduleName: dc.MODULE_NAME,
+                            actionName: dc.ACT_GET_IT,
+                        })
+                        expect(res).not.to.exist
                     }
+                    catch (err) {
+                        exception = err
+                    }
+                    expect(exception).to.exist
+                    expect(exception).to.be.instanceOf(MinorException)
+                    expect(exception.message).to.include('ECONNREFUSED')
                     return sleep(1000)
                 })
                 .then(() => {
@@ -292,8 +315,7 @@ describe('DefaultDirectRpcHandlerAddOn', function() {
                     err && console.error(err)
                     expect(err).to.not.exist
                 })
-                .finally(async () => {
-                    resolvers.forEach(resolve => resolve())
+                .finally(() => {
                     done()
                 })
         })

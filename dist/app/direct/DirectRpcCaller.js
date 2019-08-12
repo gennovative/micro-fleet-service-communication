@@ -41,11 +41,15 @@ let HttpRpcCaller = class HttpRpcCaller extends rpc.RpcCallerBase {
     /**
      * @see IRpcCaller.call
      */
-    call(moduleName, action, params) {
-        common_1.Guard.assertArgDefined('moduleName', moduleName);
-        common_1.Guard.assertArgDefined('action', action);
+    call({ moduleName, actionName, params, rawDest }) {
+        if (!rawDest) {
+            common_1.Guard.assertArgDefined('moduleName', moduleName);
+            common_1.Guard.assertArgDefined('actionName', actionName);
+        }
         common_1.Guard.assertIsDefined(this._baseAddress, 'Base URL must be set!');
-        const uri = `http://${this._baseAddress}/${moduleName}/${action}`;
+        const uri = Boolean(rawDest)
+            ? `http://${this._baseAddress}/${rawDest}`
+            : `http://${this._baseAddress}/${moduleName}/${actionName}`;
         debug(`Calling: ${uri}`);
         const rpcRequest = {
             from: this.name,
@@ -79,6 +83,13 @@ let HttpRpcCaller = class HttpRpcCaller extends rpc.RpcCallerBase {
             }
             return Promise.reject(ex);
         });
+    }
+    /**
+     * @see IRpcCaller.callImpatient
+     */
+    callImpatient(options) {
+        this.call(options);
+        return Promise.resolve();
     }
 };
 HttpRpcCaller = __decorate([

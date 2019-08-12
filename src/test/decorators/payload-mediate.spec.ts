@@ -71,8 +71,8 @@ let depContainer: DependencyContainer,
     addon: DefaultMediateRpcHandlerAddOn
 
 describe('@payload() - mediate', function() {
-    this.timeout(5000)
-    // this.timeout(60000) // For debugging
+    // this.timeout(5000)
+    this.timeout(60000) // For debugging
 
     beforeEach(() => {
         depContainer = new DependencyContainer()
@@ -120,17 +120,44 @@ describe('@payload() - mediate', function() {
         it('Should resolve the payload with @payload()', async () => {
             // Arrange
             const PAYLOAD = {
-                name: 'Resove me!',
+                name: 'Resolve me!',
             }
             await addon.init()
 
             // Act
             try {
-                const res: RpcResponse = await caller.call(
-                    rc.MODULE_NAME,
-                    rc.ACT_RESOLVE,
-                    PAYLOAD
-                )
+                const res: RpcResponse = await caller.call({
+                    moduleName: rc.MODULE_NAME,
+                    actionName: rc.ACT_RESOLVE,
+                    params: PAYLOAD,
+                })
+
+                // Assert
+                expect(res).to.exist
+                expect(res.isSuccess).to.be.true
+                const controller = depContainer.resolve<rc.PayloadController>(rc.PayloadController.name)
+                expect(controller.spyFn).to.be.called.once
+                expect(controller.spyFn).to.be.called.with(PAYLOAD.name)
+            }
+            catch (err) {
+                err && console.error(err)
+                expect(err).to.not.exist
+            }
+        })
+
+        it('Should resolve the payload with @payload() using raw destination', async () => {
+            // Arrange
+            const PAYLOAD = {
+                name: 'Resolve me!',
+            }
+            await addon.init()
+
+            // Act
+            try {
+                const res: RpcResponse = await caller.call({
+                    rawDest: rc.ACT_RAW_DEST,
+                    params: PAYLOAD,
+                })
 
                 // Assert
                 expect(res).to.exist
@@ -159,11 +186,11 @@ describe('@payload() - mediate', function() {
 
             // Act
             try {
-                const res: RpcResponse = await caller.call(
-                    rc.MODULE_NAME,
-                    rc.ACT_TRANSLATE_WHOLE,
-                    PAYLOAD,
-                )
+                const res: RpcResponse = await caller.call({
+                    moduleName: rc.MODULE_NAME,
+                    actionName: rc.ACT_TRANSLATE_WHOLE,
+                    params: PAYLOAD,
+                })
 
                 // Assert
                 expect(res).to.exist
@@ -190,11 +217,11 @@ describe('@payload() - mediate', function() {
 
             // Act
             try {
-                const res: RpcResponse = await caller.call(
-                    rc.MODULE_NAME,
-                    rc.ACT_TRANSLATE_PARTIAL,
-                    PAYLOAD,
-                )
+                const res: RpcResponse = await caller.call({
+                    moduleName: rc.MODULE_NAME,
+                    actionName: rc.ACT_TRANSLATE_PARTIAL,
+                    params: PAYLOAD,
+                })
 
                 // Assert
                 expect(res).to.exist
@@ -232,11 +259,11 @@ describe('@payload() - mediate', function() {
 
             // Act
             try {
-                const res: RpcResponse = await caller.call(
-                    rc.MODULE_NAME,
-                    rc.ACT_EXTRACT_FUNC,
-                    PAYLOAD,
-                )
+                const res: RpcResponse = await caller.call({
+                    moduleName: rc.MODULE_NAME,
+                    actionName: rc.ACT_EXTRACT_FUNC,
+                    params: PAYLOAD,
+                })
 
                 // Assert
                 expect(res).to.exist
@@ -261,11 +288,11 @@ describe('@payload() - mediate', function() {
 
             // Act
             try {
-                const res: RpcResponse = await caller.call(
-                    rc.MODULE_NAME,
-                    rc.ACT_TRANSLATE_CUSTOM,
-                    AGE,
-                )
+                const res: RpcResponse = await caller.call({
+                    moduleName: rc.MODULE_NAME,
+                    actionName: rc.ACT_TRANSLATE_CUSTOM,
+                    params: AGE,
+                })
 
                 // Assert
                 expect(res).to.exist
@@ -299,11 +326,11 @@ describe('@payload() - mediate', function() {
 
             // Act
             try {
-                const res: RpcResponse = await caller.call(
-                    rc.MODULE_NAME,
-                    rc.ACT_VALIDATE,
-                    PAYLOAD,
-                )
+                const res: RpcResponse = await caller.call({
+                    moduleName: rc.MODULE_NAME,
+                    actionName: rc.ACT_VALIDATE,
+                    params: PAYLOAD,
+                })
 
                 // Assert
                 expect(res).to.exist

@@ -119,7 +119,10 @@ describe('@rpcRequest()', function() {
 
             // Act
             try {
-                const res: RpcResponse = await caller.call(rc.MODULE_NAME, rc.ACT_RPC_REQUEST_DIRECT)
+                const res: RpcResponse = await caller.call({
+                    moduleName: rc.MODULE_NAME,
+                    actionName: rc.ACT_RPC_REQUEST_DIRECT,
+                })
 
                 // Assert
                 expect(res).to.exist
@@ -140,7 +143,10 @@ describe('@rpcRequest()', function() {
 
             // Act
             try {
-                const res: RpcResponse = await caller.call(rc.MODULE_NAME, rc.ACT_RAW_MSG_DIRECT)
+                const res: RpcResponse = await caller.call({
+                    moduleName: rc.MODULE_NAME,
+                    actionName: rc.ACT_RAW_MSG_DIRECT,
+                })
 
                 // Assert
                 expect(res).to.exist
@@ -161,7 +167,10 @@ describe('@rpcRequest()', function() {
 
             // Act
             try {
-                const res: RpcResponse = await caller.call(rc.MODULE_NAME, rc.ACT_RPC_REQUEST_RAW_MSG_DIRECT)
+                const res: RpcResponse = await caller.call({
+                    moduleName: rc.MODULE_NAME,
+                    actionName: rc.ACT_RPC_REQUEST_RAW_MSG_DIRECT,
+                })
 
                 // Assert
                 expect(res).to.exist
@@ -233,7 +242,10 @@ describe('@rpcRequest()', function() {
 
             // Act
             try {
-                const res: RpcResponse = await caller.call(rc.MODULE_NAME, rc.ACT_RPC_REQUEST_MEDIATE)
+                const res: RpcResponse = await caller.call({
+                    moduleName: rc.MODULE_NAME,
+                    actionName: rc.ACT_RPC_REQUEST_MEDIATE,
+                })
 
                 // Assert
                 expect(res).to.exist
@@ -254,7 +266,10 @@ describe('@rpcRequest()', function() {
 
             // Act
             try {
-                const res: RpcResponse = await caller.call(rc.MODULE_NAME, rc.ACT_RAW_MSG_MEDIATE)
+                const res: RpcResponse = await caller.call({
+                    moduleName: rc.MODULE_NAME,
+                    actionName: rc.ACT_RAW_MSG_MEDIATE,
+                })
 
                 // Assert
                 expect(res).to.exist
@@ -275,7 +290,10 @@ describe('@rpcRequest()', function() {
 
             // Act
             try {
-                const res: RpcResponse = await caller.call(rc.MODULE_NAME, rc.ACT_RPC_REQUEST_RAW_MSG_MEDIATE)
+                const res: RpcResponse = await caller.call({
+                    moduleName: rc.MODULE_NAME,
+                    actionName: rc.ACT_RPC_REQUEST_RAW_MSG_MEDIATE,
+                })
 
                 // Assert
                 expect(res).to.exist

@@ -55,7 +55,7 @@ describe('ExpressDirectRpcHandler', function () {
             await handler.dispose()
         })
 
-        it('Should add a router for each module name.', () => {
+        it('Should add a router for each module name if not specify `rawDest`.', () => {
             // Arrange 1
             const accountModule = 'accounts'
             const createAction = 'create'
@@ -67,8 +67,16 @@ describe('ExpressDirectRpcHandler', function () {
             // tslint:enable
 
             // Act 1
-            handler.handle(accountModule, createAction, doCreate)
-            handler.handle(accountModule, editAction, doEdit)
+            handler.handle({
+                moduleName: accountModule,
+                actionName: createAction,
+                handler: doCreate,
+            })
+            handler.handle({
+                moduleName: accountModule,
+                actionName: editAction,
+                handler: doEdit,
+            })
 
             // Assert 1
             const routers: Map<string, express.Router> = handler['_routers']
@@ -86,7 +94,11 @@ describe('ExpressDirectRpcHandler', function () {
             const doDelete = () => { }
 
             // Act 2
-            handler.handle(productModule, deleteAction, doDelete)
+            handler.handle({
+                moduleName: productModule,
+                actionName: deleteAction,
+                handler: doDelete,
+            })
 
             // Assert 2
             expect(routers.size).to.equal(2)
@@ -111,7 +123,11 @@ describe('ExpressDirectRpcHandler', function () {
 
 
             // Act
-            handler.handle(moduleName, createAction, createHandler)
+            handler.handle({
+                moduleName,
+                actionName: createAction,
+                handler: createHandler,
+            })
 
             // Assert
             handler.start()
@@ -150,7 +166,11 @@ describe('ExpressDirectRpcHandler', function () {
 
             // Act
             handler.port = port
-            handler.handle(moduleName, createAction, createHandler)
+            handler.handle({
+                moduleName,
+                actionName: createAction,
+                handler: createHandler,
+            })
 
             return handler.start()
                 .then(() => requestMaker({
@@ -182,7 +202,11 @@ describe('ExpressDirectRpcHandler', function () {
             }
 
             // Act
-            handler.handle(moduleName, createAction, createHandler)
+            handler.handle({
+                moduleName,
+                actionName: createAction,
+                handler: createHandler,
+            })
 
             // Assert: Not handler's fault
             handler.onError(err => {
@@ -224,7 +248,11 @@ describe('ExpressDirectRpcHandler', function () {
             }
 
             // Act
-            handler.handle(moduleName, deleteAction, deleteHandler)
+            handler.handle({
+                moduleName,
+                actionName: deleteAction,
+                handler: deleteHandler,
+            })
 
             // Assert: Not handler's fault
             handler.onError(err => {
@@ -267,7 +295,11 @@ describe('ExpressDirectRpcHandler', function () {
             }
 
             // Act
-            handler.handle(moduleName, deleteAction, deleteHandler)
+            handler.handle({
+                moduleName,
+                actionName: deleteAction,
+                handler: deleteHandler,
+            })
 
             // Assert: Catch handler's fault
             handler.onError(err => {
@@ -305,7 +337,11 @@ describe('ExpressDirectRpcHandler', function () {
             }
 
             // Act
-            handler.handle(moduleName, deleteAction, deleteHandler)
+            handler.handle({
+                moduleName,
+                actionName: deleteAction,
+                handler: deleteHandler,
+            })
 
             // Assert: Catch handler's fault
             handler.onError(err => {
@@ -342,7 +378,11 @@ describe('ExpressDirectRpcHandler', function () {
             }
 
             // Act
-            handler.handle(moduleName, editAction, editHandler)
+            handler.handle({
+                moduleName,
+                actionName: editAction,
+                handler: editHandler,
+            })
 
             // Assert: Catch handler's fault
             handler.onError(err => {

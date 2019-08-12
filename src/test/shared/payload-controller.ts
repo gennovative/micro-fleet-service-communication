@@ -9,6 +9,7 @@ import { SampleModel } from './SampleModel'
 export const MODULE_NAME = 'payload'
 
 export const ACT_RESOLVE = 'resolve'
+export const ACT_RAW_DEST = 'rawREq.loadpay.resolve'
 export const ACT_TRANSLATE_WHOLE = 'translate-whole'
 export const ACT_TRANSLATE_PARTIAL = 'translate-partial'
 export const ACT_TRANSLATE_CUSTOM = 'translate-custom'
@@ -30,6 +31,11 @@ export class PayloadController {
 
     @d.action(ACT_RESOLVE)
     public resolveMe(@d.payload() payload: object): void {
+        this.spyFn(payload['name'])
+    }
+
+    @d.action(ACT_RAW_DEST, true)
+    public rawDestMe(@d.payload() payload: object): void {
         this.spyFn(payload['name'])
     }
 

@@ -49,22 +49,10 @@ let DefaultMediateRpcHandlerAddOn = class DefaultMediateRpcHandlerAddOn extends 
         this._controllerHunter.controllerPath = val;
     }
     /**
-     * @see IServiceAddOn.deadLetter
-     */
-    deadLetter() {
-        return this._rpcHandler.pause();
-    }
-    /**
      * @override
      */
     async handleRequests() {
         await this._controllerHunter.hunt();
-    }
-    /**
-     * Registers a listener to handle errors.
-     */
-    onError(handler) {
-        this._rpcHandler.onError(handler);
     }
 };
 DefaultMediateRpcHandlerAddOn = __decorate([

@@ -8,6 +8,8 @@ const DefaultMediateRpcHandlerAddOn_1 = require("./mediate/DefaultMediateRpcHand
 const MediateRpcHandler_1 = require("./mediate/MediateRpcHandler");
 const MessageBrokerAddOn_1 = require("./MessageBrokerAddOn");
 const MessageBrokerConnector_1 = require("./MessageBrokerConnector");
+const DirectRpcCaller_1 = require("./direct/DirectRpcCaller");
+const MediateRpcCaller_1 = require("./mediate/MediateRpcCaller");
 function registerMessageBrokerAddOn() {
     const depCon = common_1.serviceContext.dependencyContainer;
     if (!depCon.isBound(Types_1.Types.MSG_BROKER_CONNECTOR)) {
@@ -21,7 +23,6 @@ function registerMessageBrokerAddOn() {
 exports.registerMessageBrokerAddOn = registerMessageBrokerAddOn;
 function registerDirectHandlerAddOn() {
     const depCon = common_1.serviceContext.dependencyContainer;
-    common_1.Guard.assertIsTruthy(depCon.isBound(Types_1.Types.BROKER_ADDON), 'MessageBrokerAddOn must be registered before this one');
     if (!depCon.isBound(Types_1.Types.DIRECT_RPC_HANDLER)) {
         depCon.bind(Types_1.Types.DIRECT_RPC_HANDLER, DirectRpcHandler_1.ExpressRpcHandler).asSingleton();
     }
@@ -31,6 +32,14 @@ function registerDirectHandlerAddOn() {
     return depCon.resolve(Types_1.Types.DIRECT_RPC_HANDLER_ADDON);
 }
 exports.registerDirectHandlerAddOn = registerDirectHandlerAddOn;
+function registerDirectCaller() {
+    const depCon = common_1.serviceContext.dependencyContainer;
+    if (!depCon.isBound(Types_1.Types.DIRECT_RPC_CALLER)) {
+        depCon.bind(Types_1.Types.DIRECT_RPC_CALLER, DirectRpcCaller_1.HttpRpcCaller).asSingleton();
+        depCon.bind(Types_1.Types.RPC_CALLER, DirectRpcCaller_1.HttpRpcCaller).asSingleton();
+    }
+}
+exports.registerDirectCaller = registerDirectCaller;
 function registerMediateHandlerAddOn() {
     const depCon = common_1.serviceContext.dependencyContainer;
     common_1.Guard.assertIsTruthy(depCon.isBound(Types_1.Types.BROKER_ADDON), 'MessageBrokerAddOn must be registered before this one');
@@ -43,4 +52,13 @@ function registerMediateHandlerAddOn() {
     return depCon.resolve(Types_1.Types.MEDIATE_RPC_HANDLER_ADDON);
 }
 exports.registerMediateHandlerAddOn = registerMediateHandlerAddOn;
+function registerMediateCaller() {
+    const depCon = common_1.serviceContext.dependencyContainer;
+    common_1.Guard.assertIsTruthy(depCon.isBound(Types_1.Types.BROKER_ADDON), 'MessageBrokerAddOn must be registered before this one');
+    if (!depCon.isBound(Types_1.Types.MEDIATE_RPC_CALLER)) {
+        depCon.bind(Types_1.Types.MEDIATE_RPC_CALLER, MediateRpcCaller_1.MessageBrokerRpcCaller).asSingleton();
+        depCon.bind(Types_1.Types.RPC_CALLER, MediateRpcCaller_1.MessageBrokerRpcCaller).asSingleton();
+    }
+}
+exports.registerMediateCaller = registerMediateCaller;
 //# sourceMappingURL=register-addon.js.map

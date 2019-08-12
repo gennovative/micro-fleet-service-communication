@@ -127,12 +127,27 @@ export class ExpressRpcHandler
     /**
      * @see IRpcHandler.handle
      */
-    public handle(moduleName: string, actionName: string, handler: rpc.RpcHandlerFunction): Promise<void> {
+    public handle({ moduleName, actionName, handler, rawDest }: rpc.RpcHandleOptions): Promise<void> {
         Guard.assertIsDefined(this._routers, '`init` method must be called first!')
-        Guard.assertIsMatch(ExpressRpcHandler.URL_TESTER, moduleName, `Module name "${moduleName}" is not URL-safe!`)
-        Guard.assertIsMatch(ExpressRpcHandler.URL_TESTER, actionName, `Action name "${actionName}" is not URL-safe!`)
+        moduleName && Guard.assertIsMatch(ExpressRpcHandler.URL_TESTER, moduleName, `Module name "${moduleName}" is not URL-safe!`)
+        actionName && Guard.assertIsMatch(ExpressRpcHandler.URL_TESTER, actionName, `Action name "${actionName}" is not URL-safe!`)
+        rawDest && Guard.assertIsMatch(ExpressRpcHandler.URL_TESTER, rawDest, `Raw destination "${rawDest}" is not URL-safe!`)
 
         let router: express.Router
+
+        if (rawDest) {
+            if (this._routers.has(rawDest)) {
+                router = this._routers.get(rawDest)
+            } else {
+                router = express.Router()
+                this._routers.set(rawDest, router)
+                this._app.use(router)
+                debug(`Created router for raw address: ${rawDest}`)
+            }
+            router.post('*', this.wrapHandler(handler))
+            return Promise.resolve()
+        }
+
         if (this._routers.has(moduleName)) {
             router = this._routers.get(moduleName)
         } else {

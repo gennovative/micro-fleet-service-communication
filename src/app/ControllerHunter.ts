@@ -9,6 +9,7 @@ import { ParamDecorDescriptor } from './decorators/param-decor-base'
 import { RESOLVE_INJECTED } from './decorators/resolveFn'
 import { REJECT_INJECTED } from './decorators/rejectFn'
 import { IRpcHandler, RpcHandlerFunction, RpcHandlerParams } from './RpcCommon'
+import { ActionMetadata } from './decorators/action'
 
 
 export class ControllerHunter {
@@ -102,14 +103,18 @@ export class ControllerHunter {
         // tslint:disable-next-line:prefer-const
         for (let [, actFn] of allFunctions) {
             const proxyFn = this._proxyActionFunc(actFn, CtrlClass)
-            const route = this._extractActionRoute(CtrlClass, actFn.name)
-            await this._rpcHandler.handle(moduleName, route, proxyFn)
+            const metadata = this._extractActionMetadata(CtrlClass, actFn.name)
+            await this._rpcHandler.handle({
+                moduleName,
+                actionName: metadata.isRawDest ? null : metadata.name,
+                rawDest: metadata.isRawDest ? metadata.name : null,
+                handler: proxyFn,
+            })
         }
     }
 
-    protected _extractActionRoute(CtrlClass: Newable, funcName: string): string {
-        const [actionRoute]: [string] = this._getMetadata(MetaData.ACTION, CtrlClass, funcName)
-        return actionRoute
+    protected _extractActionMetadata(CtrlClass: Newable, funcName: string): ActionMetadata {
+        return this._getMetadata(MetaData.ACTION, CtrlClass, funcName)
 
     }
 

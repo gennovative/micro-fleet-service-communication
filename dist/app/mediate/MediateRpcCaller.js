@@ -12,6 +12,8 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+/// <reference types="debug" />
+const debug = require('debug')('mcft:svccom:MessageBrokerRpcCaller');
 const shortid = require("shortid");
 const common_1 = require("@micro-fleet/common");
 const Types_1 = require("../constants/Types");
@@ -21,7 +23,9 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
         super();
         this._msgBrokerConn = _msgBrokerConn;
         common_1.Guard.assertArgDefined('_msgBrokerConn', _msgBrokerConn);
-        this._msgBrokerConn.queue = ''; // Make sure we only use temporary unique queue.
+        if (this._msgBrokerConn.queue) {
+            debug('MessageBrokerRpcCaller should only use temporary unique queue.');
+        }
     }
     /**
      * @see IRpcCaller.init
@@ -43,13 +47,17 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
     /**
      * @see IRpcCaller.call
      */
-    call(moduleName, action, params) {
-        common_1.Guard.assertArgDefined('moduleName', moduleName);
-        common_1.Guard.assertArgDefined('action', action);
+    call({ moduleName, actionName, params, rawDest }) {
+        if (!rawDest) {
+            common_1.Guard.assertArgDefined('moduleName', moduleName);
+            common_1.Guard.assertArgDefined('actionName', actionName);
+        }
         return new Promise((resolve, reject) => {
             // There are many requests to same `requestTopic` and they listen to same `responseTopic`,
             // A request only cares about a response with same `correlationId`.
-            const correlationId = shortid.generate(), replyTo = `response.${moduleName}.${action}@${correlationId}`, conn = this._msgBrokerConn;
+            const correlationId = shortid.generate(), replyTo = Boolean(rawDest)
+                ? `response.${rawDest}@${correlationId}`
+                : `response.${moduleName}.${actionName}@${correlationId}`, conn = this._msgBrokerConn;
             conn.subscribe(replyTo)
                 .then(() => {
                 let token;
@@ -86,12 +94,29 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
                     payload: params,
                 };
                 // Send request, marking the message with correlationId.
-                return this._msgBrokerConn.publish(`request.${moduleName}.${action}`, request, { correlationId, replyTo });
+                return conn.publish(rawDest || `request.${moduleName}.${actionName}`, request, { correlationId, replyTo });
             })
                 .catch(err => {
                 reject(new common_1.MinorException(`RPC error: ${err}`));
             });
         });
+    }
+    /**
+     * @see IRpcCaller.callImpatient
+     */
+    callImpatient({ moduleName, actionName, params, rawDest }) {
+        if (!rawDest) {
+            common_1.Guard.assertArgDefined('moduleName', moduleName);
+            common_1.Guard.assertArgDefined('actionName', actionName);
+        }
+        const request = {
+            from: this.name,
+            to: moduleName,
+            payload: params,
+        };
+        // Send request, marking the message with correlationId.
+        return this._msgBrokerConn.publish(rawDest || `request.${moduleName}.${actionName}`, request)
+            .catch(err => new common_1.MinorException(`RPC error: ${err}`));
     }
 };
 MessageBrokerRpcCaller = __decorate([

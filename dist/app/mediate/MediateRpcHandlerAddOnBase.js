@@ -29,6 +29,7 @@ let MediateRpcHandlerAddOnBase = class MediateRpcHandlerAddOnBase {
      */
     async init() {
         this._rpcHandler.name = this._configProvider.get(S.SERVICE_SLUG).value;
+        this._errorHandler && this._rpcHandler.onError(this._errorHandler);
         await this._rpcHandler.init();
         await this.handleRequests();
         await this._rpcHandler.start();
@@ -37,16 +38,23 @@ let MediateRpcHandlerAddOnBase = class MediateRpcHandlerAddOnBase {
      * @see IServiceAddOn.deadLetter
      */
     deadLetter() {
-        return Promise.resolve();
+        return this._rpcHandler.pause()
+            .then(() => this._rpcHandler.dispose());
     }
     /**
      * @see IServiceAddOn.dispose
      */
     dispose() {
         this._configProvider = null;
-        const handler = this._rpcHandler;
         this._rpcHandler = null;
-        return handler.dispose();
+        return Promise.resolve();
+    }
+    /**
+     * Registers a listener to handle errors.
+     */
+    onError(handler) {
+        this._errorHandler = handler;
+        return this;
     }
 };
 MediateRpcHandlerAddOnBase = __decorate([

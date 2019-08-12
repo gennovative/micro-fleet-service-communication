@@ -5,6 +5,7 @@
 ## 0.3.1
 - Added parameters decorators for action methods.
 - Upgraded to new version of `@micro-fleet/common` with breaking change.
+- Added `callImpatient` and supports raw destination.
 
 ## 0.3.0
 - Added `DefaultDirectRpcHandlerAddOn` which automatically registers classes decorated with `@directController()`

@@ -108,7 +108,10 @@ describe('@rejectFn() - direct', function() {
 
             // Act
             try {
-                const res: RpcResponse = await caller.call(rc.MODULE_NAME, rc.ACT_AUTO_SYNC_ERROR)
+                const res: RpcResponse = await caller.call({
+                    moduleName: rc.MODULE_NAME,
+                    actionName: rc.ACT_AUTO_SYNC_ERROR,
+                })
 
                 // Assert
                 expect(res).not.to.exist
@@ -132,7 +135,10 @@ describe('@rejectFn() - direct', function() {
 
             // Act
             try {
-                const res: RpcResponse = await caller.call(rc.MODULE_NAME, rc.ACT_AUTO_ASYNC_ERROR)
+                const res: RpcResponse = await caller.call({
+                    moduleName: rc.MODULE_NAME,
+                    actionName: rc.ACT_AUTO_ASYNC_ERROR,
+                })
 
                 // Assert
                 expect(res).not.to.exist
@@ -158,7 +164,10 @@ describe('@rejectFn() - direct', function() {
 
             // Act
             try {
-                const res: RpcResponse = await caller.call(rc.MODULE_NAME, rc.ACT_MANUAL_SYNC_REJECT)
+                const res: RpcResponse = await caller.call({
+                    moduleName: rc.MODULE_NAME,
+                    actionName: rc.ACT_MANUAL_SYNC_REJECT,
+                })
 
                 // Assert
                 expect(res).to.exist
@@ -185,7 +194,10 @@ describe('@rejectFn() - direct', function() {
 
             // Act
             try {
-                const res: RpcResponse = await caller.call(rc.MODULE_NAME, rc.ACT_MANUAL_ASYNC_REJECT)
+                const res: RpcResponse = await caller.call({
+                    moduleName: rc.MODULE_NAME,
+                    actionName: rc.ACT_MANUAL_ASYNC_REJECT,
+                })
 
                 // Assert
                 expect(res).to.exist

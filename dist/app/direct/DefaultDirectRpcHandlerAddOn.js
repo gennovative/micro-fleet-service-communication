@@ -49,23 +49,10 @@ let DefaultDirectRpcHandlerAddOn = class DefaultDirectRpcHandlerAddOn extends Di
         this._controllerHunter.controllerPath = val;
     }
     /**
-     * @see IServiceAddOn.deadLetter
-     */
-    deadLetter() {
-        this._rpcHandler.pause();
-        return Promise.resolve();
-    }
-    /**
      * @override
      */
     async handleRequests() {
         await this._controllerHunter.hunt();
-    }
-    /**
-     * Registers a listener to handle errors.
-     */
-    onError(handler) {
-        this._rpcHandler.onError(handler);
     }
 };
 DefaultDirectRpcHandlerAddOn = __decorate([
