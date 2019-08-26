@@ -11,7 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 /// <reference types="debug" />
 const debug = require('debug')('mcft:svccom:HttpRpcCaller');
-const request = require("request-promise");
+const request = require("request-promise-native");
 const common_1 = require("@micro-fleet/common");
 const rpc = require("../RpcCommon");
 let HttpRpcCaller = class HttpRpcCaller extends rpc.RpcCallerBase {

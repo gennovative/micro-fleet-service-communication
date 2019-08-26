@@ -1,7 +1,7 @@
 import * as chai from 'chai'
 import * as spies from 'chai-spies'
 import * as express from 'express'
-import * as requestMaker from 'request-promise'
+import * as requestMaker from 'request-promise-native'
 import { MinorException } from '@micro-fleet/common'
 
 import { ExpressRpcHandler, RpcRequest, RpcResponse,

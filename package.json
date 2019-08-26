@@ -1,6 +1,6 @@
 {
     "name": "@micro-fleet/service-communication",
-    "version": "0.3.1-rc3",
+    "version": "0.3.0",
     "description": "Provides methods for microservices to communicate with each other.",
     "scripts": {
         "build": "npm run compile && npm run test",
@@ -12,7 +12,6 @@
         "test": "nyc --extension=.ts --reporter=json --reporter=html --include dist/app/**/*.js --include src/app/**/*.ts mocha --recursive dist/test",
         "lint": "tslint --fix 'src/**/*.ts'",
         "watch": "npm run clean && npm run lint && tsc --watch --pretty",
-        "linkPackages": "node ../../../scripts/linkPackages.js",
         "prepublishOnly": "npm run release"
     },
     "dependencies": {
@@ -22,7 +21,7 @@
         "lodash": "~4.17",
         "reflect-metadata": "~0.1",
         "request": "~2.87",
-        "request-promise": "~4.2",
+        "request-promise-native": "~1.0",
         "shortid": "~2.2"
     },
     "devDependencies": {
@@ -36,12 +35,12 @@
         "@types/lodash": "~4.14",
         "@types/mocha": "~5.2",
         "@types/node": "~10.14",
-        "@types/request-promise": "~4.1",
+        "@types/request-promise-native": "~1.0",
         "@types/shortid": "0.0.29",
         "chai": "~4.1",
         "chai-spies": "git://github.com/chaijs/chai-spies.git#b11aeebf",
         "inversify": "~4.11",
-        "joi": "^14.3.1",
+        "joi": "~14.3",
         "mocha": "~5.2",
         "nyc": "~14.1",
         "rimraf": "~2.6",
