@@ -56,10 +56,10 @@ let DefaultMediateRpcHandlerAddOn = class DefaultMediateRpcHandlerAddOn extends 
     }
 };
 DefaultMediateRpcHandlerAddOn = __decorate([
-    common_1.injectable(),
-    __param(0, common_1.inject(common_1.Types.CONFIG_PROVIDER)),
-    __param(1, common_1.inject(common_1.Types.DEPENDENCY_CONTAINER)),
-    __param(2, common_1.inject(Types_1.Types.MEDIATE_RPC_HANDLER)),
+    common_1.decorators.injectable(),
+    __param(0, common_1.decorators.inject(common_1.Types.CONFIG_PROVIDER)),
+    __param(1, common_1.decorators.inject(common_1.Types.DEPENDENCY_CONTAINER)),
+    __param(2, common_1.decorators.inject(Types_1.Types.MEDIATE_RPC_HANDLER)),
     __metadata("design:paramtypes", [Object, Object, Object])
 ], DefaultMediateRpcHandlerAddOn);
 exports.DefaultMediateRpcHandlerAddOn = DefaultMediateRpcHandlerAddOn;

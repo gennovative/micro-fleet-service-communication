@@ -4,7 +4,7 @@ import * as shortid from 'shortid'
 import * as amqp from 'amqplib'
 import * as _ from 'lodash'
 
-import { injectable, Exception, CriticalException, MinorException,
+import { Exception, CriticalException, MinorException, decorators as d,
     Guard } from '@micro-fleet/common'
 
 
@@ -153,7 +153,7 @@ export interface IMessageBrokerConnector {
     onError(handler: (err: any) => void): void
 }
 
-@injectable()
+@d.injectable()
 export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 
     private static CHANNEL_RECREATE_DELAY = 100 // Millisecs

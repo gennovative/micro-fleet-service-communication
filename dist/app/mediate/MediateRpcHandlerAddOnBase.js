@@ -13,7 +13,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const common_1 = require("@micro-fleet/common");
-const { SvcSettingKeys: S } = common_1.constants;
+const { Service: S } = common_1.constants;
 /**
  * Base class for MediateRpcAddOn.
  */
@@ -58,9 +58,9 @@ let MediateRpcHandlerAddOnBase = class MediateRpcHandlerAddOnBase {
     }
 };
 MediateRpcHandlerAddOnBase = __decorate([
-    common_1.injectable(),
-    __param(0, common_1.unmanaged()),
-    __param(1, common_1.unmanaged()),
+    common_1.decorators.injectable(),
+    __param(0, common_1.decorators.unmanaged()),
+    __param(1, common_1.decorators.unmanaged()),
     __metadata("design:paramtypes", [Object, Object])
 ], MediateRpcHandlerAddOnBase);
 exports.MediateRpcHandlerAddOnBase = MediateRpcHandlerAddOnBase;

@@ -1,27 +1,16 @@
 import * as joi from 'joi'
 
-import { ModelAutoMapper, JoiModelValidator,
-    IModelAutoMapper, IModelValidator } from '@micro-fleet/common'
+import { Translatable, decorators as d } from '@micro-fleet/common'
 
 
-export class SampleModel {
-    public static validator: IModelValidator<SampleModel>
-    public static translator: IModelAutoMapper<SampleModel>
-
+export class SampleModel extends Translatable {
+    @d.required()
+    @d.string({ minLength: 1, maxLength: 30 })
     public readonly name: string = undefined
 
+    @d.validateProp(joi.number().greater(18).required())
     public readonly age: number = undefined
 
+    @d.string({ minLength: 1 })
     public readonly position: string = undefined
 }
-
-
-const validator = SampleModel.validator = JoiModelValidator.create({
-    schemaMapModel: {
-        name: joi.string().min(1).max(30).required(),
-        age: joi.number().greater(18).required(),
-        position: joi.string().min(1).optional(),
-    },
-})
-
-SampleModel.translator = new ModelAutoMapper(SampleModel, validator)

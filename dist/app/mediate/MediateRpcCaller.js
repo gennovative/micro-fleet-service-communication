@@ -120,8 +120,8 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
     }
 };
 MessageBrokerRpcCaller = __decorate([
-    common_1.injectable(),
-    __param(0, common_1.inject(Types_1.Types.MSG_BROKER_CONNECTOR)),
+    common_1.decorators.injectable(),
+    __param(0, common_1.decorators.inject(Types_1.Types.MSG_BROKER_CONNECTOR)),
     __metadata("design:paramtypes", [Object])
 ], MessageBrokerRpcCaller);
 exports.MessageBrokerRpcCaller = MessageBrokerRpcCaller;

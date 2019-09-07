@@ -4,7 +4,8 @@ const debug: debug.IDebugger = require('debug')('mcft:svccom:ExpressRpcHandler')
 import * as http from 'http'
 
 import * as express from 'express'
-import { injectable, Guard, CriticalException, ValidationError } from '@micro-fleet/common'
+import { Guard, CriticalException, ValidationError,
+    decorators as d } from '@micro-fleet/common'
 
 import * as rpc from '../RpcCommon'
 
@@ -17,7 +18,7 @@ export interface IDirectRpcHandler extends rpc.IRpcHandler {
 
 }
 
-@injectable()
+@d.injectable()
 export class ExpressRpcHandler
             extends rpc.RpcHandlerBase
             implements IDirectRpcHandler {

@@ -93,7 +93,7 @@ let HttpRpcCaller = class HttpRpcCaller extends rpc.RpcCallerBase {
     }
 };
 HttpRpcCaller = __decorate([
-    common_1.injectable(),
+    common_1.decorators.injectable(),
     __metadata("design:paramtypes", [])
 ], HttpRpcCaller);
 exports.HttpRpcCaller = HttpRpcCaller;

@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events'
 
-import { injectable, IDependencyContainer, CriticalException,
+import { IDependencyContainer, CriticalException, decorators as d,
     MinorException, Exception, InternalErrorException,
     ValidationError, BusinessInvariantError } from '@micro-fleet/common'
 
@@ -253,7 +253,7 @@ export interface IRpcHandler {
 
 // RPC Base classes
 
-@injectable()
+@d.injectable()
 export abstract class RpcCallerBase {
 
     /**
@@ -315,7 +315,7 @@ export abstract class RpcCallerBase {
     }
 }
 
-@injectable()
+@d.injectable()
 export abstract class RpcHandlerBase {
 
     /**

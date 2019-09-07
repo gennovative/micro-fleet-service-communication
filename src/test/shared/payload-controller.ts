@@ -10,7 +10,8 @@ export const MODULE_NAME = 'payload'
 
 export const ACT_RESOLVE = 'resolve'
 export const ACT_RAW_DEST = 'rawREq.loadpay.resolve'
-export const ACT_TRANSLATE_WHOLE = 'translate-whole'
+export const ACT_TRANSLATE_WHOLE_AUTO = 'translate-whole-auto'
+export const ACT_TRANSLATE_WHOLE_MANUAL = 'translate-whole-manual'
 export const ACT_TRANSLATE_PARTIAL = 'translate-partial'
 export const ACT_TRANSLATE_CUSTOM = 'translate-custom'
 export const ACT_EXTRACT_FUNC = 'use-extractFn'
@@ -39,18 +40,24 @@ export class PayloadController {
         this.spyFn(payload['name'])
     }
 
-    @d.action(ACT_TRANSLATE_WHOLE)
-    public translateWhole(
-            @d.payload(SampleModel) payload: SampleModel
-        ): void {
+    @d.action(ACT_TRANSLATE_WHOLE_AUTO)
+    public translateWholeAuto(
+        @d.payload() payload: SampleModel
+    ): void {
+        this.spyFn(payload.constructor.name, payload.name, payload.age, payload.position)
+    }
 
+    @d.action(ACT_TRANSLATE_WHOLE_MANUAL)
+    public translateWholeManual(
+        @d.payload(SampleModel) payload: SampleModel
+    ): void {
         this.spyFn(payload.constructor.name, payload.name, payload.age, payload.position)
     }
 
     @d.action(ACT_TRANSLATE_PARTIAL)
     public translatePartial(
             @d.payload({
-                ModelClass: SampleModel,
+                ItemClass: SampleModel,
                 isPartial: true,
             })
             payload: Partial<SampleModel>
@@ -70,32 +77,34 @@ export class PayloadController {
 
     @d.action(ACT_EXTRACT_FUNC)
     public useExtractFn(
-            @d.payload({
-                ModelClass: SampleModel,
-                extractFn: (payload: any) => payload.one,
-            })
-            modelOne: SampleModel,
-            @d.payload({
-                ModelClass: SampleModel,
-                extractFn: (payload: any) => payload.two,
-            })
-            modelTwo: SampleModel,
-        ): void {
+        @d.payload({
+            ItemClass: SampleModel,
+            extractFn: (payload: any) => payload.one,
+        })
+        modelSingle: SampleModel,
+        @d.payload({
+            ItemClass: SampleModel,
+            extractFn: (payload: any) => payload.two,
+        })
+        modelArr: SampleModel[],
+    ): void {
 
         this.spyFn(
-            modelOne.constructor.name, modelOne.name, modelOne.age, modelOne.position,
-            modelTwo.constructor.name, modelTwo.name, modelTwo.age, modelTwo.position,
+            modelSingle.constructor.name, modelSingle.name, modelSingle.age,
+            modelArr.length,
+            modelArr[0].constructor.name, modelArr[0].name, modelArr[0].age,
+            modelArr[1].constructor.name, modelArr[1].name, modelArr[1].age,
         )
     }
 
     @d.action(ACT_VALIDATE)
     public validateFailed(
-            @d.payload({
-                ModelClass: SampleModel,
-                enableValidation: true,
-            })
-            invalidModel: SampleModel
-        ): void {
+        @d.payload({
+            ItemClass: SampleModel,
+            enableValidation: true,
+        })
+        invalidModel: SampleModel
+    ): void {
 
         this.spyFn()
     }

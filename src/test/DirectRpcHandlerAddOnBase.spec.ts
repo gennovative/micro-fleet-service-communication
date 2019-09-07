@@ -2,13 +2,13 @@ import * as chai from 'chai'
 import * as spies from 'chai-spies'
 
 import { IConfigurationProvider, Types as ConT, constants, Maybe,
-    injectable, inject /*DependencyContainer*/ } from '@micro-fleet/common'
+     decorators as d } from '@micro-fleet/common'
 import { IDirectRpcHandler, ExpressRpcHandler,
     DirectRpcHandlerAddOnBase, Types as ComT } from '../app'
 
 chai.use(spies)
 const expect = chai.expect
-const { RpcSettingKeys: RpcS, SvcSettingKeys: SvcS } = constants
+const { RPC: RpcS, Service: SvcS } = constants
 
 const SERVICE_SLUG = 'test-service',
     HANDLER_PORT = 30000
@@ -52,14 +52,14 @@ class MockConfigProvider implements IConfigurationProvider {
 }
 
 
-@injectable()
+@d.injectable()
 class CustomAddOn extends DirectRpcHandlerAddOnBase {
 
     public readonly name: string = 'CustomAddOn'
 
     constructor(
-        @inject(ConT.CONFIG_PROVIDER) configProvider: IConfigurationProvider,
-        @inject(ComT.DIRECT_RPC_HANDLER) rpcHandler: IDirectRpcHandler
+        @d.inject(ConT.CONFIG_PROVIDER) configProvider: IConfigurationProvider,
+        @d.inject(ComT.DIRECT_RPC_HANDLER) rpcHandler: IDirectRpcHandler
     ) {
         super(configProvider, rpcHandler)
     }

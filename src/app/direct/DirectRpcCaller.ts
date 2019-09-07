@@ -2,7 +2,8 @@
 const debug: debug.IDebugger = require('debug')('mcft:svccom:HttpRpcCaller')
 
 import * as request from 'request-promise-native'
-import { injectable, Guard, InternalErrorException, MinorException } from '@micro-fleet/common'
+import { Guard, InternalErrorException, MinorException,
+     decorators as d } from '@micro-fleet/common'
 
 import * as rpc from '../RpcCommon'
 import { StatusCodeError } from 'request-promise-native/errors'
@@ -17,7 +18,7 @@ export interface IDirectRpcCaller extends rpc.IRpcCaller {
     baseAddress: string
 }
 
-@injectable()
+@d.injectable()
 export class HttpRpcCaller
             extends rpc.RpcCallerBase
             implements IDirectRpcCaller {

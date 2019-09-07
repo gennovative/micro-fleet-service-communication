@@ -17,7 +17,7 @@ import { IDirectRpcHandler, IDirectRpcCaller, ExpressRpcHandler, HttpRpcCaller,
 import * as rc from '../shared/resolve-reject-controller'
 
 
-const { RpcSettingKeys: RpcS, SvcSettingKeys: SvcS } = constants
+const { RPC: RpcS, Service: SvcS } = constants
 
 const SERVICE_SLUG = 'test-service',
     HANDLER_PORT = 30000,

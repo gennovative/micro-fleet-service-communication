@@ -16,7 +16,7 @@ import * as rc from '../shared/payload-controller'
 import { SampleModel } from '../shared/SampleModel'
 
 
-const { RpcSettingKeys: RpcS, SvcSettingKeys: SvcS } = constants
+const { RPC: R, Service: S } = constants
 
 const SERVICE_SLUG = 'test-service',
     HANDLER_PORT = 30000,
@@ -50,8 +50,8 @@ class MockConfigProvider implements IConfigurationProvider {
 
     public get(key: string): Maybe<number | boolean | string> {
         switch (key) {
-            case RpcS.RPC_HANDLER_PORT: return Maybe.Just(HANDLER_PORT)
-            case SvcS.SERVICE_SLUG: return Maybe.Just(SERVICE_SLUG)
+            case R.RPC_HANDLER_PORT: return Maybe.Just(HANDLER_PORT)
+            case S.SERVICE_SLUG: return Maybe.Just(SERVICE_SLUG)
             default: return Maybe.Nothing()
         }
     }
@@ -156,7 +156,7 @@ describe('@payload() - direct', function() {
 
     describe('Translation', function() {
 
-        it('Should convert whole payload to model class', async () => {
+        it('Should convert whole payload to model class of infered type', async () => {
             // Arrange
             const PAYLOAD = <SampleModel> {
                 name: 'Valid name',
@@ -169,7 +169,38 @@ describe('@payload() - direct', function() {
             try {
                 const res: RpcResponse = await caller.call({
                     moduleName: rc.MODULE_NAME,
-                    actionName: rc.ACT_TRANSLATE_WHOLE,
+                    actionName: rc.ACT_TRANSLATE_WHOLE_AUTO,
+                    params: PAYLOAD,
+                })
+
+                // Assert
+                expect(res).to.exist
+                expect(res.isSuccess).to.be.true
+                const controller = depContainer.resolve<rc.PayloadController>(rc.PayloadController.name)
+                expect(controller.spyFn).to.be.called.once
+                expect(controller['spyFn']).to.be.called.with.exactly('SampleModel', PAYLOAD.name,
+                    PAYLOAD.age, PAYLOAD.position)
+            }
+            catch (err) {
+                err && console.error(err)
+                expect(err).to.not.exist
+            }
+        })
+
+        it('Should convert whole payload to model class of specified type', async () => {
+            // Arrange
+            const PAYLOAD = <SampleModel> {
+                name: 'Valid name',
+                age: 20,
+                position: 'Coolie manager',
+            }
+            await addon.init()
+
+            // Act
+            try {
+                const res: RpcResponse = await caller.call({
+                    moduleName: rc.MODULE_NAME,
+                    actionName: rc.ACT_TRANSLATE_WHOLE_MANUAL,
                     params: PAYLOAD,
                 })
 
@@ -230,11 +261,18 @@ describe('@payload() - direct', function() {
                     age: 20,
                     position: 'Coolie manager',
                 },
-                two: <SampleModel> {
-                    name: 'Another valid name',
-                    age: 30,
-                    position: 'True coolie',
-                },
+                two: [
+                    <SampleModel> {
+                        name: 'Another valid name',
+                        age: 30,
+                        position: 'True coolie',
+                    },
+                    <SampleModel> {
+                        name: 'More name',
+                        age: 40,
+                        position: 'Seasoned coolie',
+                    },
+                ],
             }
             await addon.init()
 
@@ -252,8 +290,10 @@ describe('@payload() - direct', function() {
                 const controller = depContainer.resolve<rc.PayloadController>(rc.PayloadController.name)
                 expect(controller.spyFn).to.be.called.once
                 expect(controller['spyFn']).to.be.called.with.exactly(
-                    'SampleModel', PAYLOAD.one.name, PAYLOAD.one.age, PAYLOAD.one.position,
-                    'SampleModel', PAYLOAD.two.name, PAYLOAD.two.age, PAYLOAD.two.position,
+                    'SampleModel', PAYLOAD.one.name, PAYLOAD.one.age,
+                    PAYLOAD.two.length,
+                    'SampleModel', PAYLOAD.two[0].name, PAYLOAD.two[0].age,
+                    'SampleModel', PAYLOAD.two[1].name, PAYLOAD.two[1].age,
                 )
             }
             catch (err) {

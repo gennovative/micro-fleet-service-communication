@@ -16,7 +16,7 @@ export type DecorateParamOptions = {
     /**
      * The function name whose signature contains the decorated parameter.
      */
-    method: string,
+    method: string | symbol,
 
     /**
      * Position of the decorated parameter in function signature.

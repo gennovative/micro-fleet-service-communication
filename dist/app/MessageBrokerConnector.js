@@ -427,7 +427,7 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
 };
 TopicMessageBrokerConnector.CHANNEL_RECREATE_DELAY = 100; // Millisecs
 TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = __decorate([
-    common_1.injectable(),
+    common_1.decorators.injectable(),
     __metadata("design:paramtypes", [])
 ], TopicMessageBrokerConnector);
 exports.TopicMessageBrokerConnector = TopicMessageBrokerConnector;

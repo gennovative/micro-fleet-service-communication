@@ -1,14 +1,14 @@
-import { IConfigurationProvider, constants, injectable, unmanaged,
+import { IConfigurationProvider, constants, decorators as d,
     Guard, IServiceAddOn} from '@micro-fleet/common'
 
 import { IMediateRpcHandler } from './MediateRpcHandler'
 
-const { SvcSettingKeys: S } = constants
+const { Service: S } = constants
 
 /**
  * Base class for MediateRpcAddOn.
  */
-@injectable()
+@d.injectable()
 export abstract class MediateRpcHandlerAddOnBase implements IServiceAddOn {
 
     public abstract name: string
@@ -16,8 +16,8 @@ export abstract class MediateRpcHandlerAddOnBase implements IServiceAddOn {
     protected _errorHandler: (err: any) => void
 
     constructor(
-        @unmanaged() protected _configProvider: IConfigurationProvider,
-        @unmanaged() protected _rpcHandler: IMediateRpcHandler
+        @d.unmanaged() protected _configProvider: IConfigurationProvider,
+        @d.unmanaged() protected _rpcHandler: IMediateRpcHandler
     ) {
         Guard.assertArgDefined('_configProvider', _configProvider)
         Guard.assertArgDefined('_rpcHandler', _rpcHandler)

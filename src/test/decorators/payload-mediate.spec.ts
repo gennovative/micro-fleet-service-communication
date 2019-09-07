@@ -18,7 +18,7 @@ import { SampleModel } from '../shared/SampleModel'
 import rabbitOpts from '../rabbit-options'
 
 
-const { RpcSettingKeys: RpcS, SvcSettingKeys: SvcS } = constants
+const { RPC: RpcS, Service: SvcS } = constants
 
 const SERVICE_SLUG = 'test-service',
     HANDLER_PORT = 30000,
@@ -175,7 +175,7 @@ describe('@payload() - mediate', function() {
 
     describe('Translation', function() {
 
-        it('Should convert whole payload to model class', async () => {
+        it('Should convert whole payload to model class of infered type', async () => {
             // Arrange
             const PAYLOAD = <SampleModel> {
                 name: 'Valid name',
@@ -188,7 +188,38 @@ describe('@payload() - mediate', function() {
             try {
                 const res: RpcResponse = await caller.call({
                     moduleName: rc.MODULE_NAME,
-                    actionName: rc.ACT_TRANSLATE_WHOLE,
+                    actionName: rc.ACT_TRANSLATE_WHOLE_AUTO,
+                    params: PAYLOAD,
+                })
+
+                // Assert
+                expect(res).to.exist
+                expect(res.isSuccess).to.be.true
+                const controller = depContainer.resolve<rc.PayloadController>(rc.PayloadController.name)
+                expect(controller.spyFn).to.be.called.once
+                expect(controller['spyFn']).to.be.called.with.exactly('SampleModel', PAYLOAD.name,
+                    PAYLOAD.age, PAYLOAD.position)
+            }
+            catch (err) {
+                err && console.error(err)
+                expect(err).to.not.exist
+            }
+        })
+
+        it('Should convert whole payload to model class of specified type', async () => {
+            // Arrange
+            const PAYLOAD = <SampleModel> {
+                name: 'Valid name',
+                age: 20,
+                position: 'Coolie manager',
+            }
+            await addon.init()
+
+            // Act
+            try {
+                const res: RpcResponse = await caller.call({
+                    moduleName: rc.MODULE_NAME,
+                    actionName: rc.ACT_TRANSLATE_WHOLE_MANUAL,
                     params: PAYLOAD,
                 })
 
@@ -249,11 +280,18 @@ describe('@payload() - mediate', function() {
                     age: 20,
                     position: 'Coolie manager',
                 },
-                two: <SampleModel> {
-                    name: 'Another valid name',
-                    age: 30,
-                    position: 'True coolie',
-                },
+                two: [
+                    <SampleModel> {
+                        name: 'Another valid name',
+                        age: 30,
+                        position: 'True coolie',
+                    },
+                    <SampleModel> {
+                        name: 'More name',
+                        age: 40,
+                        position: 'Seasoned coolie',
+                    },
+                ],
             }
             await addon.init()
 
@@ -271,8 +309,10 @@ describe('@payload() - mediate', function() {
                 const controller = depContainer.resolve<rc.PayloadController>(rc.PayloadController.name)
                 expect(controller.spyFn).to.be.called.once
                 expect(controller['spyFn']).to.be.called.with.exactly(
-                    'SampleModel', PAYLOAD.one.name, PAYLOAD.one.age, PAYLOAD.one.position,
-                    'SampleModel', PAYLOAD.two.name, PAYLOAD.two.age, PAYLOAD.two.position,
+                    'SampleModel', PAYLOAD.one.name, PAYLOAD.one.age,
+                    PAYLOAD.two.length,
+                    'SampleModel', PAYLOAD.two[0].name, PAYLOAD.two[0].age,
+                    'SampleModel', PAYLOAD.two[1].name, PAYLOAD.two[1].age,
                 )
             }
             catch (err) {

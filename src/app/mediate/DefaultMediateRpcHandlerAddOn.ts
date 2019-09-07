@@ -1,6 +1,6 @@
 /// <reference types="reflect-metadata" />
 
-import { IConfigurationProvider, inject, injectable,
+import { IConfigurationProvider, decorators as d,
     IDependencyContainer, Guard, Types as cT } from '@micro-fleet/common'
 
 import { ControllerCreationStrategy } from '../constants/controller'
@@ -14,7 +14,7 @@ import { ControllerHunter } from '../ControllerHunter'
 /**
  * Automatically registers classes decorated with `@directController()`
  */
-@injectable()
+@d.injectable()
 export class DefaultMediateRpcHandlerAddOn
     extends MediateRpcHandlerAddOnBase {
 
@@ -25,9 +25,9 @@ export class DefaultMediateRpcHandlerAddOn
 
 
     constructor(
-        @inject(cT.CONFIG_PROVIDER) configProvider: IConfigurationProvider,
-        @inject(cT.DEPENDENCY_CONTAINER) protected _depContainer: IDependencyContainer,
-        @inject(T.MEDIATE_RPC_HANDLER) rpcHandler: IMediateRpcHandler,
+        @d.inject(cT.CONFIG_PROVIDER) configProvider: IConfigurationProvider,
+        @d.inject(cT.DEPENDENCY_CONTAINER) protected _depContainer: IDependencyContainer,
+        @d.inject(T.MEDIATE_RPC_HANDLER) rpcHandler: IMediateRpcHandler,
     ) {
         super(configProvider, rpcHandler)
         Guard.assertArgDefined('_depContainer', _depContainer)

@@ -14,7 +14,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const common_1 = require("@micro-fleet/common");
 const Types_1 = require("./constants/Types");
-const { MbSettingKeys: S } = common_1.constants;
+const { MessageBroker: S } = common_1.constants;
 let MessageBrokerAddOn = class MessageBrokerAddOn {
     constructor(_configProvider, _msgBrokerCnn) {
         this._configProvider = _configProvider;
@@ -52,9 +52,9 @@ let MessageBrokerAddOn = class MessageBrokerAddOn {
     }
 };
 MessageBrokerAddOn = __decorate([
-    common_1.injectable(),
-    __param(0, common_1.inject(common_1.Types.CONFIG_PROVIDER)),
-    __param(1, common_1.inject(Types_1.Types.MSG_BROKER_CONNECTOR)),
+    common_1.decorators.injectable(),
+    __param(0, common_1.decorators.inject(common_1.Types.CONFIG_PROVIDER)),
+    __param(1, common_1.decorators.inject(Types_1.Types.MSG_BROKER_CONNECTOR)),
     __metadata("design:paramtypes", [Object, Object])
 ], MessageBrokerAddOn);
 exports.MessageBrokerAddOn = MessageBrokerAddOn;

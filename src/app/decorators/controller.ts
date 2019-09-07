@@ -1,13 +1,10 @@
 /// <reference types="reflect-metadata" />
 
-import { CriticalException, Guard, decorate, injectable } from '@micro-fleet/common'
+import { CriticalException, Guard, decorators as d } from '@micro-fleet/common'
 
 import { METADATA_KEY } from 'inversify'
 
 import { MetaData } from '../constants/MetaData'
-
-
-export type ControllerDecorator = (moduleName?: string) => Function
 
 
 /**
@@ -37,7 +34,7 @@ function createProcessor(metadata: string, moduleName?: string) {
             throw new CriticalException('Duplicate controller decorator')
         }
 
-        notInjectable(TargetClass) && decorate(injectable(), TargetClass)
+        notInjectable(TargetClass) && d.decorate(d.injectable(), TargetClass)
 
         if (!moduleName) {
             // Extract path from controller name.

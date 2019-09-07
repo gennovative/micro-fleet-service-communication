@@ -16,7 +16,7 @@ import { IDirectRpcHandler, IDirectRpcCaller, ExpressRpcHandler, HttpRpcCaller,
 import * as rc from '../shared/resolve-reject-controller'
 
 
-const { RpcSettingKeys: RpcS, SvcSettingKeys: SvcS } = constants
+const { RPC: R, Service: S } = constants
 
 const SERVICE_SLUG = 'test-service',
     HANDLER_PORT = 30000,
@@ -50,8 +50,8 @@ class MockConfigProvider implements IConfigurationProvider {
 
     public get(key: string): Maybe<number | boolean | string> {
         switch (key) {
-            case RpcS.RPC_HANDLER_PORT: return Maybe.Just(HANDLER_PORT)
-            case SvcS.SERVICE_SLUG: return Maybe.Just(SERVICE_SLUG)
+            case R.RPC_HANDLER_PORT: return Maybe.Just(HANDLER_PORT)
+            case S.SERVICE_SLUG: return Maybe.Just(SERVICE_SLUG)
             default: return Maybe.Nothing()
         }
     }

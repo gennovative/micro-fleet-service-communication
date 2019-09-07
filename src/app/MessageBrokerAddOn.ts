@@ -1,20 +1,20 @@
-import { IConfigurationProvider, Types as ConT, constants, injectable,
-    inject, Guard, IServiceAddOn } from '@micro-fleet/common'
+import { IConfigurationProvider, Types as ConT, constants, decorators as d,
+    Guard, IServiceAddOn } from '@micro-fleet/common'
 
 import { IMessageBrokerConnector, MessageBrokerConnectionOptions} from './MessageBrokerConnector'
 import { Types as T } from './constants/Types'
 
-const { MbSettingKeys: S } = constants
+const { MessageBroker: S } = constants
 
 
-@injectable()
+@d.injectable()
 export class MessageBrokerAddOn implements IServiceAddOn {
 
     public readonly name: string = 'MessageBrokerAddOn'
 
     constructor(
-        @inject(ConT.CONFIG_PROVIDER) private _configProvider: IConfigurationProvider,
-        @inject(T.MSG_BROKER_CONNECTOR) private _msgBrokerCnn: IMessageBrokerConnector
+        @d.inject(ConT.CONFIG_PROVIDER) private _configProvider: IConfigurationProvider,
+        @d.inject(T.MSG_BROKER_CONNECTOR) private _msgBrokerCnn: IMessageBrokerConnector
     ) {
         Guard.assertArgDefined('_configProvider', _configProvider)
         Guard.assertArgDefined('_msgBrokerCnn', _msgBrokerCnn)

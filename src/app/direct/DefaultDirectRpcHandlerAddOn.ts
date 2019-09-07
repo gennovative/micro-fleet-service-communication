@@ -1,6 +1,6 @@
 /// <reference types="reflect-metadata" />
 
-import { IConfigurationProvider, inject, injectable,
+import { IConfigurationProvider, decorators as d,
     IDependencyContainer, Guard, Types as cT } from '@micro-fleet/common'
 
 import { IDirectRpcHandler } from './DirectRpcHandler'
@@ -14,7 +14,7 @@ import { ControllerHunter } from '../ControllerHunter'
 /**
  * Automatically registers classes decorated with `@directController()`
  */
-@injectable()
+@d.injectable()
 export class DefaultDirectRpcHandlerAddOn
     extends DirectRpcHandlerAddOnBase {
 
@@ -25,9 +25,9 @@ export class DefaultDirectRpcHandlerAddOn
 
 
     constructor(
-        @inject(cT.CONFIG_PROVIDER) configProvider: IConfigurationProvider,
-        @inject(cT.DEPENDENCY_CONTAINER) protected _depContainer: IDependencyContainer,
-        @inject(T.DIRECT_RPC_HANDLER) rpcHandler: IDirectRpcHandler
+        @d.inject(cT.CONFIG_PROVIDER) configProvider: IConfigurationProvider,
+        @d.inject(cT.DEPENDENCY_CONTAINER) protected _depContainer: IDependencyContainer,
+        @d.inject(T.DIRECT_RPC_HANDLER) rpcHandler: IDirectRpcHandler
     ) {
         super(configProvider, rpcHandler)
         Guard.assertArgDefined('_depContainer', _depContainer)

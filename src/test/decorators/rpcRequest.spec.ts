@@ -21,7 +21,7 @@ import * as rc from '../shared/rpcRequest-rawMessage-controller'
 import rabbitOpts from '../rabbit-options'
 
 
-const { RpcSettingKeys: RpcS, SvcSettingKeys: SvcS } = constants
+const { RPC: R, Service: S } = constants
 
 const CONTROLLER_NAME = 'rpcRequest-rawMessage-controller',
     SERVICE_SLUG = 'test-service',
@@ -56,8 +56,8 @@ class MockConfigProvider implements IConfigurationProvider {
 
     public get(key: string): Maybe<number | boolean | string> {
         switch (key) {
-            case RpcS.RPC_HANDLER_PORT: return Maybe.Just(HANDLER_PORT)
-            case SvcS.SERVICE_SLUG: return Maybe.Just(SERVICE_SLUG)
+            case R.RPC_HANDLER_PORT: return Maybe.Just(HANDLER_PORT)
+            case S.SERVICE_SLUG: return Maybe.Just(SERVICE_SLUG)
             default: return Maybe.Nothing()
         }
     }

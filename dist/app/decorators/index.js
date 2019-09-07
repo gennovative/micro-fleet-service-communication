@@ -17,11 +17,10 @@ exports.decorators = {
     directController: controller_1.directController,
     mediateController: controller_1.mediateController,
     filter: filter_1.filter,
-    // model,
     rawMessage: rawMessage_1.rawMessage,
     resolveFn: resolveFn_1.resolveFn,
     rejectFn: rejectFn_1.rejectFn,
     rpcRequest: rpcRequest_1.rpcRequest,
-    payload: payload_1.payloadDecor,
+    payload: payload_1.payload,
 };
 //# sourceMappingURL=index.js.map

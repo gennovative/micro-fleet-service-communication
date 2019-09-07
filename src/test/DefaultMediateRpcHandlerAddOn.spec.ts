@@ -20,7 +20,7 @@ import { sleep } from './shared/helper'
 
 chai.use(spies)
 const expect = chai.expect
-const { SvcSettingKeys: SvcS } = constants
+const { Service: S } = constants
 
 const SERVICE_SLUG = 'test-service',
     CALLER_NAME = 'caller',
@@ -54,7 +54,7 @@ class MockConfigProvider implements IConfigurationProvider {
 
     public get(key: string): Maybe<number | boolean | string> {
         switch (key) {
-            case SvcS.SERVICE_SLUG: return Maybe.Just(SERVICE_SLUG)
+            case S.SERVICE_SLUG: return Maybe.Just(SERVICE_SLUG)
             default: return Maybe.Nothing()
         }
     }

@@ -2,7 +2,7 @@ import * as chai from 'chai'
 import * as spies from 'chai-spies'
 
 import { IConfigurationProvider, Types as ConT, constants, Maybe,
-    injectable, inject } from '@micro-fleet/common'
+    decorators as d } from '@micro-fleet/common'
 
 import { IMediateRpcHandler, IMessageBrokerConnector,
     MessageBrokerConnectionOptions, MessageBrokerPublishOptions, MessageHandleFunction,
@@ -10,7 +10,7 @@ import { IMediateRpcHandler, IMessageBrokerConnector,
     Types as ComT } from '../app'
 
 
-const { SvcSettingKeys: SvcS } = constants
+const { Service: S } = constants
 
 chai.use(spies)
 const expect = chai.expect
@@ -45,7 +45,7 @@ class MockConfigProvider implements IConfigurationProvider {
 
     public get(key: string): Maybe<number | boolean | string> {
         switch (key) {
-            case SvcS.SERVICE_SLUG: return Maybe.Just(SERVICE_SLUG)
+            case S.SERVICE_SLUG: return Maybe.Just(SERVICE_SLUG)
             default: return Maybe.Nothing()
         }
     }
@@ -109,7 +109,7 @@ class MockMbConnector implements IMessageBrokerConnector {
 }
 
 
-@injectable()
+@d.injectable()
 class CustomAddOn extends MediateRpcHandlerAddOnBase {
 
     public readonly name: string = 'CustomAddOn'
@@ -117,8 +117,8 @@ class CustomAddOn extends MediateRpcHandlerAddOnBase {
     // protected controllerIdentifier: string | symbol
 
     constructor(
-        @inject(ConT.CONFIG_PROVIDER) configProvider: IConfigurationProvider,
-        @inject(ComT.MEDIATE_RPC_HANDLER) rpcHandler: IMediateRpcHandler
+        @d.inject(ConT.CONFIG_PROVIDER) configProvider: IConfigurationProvider,
+        @d.inject(ComT.MEDIATE_RPC_HANDLER) rpcHandler: IMediateRpcHandler
     ) {
         super(configProvider, rpcHandler)
         // this.controllerIdentifier = 'CustomController'

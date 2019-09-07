@@ -92,7 +92,7 @@ let RpcCallerBase = class RpcCallerBase {
     }
 };
 RpcCallerBase = __decorate([
-    common_1.injectable(),
+    common_1.decorators.injectable(),
     __metadata("design:paramtypes", [])
 ], RpcCallerBase);
 exports.RpcCallerBase = RpcCallerBase;
@@ -152,7 +152,7 @@ let RpcHandlerBase = class RpcHandlerBase {
     }
 };
 RpcHandlerBase = __decorate([
-    common_1.injectable(),
+    common_1.decorators.injectable(),
     __metadata("design:paramtypes", [Object])
 ], RpcHandlerBase);
 exports.RpcHandlerBase = RpcHandlerBase;

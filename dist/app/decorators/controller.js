@@ -29,7 +29,7 @@ function createProcessor(metadata, moduleName) {
         if (Reflect.hasOwnMetadata(metadata, TargetClass)) {
             throw new common_1.CriticalException('Duplicate controller decorator');
         }
-        notInjectable(TargetClass) && common_1.decorate(common_1.injectable(), TargetClass);
+        notInjectable(TargetClass) && common_1.decorators.decorate(common_1.decorators.injectable(), TargetClass);
         if (!moduleName) {
             // Extract path from controller name.
             // Only if controller name is in format {xxx}Controller.

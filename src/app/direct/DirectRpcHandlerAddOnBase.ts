@@ -1,15 +1,15 @@
-import { IConfigurationProvider, constants,
-    injectable, unmanaged, Guard, IServiceAddOn } from '@micro-fleet/common'
+import { IConfigurationProvider, constants, decorators as d,
+    Guard, IServiceAddOn } from '@micro-fleet/common'
 
 import { IDirectRpcHandler } from './DirectRpcHandler'
 
-const { RpcSettingKeys: RpcS, SvcSettingKeys: SvcS } = constants
+const { RPC: R, Service: S } = constants
 
 
 /**
  * Base class for DirectRpcAddOn.
  */
-@injectable()
+@d.injectable()
 export abstract class DirectRpcHandlerAddOnBase implements IServiceAddOn {
 
     public abstract name: string
@@ -17,8 +17,8 @@ export abstract class DirectRpcHandlerAddOnBase implements IServiceAddOn {
     protected _errorHandler: (err: any) => void
 
     constructor(
-        @unmanaged() protected _configProvider: IConfigurationProvider,
-        @unmanaged() protected _rpcHandler: IDirectRpcHandler
+        @d.unmanaged() protected _configProvider: IConfigurationProvider,
+        @d.unmanaged() protected _rpcHandler: IDirectRpcHandler
     ) {
         Guard.assertArgDefined('_configProvider', _configProvider)
         Guard.assertArgDefined('_rpcHandler', _rpcHandler)
@@ -28,8 +28,8 @@ export abstract class DirectRpcHandlerAddOnBase implements IServiceAddOn {
      * @see IServiceAddOn.init
      */
     public init(): Promise<void> {
-        this._rpcHandler.name = this._configProvider.get(SvcS.SERVICE_SLUG).value as string
-        this._rpcHandler.port = this._configProvider.get(RpcS.RPC_HANDLER_PORT).value as number
+        this._rpcHandler.name = this._configProvider.get(S.SERVICE_SLUG).value as string
+        this._rpcHandler.port = this._configProvider.get(R.RPC_HANDLER_PORT).value as number
         this._errorHandler && this._rpcHandler.onError(this._errorHandler)
         this._rpcHandler.init()
         return this.handleRequests()

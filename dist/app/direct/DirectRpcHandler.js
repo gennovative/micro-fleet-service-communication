@@ -179,7 +179,7 @@ ExpressRpcHandler.URL_TESTER = (function () {
     return regexp;
 })();
 ExpressRpcHandler = ExpressRpcHandler_1 = __decorate([
-    common_1.injectable(),
+    common_1.decorators.injectable(),
     __metadata("design:paramtypes", [])
 ], ExpressRpcHandler);
 exports.ExpressRpcHandler = ExpressRpcHandler;

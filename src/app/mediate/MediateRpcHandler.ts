@@ -1,7 +1,7 @@
 /// <reference types="debug" />
 const debug: debug.IDebugger = require('debug')('mcft:svccom:MessageBrokerRpcHandler')
 
-import { injectable, inject, Guard, ValidationError } from '@micro-fleet/common'
+import { Guard, ValidationError, decorators as d } from '@micro-fleet/common'
 
 import { Types as T } from '../constants/Types'
 import { IMessageBrokerConnector, BrokerMessage } from '../MessageBrokerConnector'
@@ -11,7 +11,7 @@ import * as rpc from '../RpcCommon'
 export interface IMediateRpcHandler extends rpc.IRpcHandler {
 }
 
-@injectable()
+@d.injectable()
 export class MessageBrokerRpcHandler
     extends rpc.RpcHandlerBase
     implements IMediateRpcHandler {
@@ -19,7 +19,7 @@ export class MessageBrokerRpcHandler
     private _handlers: Map<string, rpc.RpcHandlerFunction>
 
     constructor(
-        @inject(T.MSG_BROKER_CONNECTOR) private _msgBrokerConn: IMessageBrokerConnector
+        @d.inject(T.MSG_BROKER_CONNECTOR) private _msgBrokerConn: IMessageBrokerConnector
     ) {
         super()
         Guard.assertArgDefined('_msgBrokerConn', _msgBrokerConn)

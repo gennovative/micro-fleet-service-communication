@@ -13,7 +13,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const common_1 = require("@micro-fleet/common");
-const { RpcSettingKeys: RpcS, SvcSettingKeys: SvcS } = common_1.constants;
+const { RPC: R, Service: S } = common_1.constants;
 /**
  * Base class for DirectRpcAddOn.
  */
@@ -28,8 +28,8 @@ let DirectRpcHandlerAddOnBase = class DirectRpcHandlerAddOnBase {
      * @see IServiceAddOn.init
      */
     init() {
-        this._rpcHandler.name = this._configProvider.get(SvcS.SERVICE_SLUG).value;
-        this._rpcHandler.port = this._configProvider.get(RpcS.RPC_HANDLER_PORT).value;
+        this._rpcHandler.name = this._configProvider.get(S.SERVICE_SLUG).value;
+        this._rpcHandler.port = this._configProvider.get(R.RPC_HANDLER_PORT).value;
         this._errorHandler && this._rpcHandler.onError(this._errorHandler);
         this._rpcHandler.init();
         return this.handleRequests()
@@ -60,9 +60,9 @@ let DirectRpcHandlerAddOnBase = class DirectRpcHandlerAddOnBase {
     }
 };
 DirectRpcHandlerAddOnBase = __decorate([
-    common_1.injectable(),
-    __param(0, common_1.unmanaged()),
-    __param(1, common_1.unmanaged()),
+    common_1.decorators.injectable(),
+    __param(0, common_1.decorators.unmanaged()),
+    __param(1, common_1.decorators.unmanaged()),
     __metadata("design:paramtypes", [Object, Object])
 ], DirectRpcHandlerAddOnBase);
 exports.DirectRpcHandlerAddOnBase = DirectRpcHandlerAddOnBase;
