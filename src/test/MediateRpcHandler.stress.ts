@@ -12,6 +12,8 @@ let handlerMbConn: TopicMessageBrokerConnector,
     callerMbConn: TopicMessageBrokerConnector,
     rpcHandler: MessageBrokerRpcHandler
 
+// tslint:disable: no-floating-promises
+
 describe.skip('MediateRpcHandler', function() {
     // Disable timeout to let stress test run forever.
     this.timeout(0)

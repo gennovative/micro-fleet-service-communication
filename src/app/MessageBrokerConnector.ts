@@ -2,10 +2,10 @@ import { EventEmitter } from 'events'
 
 import * as shortid from 'shortid'
 import * as amqp from 'amqplib'
-import * as _ from 'lodash'
 
 import { Exception, CriticalException, MinorException, decorators as d,
-    Guard } from '@micro-fleet/common'
+    Guard,
+    isEmpty} from '@micro-fleet/common'
 
 
 export type MessageHandleFunction = (msg: BrokerMessage, ack?: () => void, nack?: () => void) => void
@@ -250,7 +250,7 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
         // - "@pass"
         // - "usr@"
         // - ""
-        if (!_.isEmpty(options.username) || !_.isEmpty(options.password)) {
+        if (!isEmpty(options.username) || !isEmpty(options.password)) {
             credentials = `${options.username || ''}:${options.password || ''}@`
         }
 
@@ -621,7 +621,7 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
         let msg: string
         options = options || {}
 
-        if (_.isString(payload)) {
+        if (typeof payload === 'string') {
             msg = payload
             options.contentType = 'text/plain'
         } else {

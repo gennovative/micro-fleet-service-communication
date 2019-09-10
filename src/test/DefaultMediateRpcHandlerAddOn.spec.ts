@@ -73,6 +73,8 @@ let depContainer: DependencyContainer,
     caller: IMediateRpcCaller,
     addon: DefaultMediateRpcHandlerAddOn
 
+// tslint:disable: no-floating-promises
+
 describe('DefaultMediateRpcHandlerAddOn', function() {
     this.timeout(20000)
     // For debugging
@@ -351,7 +353,7 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
                     err && console.error(err)
                     expect(err).to.not.exist
                 })
-                .finally(async () => {
+                .finally(() => {
                     done()
                 })
         })

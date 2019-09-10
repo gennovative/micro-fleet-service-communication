@@ -59,7 +59,7 @@ export class ExpressRpcHandler
     /**
      * @see IDirectRpcHandler.init
      */
-    public init(params?: any): any {
+    public init(params?: any): Promise<void> {
         Guard.assertIsFalsey(this._routers, 'This RPC Handler is already initialized!')
         Guard.assertIsTruthy(this.name, '`name` property must be set!')
 
@@ -78,6 +78,7 @@ export class ExpressRpcHandler
         app.use(express.json()) // Parse JSON in POST request
 
         this._routers = new Map<string, express.Router>()
+        return Promise.resolve()
     }
 
     /**

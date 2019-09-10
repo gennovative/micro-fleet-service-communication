@@ -88,8 +88,9 @@ let HttpRpcCaller = class HttpRpcCaller extends rpc.RpcCallerBase {
      * @see IRpcCaller.callImpatient
      */
     callImpatient(options) {
-        this.call(options);
-        return Promise.resolve();
+        return new Promise((_, reject) => {
+            this.call(options).catch(reject);
+        });
     }
 };
 HttpRpcCaller = __decorate([

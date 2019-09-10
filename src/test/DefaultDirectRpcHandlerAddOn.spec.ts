@@ -70,7 +70,8 @@ let depContainer: DependencyContainer,
     caller: IDirectRpcCaller,
     addon: DefaultDirectRpcHandlerAddOn
 
-// TODO: inject @resolve to direct-controller
+// tslint:disable: no-floating-promises
+
 describe('DefaultDirectRpcHandlerAddOn', function() {
     this.timeout(5000)
     // For debugging

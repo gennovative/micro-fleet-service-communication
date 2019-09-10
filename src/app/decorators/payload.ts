@@ -14,7 +14,7 @@ export type PayloadDecoratorOptions = {
      * Function to extract model object from payload.
      * As default, model object is the payload itself.
      */
-    extractFn?: (payload: any) => any,
+    extractFn?(payload: any): any;
 
     /**
      * Turns on or off model validation before translating.

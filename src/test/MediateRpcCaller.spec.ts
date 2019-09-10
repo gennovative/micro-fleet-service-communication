@@ -15,6 +15,8 @@ let handlerMbConn: TopicMessageBrokerConnector,
     globalCallerMbConn: TopicMessageBrokerConnector,
     globalCaller: MessageBrokerRpcCaller
 
+// tslint:disable: no-floating-promises
+
 describe('MessageBrokerRpcCaller', function() {
     this.timeout(10000)
 

@@ -26,7 +26,7 @@ export type DecorateParamOptions = {
     /**
      * The function to figure out the value for the decorated parameter
      */
-    resolverFn: (params: RpcHandlerParams) => Promise<any> | any,
+    resolverFn(params: RpcHandlerParams): Promise<any> | any;
 }
 
 export type ParamDecorDescriptor = Function[]

@@ -244,7 +244,7 @@ declare module '@micro-fleet/service-communication/dist/app/decorators/param-dec
         /**
          * The function to figure out the value for the decorated parameter
          */
-        resolverFn: (params: RpcHandlerParams) => Promise<any> | any;
+        resolverFn(params: RpcHandlerParams): Promise<any> | any;
     };
     export type ParamDecorDescriptor = Function[];
     /**
@@ -648,7 +648,7 @@ declare module '@micro-fleet/service-communication/dist/app/decorators/payload' 
          * Function to extract model object from payload.
          * As default, model object is the payload itself.
          */
-        extractFn?: (payload: any) => any;
+        extractFn?(payload: any): any;
         /**
          * Turns on or off model validation before translating.
          * Default `false`.
@@ -762,7 +762,7 @@ declare module '@micro-fleet/service-communication/dist/app/direct/DirectRpcHand
         /**
          * @see IDirectRpcHandler.init
          */
-        init(params?: any): any;
+        init(params?: any): Promise<void>;
         /**
          * @see IRpcHandler.start
          */

@@ -13,6 +13,7 @@ const expect = chai.expect
 
 const NAME = 'TestHandler'
 
+// tslint:disable: no-floating-promises
 
 describe('ExpressDirectRpcHandler', function () {
     this.timeout(5000)
@@ -61,10 +62,8 @@ describe('ExpressDirectRpcHandler', function () {
             const createAction = 'create'
             const editAction = 'edit'
 
-            // tslint:disable
-            const doCreate = () => { }
-            const doEdit = () => { }
-            // tslint:enable
+            const doCreate = () => { /* empty */ }
+            const doEdit = () => {/* empty */ }
 
             // Act 1
             handler.handle({

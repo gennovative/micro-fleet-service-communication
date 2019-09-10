@@ -2,7 +2,6 @@ import * as amqp from 'amqplib'
 import * as chai from 'chai'
 import * as spies from 'chai-spies'
 import * as shortid from 'shortid'
-import delay = require('lodash/delay')
 import { MinorException } from '@micro-fleet/common'
 
 import { MessageBrokerRpcHandler, BrokerMessage, IMessageBrokerConnector, IMediateRpcHandler,
@@ -19,6 +18,8 @@ const NAME = 'TestHandler'
 let handlerMbConn: IMessageBrokerConnector,
     callerMbConn: IMessageBrokerConnector,
     rpcHandler: IMediateRpcHandler
+
+// tslint:disable: no-floating-promises
 
 describe('MediateRpcHandler', function () {
     this.timeout(5000)
@@ -250,7 +251,7 @@ describe('MediateRpcHandler', function () {
                     expect(response.isSuccess).to.be.true
                     expect(response.payload).to.deep.equal(result)
                     // Wait for all async tasks inside RPC handler to finish
-                    delay(() => done(), 200)
+                    setTimeout(() => done(), 200)
                 }))
                 .then(() => rpcHandler.start())
                 .then(() => {
@@ -263,7 +264,7 @@ describe('MediateRpcHandler', function () {
                     callerMbConn.publish(topic, req, { correlationId, replyTo })
                 })
                 // Register again... officially
-                .then(() => delay(() => {
+                .then(() => setTimeout(() => {
                     rpcHandler.handle({
                         moduleName,
                         actionName: createAction,

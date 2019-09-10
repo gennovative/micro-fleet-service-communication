@@ -127,7 +127,7 @@ export class ResolveRejectController {
     @d.action(ACT_MANUAL_ASYNC_REJECT)
     public async getManualRejectAsync(@d.rejectFn() reject: Function): Promise<void> {
         this.spyFn()
-        setTimeout(() => {
+        await setTimeout(() => {
             reject(RES_MANUAL_ASYNC_REJECT)
         }, 100)
     }

@@ -89,7 +89,7 @@ export class MessageBrokerRpcCaller
                     // In case this request never has response.
                     token = setTimeout(() => {
                         this._emitter && this._emitter.removeListener(correlationId, onMessage)
-                        this._msgBrokerConn && conn.unsubscribe(replyTo).catch(() => { /* Swallow */ })
+                        conn && conn.unsubscribe(replyTo).catch(() => { /* Swallow */ })
                         reject(new MinorException('Response waiting timeout'))
                     }, this.timeout)
 

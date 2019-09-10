@@ -8,13 +8,12 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-Object.defineProperty(exports, "__esModule", { value: true });
 var TopicMessageBrokerConnector_1;
+Object.defineProperty(exports, "__esModule", { value: true });
 "use strict";
 const events_1 = require("events");
 const shortid = require("shortid");
 const amqp = require("amqplib");
-const _ = require("lodash");
 const common_1 = require("@micro-fleet/common");
 let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMessageBrokerConnector {
     constructor() {
@@ -80,7 +79,7 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
         // - "@pass"
         // - "usr@"
         // - ""
-        if (!_.isEmpty(options.username) || !_.isEmpty(options.password)) {
+        if (!common_1.isEmpty(options.username) || !common_1.isEmpty(options.password)) {
             credentials = `${options.username || ''}:${options.password || ''}@`;
         }
         // URI format: amqp://usr:pass@10.1.2.3/vhost
@@ -401,7 +400,7 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
     buildMessage(payload, options) {
         let msg;
         options = options || {};
-        if (_.isString(payload)) {
+        if (typeof payload === 'string') {
             msg = payload;
             options.contentType = 'text/plain';
         }

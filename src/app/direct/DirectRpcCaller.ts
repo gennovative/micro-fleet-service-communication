@@ -109,7 +109,8 @@ export class HttpRpcCaller
      * @see IRpcCaller.callImpatient
      */
     public callImpatient(options: rpc.RpcCallerOptions): Promise<void> {
-        this.call(options)
-        return Promise.resolve()
+        return new Promise((_, reject) => {
+            this.call(options).catch(reject)
+        })
     }
 }

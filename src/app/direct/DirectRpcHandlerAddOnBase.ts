@@ -31,8 +31,8 @@ export abstract class DirectRpcHandlerAddOnBase implements IServiceAddOn {
         this._rpcHandler.name = this._configProvider.get(S.SERVICE_SLUG).value as string
         this._rpcHandler.port = this._configProvider.get(R.RPC_HANDLER_PORT).value as number
         this._errorHandler && this._rpcHandler.onError(this._errorHandler)
-        this._rpcHandler.init()
-        return this.handleRequests()
+        return this._rpcHandler.init()
+            .then(() => this.handleRequests())
             .then(() => this._rpcHandler.start())
     }
 

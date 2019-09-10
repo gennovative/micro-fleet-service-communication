@@ -69,6 +69,8 @@ class MockConfigProvider implements IConfigurationProvider {
 
 
 
+// tslint:disable: no-floating-promises
+
 describe('@rpcRequest()', function() {
     this.timeout(5000)
     // this.timeout(60000) // For debugging

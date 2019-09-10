@@ -8,8 +8,8 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-Object.defineProperty(exports, "__esModule", { value: true });
 var ExpressRpcHandler_1;
+Object.defineProperty(exports, "__esModule", { value: true });
 "use strict";
 /// <reference types="debug" />
 const debug = require('debug')('mcft:svccom:ExpressRpcHandler');
@@ -51,6 +51,7 @@ let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rp
         });
         app.use(express.json()); // Parse JSON in POST request
         this._routers = new Map();
+        return Promise.resolve();
     }
     /**
      * @see IRpcHandler.start

@@ -1,6 +1,6 @@
 {
     "name": "@micro-fleet/service-communication",
-    "version": "2.3.0-rc1",
+    "version": "2.3.0-rc3",
     "description": "Provides methods for microservices to communicate with each other.",
     "scripts": {
         "build": "npm run compile && npm run test",
@@ -10,46 +10,42 @@
         "compile": "npm run clean && npm run lint && tsc --pretty",
         "release": "npm run build && npm run definition",
         "test": "nyc --extension=.ts --reporter=json --reporter=html --include dist/app/**/*.js --include src/app/**/*.ts mocha --recursive dist/test",
-        "lint": "tslint --fix 'src/**/*.ts'",
+        "lint": "tslint --fix -p tsconfig.json --exclude '**/*.d.ts'",
         "watch": "npm run clean && npm run lint && tsc --watch --pretty",
         "prepublishOnly": "npm run release"
     },
     "dependencies": {
         "amqplib": "~0.5",
         "debug": "~4.1",
-        "express": "~4.16",
-        "lodash": "~4.17",
-        "reflect-metadata": "~0.1",
-        "request": "~2.87",
+        "express": "~4.17",
+        "request": "~2.88",
         "request-promise-native": "~1.0",
         "shortid": "~2.2"
     },
     "devDependencies": {
+        "@hapi/joi": "~15.1",
         "@types/amqplib": "~0.5",
-        "@types/body-parser": "~1.17",
-        "@types/chai": "~4.1",
-        "@types/chai-spies": "~0.0.1",
+        "@types/chai": "~4.2",
+        "@types/chai-spies": "~1.0",
         "@types/debug": "~4.1",
-        "@types/express": "~4.16",
-        "@types/joi": "^14.3.3",
-        "@types/lodash": "~4.14",
+        "@types/express": "~4.17",
+        "@types/hapi__joi": "~15.0",
         "@types/mocha": "~5.2",
         "@types/node": "~10.14",
+        "@types/reflect-metadata": "~0.1",
         "@types/request-promise-native": "~1.0",
         "@types/shortid": "0.0.29",
-        "chai": "~4.1",
-        "chai-spies": "git://github.com/chaijs/chai-spies.git#b11aeebf",
-        "inversify": "~4.11",
-        "joi": "~14.3",
-        "mocha": "~5.2",
+        "chai": "~4.2",
+        "chai-spies": "~1.0",
+        "inversify": "^5.0.1",
+        "mocha": "~6.2",
         "nyc": "~14.1",
-        "rimraf": "~2.6",
-        "ts-declarator": "~1.0",
-        "tslint": "~5.11",
-        "typescript": "~3.3"
+        "rimraf": "~3.0",
+        "tslint": "~5.19",
+        "typescript": "~3.6"
     },
     "peerDependencies": {
-        "@micro-fleet/common": "=2.3.0-rc1"
+        "@micro-fleet/common": "=2.3.0-rc3"
     },
     "publishConfig": {
         "access": "public"
