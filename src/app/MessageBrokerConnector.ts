@@ -352,8 +352,12 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
                 (msg: amqp.Message) => {
                     const ack = () => ch.ack(msg),
                         nack = () => ch.nack(msg, false, true)
-
-                    onMessage(this.parseMessage(msg), ack, nack)
+                    try {
+                        onMessage(this.parseMessage(msg), ack, nack)
+                    }
+                    catch (err) {
+                        this._emitter.emit('error', err)
+                    }
                 },
                 { noAck }
             )
@@ -638,10 +642,24 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
             properties: raw.properties || {},
         }
 
-        if (msg.properties.contentType == 'text/plain') {
-            msg.data = raw.content.toString(msg.properties.contentEncoding)
-        } else {
-            msg.data = JSON.parse(<any>raw.content)
+        const { contentType, contentEncoding } = msg.properties
+
+        if (raw.content instanceof Buffer) {
+            const strContent = raw.content.toString(contentEncoding)
+            if (contentType === 'application/json') {
+                msg.data = JSON.parse(strContent)
+            }
+            else {
+                msg.data = strContent
+            }
+        }
+        else {
+            if (contentType === 'application/json') {
+                msg.data = JSON.parse(String(raw.content))
+            }
+            else {
+                msg.data = raw.content
+            }
         }
 
         return <BrokerMessage>msg

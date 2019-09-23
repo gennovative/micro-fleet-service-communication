@@ -15,7 +15,9 @@ const HANDLER_ADDR = 'localhost:3000',
     TEXT_RESPONSE = 'Test response',
     ACTION = 'getMessage'
 
-describe('HttpRpcCaller', () => {
+describe('HttpRpcCaller', function() {
+    this.timeout(5000)
+
     let caller: IDirectRpcCaller
 
     beforeEach(() => {

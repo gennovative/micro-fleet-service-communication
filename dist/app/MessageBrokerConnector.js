@@ -167,7 +167,12 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
             const ch = await this._consumeChanPrm;
             const conResult = await ch.consume(this.queue, (msg) => {
                 const ack = () => ch.ack(msg), nack = () => ch.nack(msg, false, true);
-                onMessage(this.parseMessage(msg), ack, nack);
+                try {
+                    onMessage(this.parseMessage(msg), ack, nack);
+                }
+                catch (err) {
+                    this._emitter.emit('error', err);
+                }
             }, { noAck });
             this._consumerTag = conResult.consumerTag;
         }
@@ -415,11 +420,23 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
             raw,
             properties: raw.properties || {},
         };
-        if (msg.properties.contentType == 'text/plain') {
-            msg.data = raw.content.toString(msg.properties.contentEncoding);
+        const { contentType, contentEncoding } = msg.properties;
+        if (raw.content instanceof Buffer) {
+            const strContent = raw.content.toString(contentEncoding);
+            if (contentType === 'application/json') {
+                msg.data = JSON.parse(strContent);
+            }
+            else {
+                msg.data = strContent;
+            }
         }
         else {
-            msg.data = JSON.parse(raw.content);
+            if (contentType === 'application/json') {
+                msg.data = JSON.parse(String(raw.content));
+            }
+            else {
+                msg.data = raw.content;
+            }
         }
         return msg;
     }
