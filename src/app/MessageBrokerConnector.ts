@@ -64,6 +64,11 @@ export type MessageBrokerConnectionOptions = {
 export interface IMessageBrokerConnector {
 
     /**
+     * User-defined connector name.
+     */
+    readonly name: string
+
+    /**
      * Gets or sets queue name.
      * Queue can only be changed before it is bound.
      * Queue is bound on the first call to `subscribe()` method.
@@ -174,7 +179,10 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
     private _messageExpiredIn: number
     private _subscribedPatterns: string[]
 
-    constructor() {
+
+    constructor(
+        private _name: string
+    ) {
         this._subscribedPatterns = []
         this._emitter = new EventEmitter()
         this._queueBound = false
@@ -182,6 +190,12 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
         this._isConnecting = false
     }
 
+    /**
+     * @see IMessageBrokerConnector.name
+     */
+    public get name(): string {
+        return this._name
+    }
 
     /**
      * @see IMessageBrokerConnector.queue
