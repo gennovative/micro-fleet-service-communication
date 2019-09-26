@@ -97,8 +97,7 @@ RpcCallerBase = __decorate([
 ], RpcCallerBase);
 exports.RpcCallerBase = RpcCallerBase;
 let RpcHandlerBase = class RpcHandlerBase {
-    constructor(_depContainer) {
-        this._depContainer = _depContainer;
+    constructor() {
         this._emitter = new events_1.EventEmitter();
         this._hasErrHandler = false;
     }
@@ -153,7 +152,7 @@ let RpcHandlerBase = class RpcHandlerBase {
 };
 RpcHandlerBase = __decorate([
     common_1.decorators.injectable(),
-    __metadata("design:paramtypes", [Object])
+    __metadata("design:paramtypes", [])
 ], RpcHandlerBase);
 exports.RpcHandlerBase = RpcHandlerBase;
 //# sourceMappingURL=RpcCommon.js.map

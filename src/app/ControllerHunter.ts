@@ -76,7 +76,7 @@ export class ControllerHunter {
 
     protected _assertValidController(ctrlName: string, CtrlClass: Newable): void {
         if (typeof CtrlClass !== 'function' || !Reflect.hasOwnMetadata(this._controllerMeta, CtrlClass)) {
-            throw new CriticalException(`Controller "${ctrlName}" must be a class and decorated with @mediateController()`)
+            throw new CriticalException(`Controller "${ctrlName}" must be a class and decorated with meta data ${this._controllerMeta}`)
         }
     }
 

@@ -1,6 +1,6 @@
 {
     "name": "@micro-fleet/service-communication",
-    "version": "2.3.0-rc3",
+    "version": "2.3.0-rc4",
     "description": "Provides methods for microservices to communicate with each other.",
     "scripts": {
         "build": "npm run compile && npm run test",

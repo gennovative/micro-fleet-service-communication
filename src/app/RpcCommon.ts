@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events'
 
-import { IDependencyContainer, CriticalException, decorators as d,
+import { CriticalException, decorators as d,
     MinorException, Exception, InternalErrorException,
     ValidationError, BusinessInvariantError } from '@micro-fleet/common'
 
@@ -327,7 +327,7 @@ export abstract class RpcHandlerBase {
     private _hasErrHandler: boolean
 
 
-    constructor(protected _depContainer?: IDependencyContainer) {
+    constructor() {
         this._emitter = new EventEmitter()
         this._hasErrHandler = false
     }

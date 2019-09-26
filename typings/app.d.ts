@@ -25,7 +25,6 @@ declare module '@micro-fleet/service-communication/dist/app/constants/MetaData' 
 declare module '@micro-fleet/service-communication/dist/app/RpcCommon' {
     /// <reference types="node" />
     import { EventEmitter } from 'events';
-    import { IDependencyContainer } from '@micro-fleet/common';
     export type HandlerRejection = {
         isIntended: boolean;
         reason: any;
@@ -207,13 +206,12 @@ declare module '@micro-fleet/service-communication/dist/app/RpcCommon' {
         protected _rebuildError(error: RpcError): any;
     }
     export abstract class RpcHandlerBase {
-        protected _depContainer?: IDependencyContainer;
         /**
          * @see IRpcHandler.name
          */
         name: string;
         protected _emitter: EventEmitter;
-                constructor(_depContainer?: IDependencyContainer);
+                constructor();
         /**
          * @see IRpcHandler.onError
          */
