@@ -1,13 +1,13 @@
 import { decorators as d, Types as ConT, IConfigurationProvider, constants,
-    Guard, IServiceAddOn, IDependencyContainer } from '@micro-fleet/common'
+    Guard, IServiceAddOn } from '@micro-fleet/common'
 
-import { IMessageBrokerConnector, MessageBrokerConnectionOptions} from './MessageBrokerConnector'
-import { Types as T } from './constants/Types'
+import { IDENTIFIER as MSG_BROKER_CONNECTOR, IMessageBrokerConnector,
+    MessageBrokerConnectionOptions, MessageBrokerConnectorFactory } from './MessageBrokerConnector'
 
 const { MessageBroker: S } = constants
 
 
-export interface IMessageBrokerConnectionProvider {
+export interface IMessageBrokerConnectorProvider {
     /**
      * Establishes new connection to message broker and returns an instance of the connector.
      * @param name The connector name for later reference.
@@ -27,7 +27,7 @@ export interface IMessageBrokerConnectionProvider {
 
 
 @d.injectable()
-export class MessageBrokerProviderAddOn implements IServiceAddOn, IMessageBrokerConnectionProvider {
+export class MessageBrokerProviderAddOn implements IServiceAddOn, IMessageBrokerConnectorProvider {
 
     public readonly name: string = 'MessageBrokerProviderAddOn'
 
@@ -35,43 +35,42 @@ export class MessageBrokerProviderAddOn implements IServiceAddOn, IMessageBroker
     private _connectors: IMessageBrokerConnector[]
 
     constructor(
+        @d.inject(MSG_BROKER_CONNECTOR) private _createConnector: MessageBrokerConnectorFactory,
         @d.inject(ConT.CONFIG_PROVIDER) private _configProvider: IConfigurationProvider,
-        @d.inject(ConT.DEPENDENCY_CONTAINER) private _depContainer: IDependencyContainer,
-        // @d.inject(T.MSG_BROKER_CONNECTOR) private _msgBrokerCnn: IMessageBrokerConnector
     ) {
         Guard.assertArgDefined('_configProvider', _configProvider)
-        // Guard.assertArgDefined('_msgBrokerCnn', _msgBrokerCnn)
         this._connectors = []
     }
 
 
-    //#region Implements IMessageBrokerConnectionProvider
+    //#region Implements IMessageBrokerConnectorProvider
 
     /**
-     * @see IServiceAddOn.init
+     * @see IMessageBrokerConnectorProvider.create
      */
     public async create(name: string): Promise<IMessageBrokerConnector> {
-        const connector = this._depContainer.resolve<IMessageBrokerConnector>(T.MSG_BROKER_CONNECTOR)
+        Guard.assertIsDefined(this._connectorOptions, 'MessageBrokerProviderAddOn must be initialized before creating connectors.')
+        const connector = this._createConnector(name)
         await connector.connect(this._connectorOptions)
         this._connectors.push(connector)
         return connector
     }
 
     /**
-     * @see IServiceAddOn.init
+     * @see IMessageBrokerConnectorProvider.getAll
      */
     public getAll(): IMessageBrokerConnector[] {
-        
+        return [...this._connectors]
     }
 
     /**
-     * @see IServiceAddOn.init
+     * @see IMessageBrokerConnectorProvider.get
      */
     public get(name: string): IMessageBrokerConnector {
-        
+        return this._connectors.find(c => c.name === name)
     }
 
-    //#endregion Implements IMessageBrokerConnectionProvider
+    //#endregion Implements IMessageBrokerConnectorProvider
 
 
     //#region Implements IServiceAddOn
@@ -97,14 +96,14 @@ export class MessageBrokerProviderAddOn implements IServiceAddOn, IMessageBroker
      * @see IServiceAddOn.deadLetter
      */
     public deadLetter(): Promise<void> {
-        return this._msgBrokerCnn.stopListen()
+        return Promise.all(this._connectors.map(c => c.stopListen())) as Promise<any>
     }
 
     /**
      * @see IServiceAddOn.dispose
      */
     public dispose(): Promise<void> {
-        return this._msgBrokerCnn.disconnect()
+        return Promise.all(this._connectors.map(c => c.disconnect())) as Promise<any>
     }
 
     //#endregion Implements IServiceAddOn

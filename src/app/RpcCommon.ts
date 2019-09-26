@@ -122,7 +122,7 @@ export interface IRpcCaller {
      * Sets up this RPC caller with specified `param`. Each implementation class requires
      * different kinds of `param`.
      */
-    init(params?: any): any
+    init(params?: any): Promise<void>
 
     /**
      * Clear resources.

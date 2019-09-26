@@ -11,6 +11,6 @@ var Types;
     Types["MEDIATE_RPC_HANDLER_ADDON"] = "service-communication.MediateRpcHandlerAddOn";
     Types["MEDIATE_RPC_CALLER"] = "service-communication.IMediateRpcCaller";
     Types["MEDIATE_RPC_HANDLER"] = "service-communication.IMediateRpcHandler";
-    Types["MSG_BROKER_CONNECTOR"] = "service-communication.IMessageBrokerConnector";
+    Types["MSG_BROKER_CONNECTOR_PROVIDER"] = "service-communication.IMessageBrokerConnectionProvider";
 })(Types = exports.Types || (exports.Types = {}));
 //# sourceMappingURL=Types.js.map

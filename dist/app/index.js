@@ -15,7 +15,7 @@ __export(require("./mediate/DefaultMediateRpcHandlerAddOn"));
 __export(require("./mediate/MediateRpcCaller"));
 __export(require("./mediate/MediateRpcHandler"));
 __export(require("./mediate/MediateRpcHandlerAddOnBase"));
-__export(require("./MessageBrokerAddOn"));
+__export(require("./MessageBrokerProviderAddOn"));
 __export(require("./MessageBrokerConnector"));
 __export(require("./constants/Types"));
 //# sourceMappingURL=index.js.map

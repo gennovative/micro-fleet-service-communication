@@ -34,7 +34,7 @@ class ControllerHunter {
                 continue;
             }
             this._assertValidController(ctrlName, CtrlClass);
-            const bound = this._depContainer.bind(CtrlClass.name, CtrlClass);
+            const bound = this._depContainer.bindConstructor(CtrlClass.name, CtrlClass);
             if (this.controllerCreation == controller_1.ControllerCreationStrategy.SINGLETON) {
                 bound.asSingleton();
             }
@@ -48,7 +48,7 @@ class ControllerHunter {
     }
     _assertValidController(ctrlName, CtrlClass) {
         if (typeof CtrlClass !== 'function' || !Reflect.hasOwnMetadata(this._controllerMeta, CtrlClass)) {
-            throw new common_1.CriticalException(`Controller "${ctrlName}" must be a class and decorated with @mediateController()`);
+            throw new common_1.CriticalException(`Controller "${ctrlName}" must be a class and decorated with meta data ${this._controllerMeta}`);
         }
     }
     //#endregion Controller

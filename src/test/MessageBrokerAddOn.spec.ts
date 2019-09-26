@@ -46,6 +46,8 @@ class MockConfigAddOn implements IConfigurationProvider {
 }
 
 class MockMbConnector implements IMessageBrokerConnector {
+    public name = 'MockMbConnector'
+
     public messageExpiredIn: number
     public subscribedPatterns: string[]
 
@@ -98,12 +100,15 @@ class MockMbConnector implements IMessageBrokerConnector {
     }
 }
 
+function createConnector() {
+    return new MockMbConnector()
+}
 
 describe('MessageBrokerAddOn', () => {
     describe('init', () => {
         it('should call connector.connect', async () => {
             // Arrange
-            const dbAddOn = new MessageBrokerProviderAddOn(new MockConfigAddOn(), new MockMbConnector()),
+            const dbAddOn = new MessageBrokerProviderAddOn(createConnector, new MockConfigAddOn()),
                 connectSpy = chai.spy.on(dbAddOn['_msgBrokerCnn'], 'connect')
 
             // Act
@@ -118,7 +123,7 @@ describe('MessageBrokerAddOn', () => {
     describe('dispose', () => {
         it('should call connector.disconnect', async () => {
             // Arrange
-            const dbAddOn = new MessageBrokerProviderAddOn(new MockConfigAddOn(), new MockMbConnector()),
+            const dbAddOn = new MessageBrokerProviderAddOn(createConnector, new MockConfigAddOn()),
                 disconnectSpy = chai.spy.on(dbAddOn['_msgBrokerCnn'], 'disconnect')
 
             // Act

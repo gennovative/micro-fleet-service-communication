@@ -25,12 +25,12 @@ describe('HttpRpcCaller', function() {
     })
 
     describe('init', () => {
-        it('Should do nothing', () => {
+        it('Should do nothing', async () => {
             // Arrange
             caller.baseAddress = HANDLER_ADDR
 
             // Act
-            caller.init()
+            await caller.init()
 
             // Assert
             expect(caller.baseAddress).to.equal(HANDLER_ADDR)

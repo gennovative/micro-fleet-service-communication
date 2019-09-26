@@ -17,24 +17,40 @@ const debug = require('debug')('mcft:svccom:MessageBrokerRpcHandler');
 const common_1 = require("@micro-fleet/common");
 const Types_1 = require("../constants/Types");
 const rpc = require("../RpcCommon");
+const { Service: S, } = common_1.constants;
 let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandlerBase {
-    constructor(_msgBrokerConn) {
+    constructor(_config, _msgBrokerConnProvider) {
         super();
-        this._msgBrokerConn = _msgBrokerConn;
-        common_1.Guard.assertArgDefined('_msgBrokerConn', _msgBrokerConn);
+        this._config = _config;
+        this._msgBrokerConnProvider = _msgBrokerConnProvider;
+        common_1.Guard.assertArgDefined('_msgBrokerConnProvider', _msgBrokerConnProvider);
     }
     /**
-     * @see IRpcHandler.init
+     * @see IMediateRpcHandler.msgBrokerConnector
      */
-    init() {
-        this._handlers = new Map();
+    get msgBrokerConnector() {
+        return this._msgBrokerConn;
+    }
+    /**
+     * @see IMediateRpcHandler.init
+     */
+    async init(options = {}) {
+        this.name = options.handlerName || this._config.get(S.SERVICE_SLUG).value;
+        if (options.connector) {
+            this._msgBrokerConn = options.connector;
+        }
+        else {
+            const name = options.connectorName || `Connector for RPC handler "${this.name}"`;
+            this._msgBrokerConn = await this._msgBrokerConnProvider.create(name);
+        }
         this._msgBrokerConn.onError(err => this._emitError(err));
-        return Promise.resolve();
+        this._handlers = new Map();
     }
     /**
      * @see IRpcHandler.start
      */
     start() {
+        common_1.Guard.assertIsTruthy(this._msgBrokerConn, 'Must call "init" before use.');
         return this._msgBrokerConn.listen(this.onMessage.bind(this), false);
     }
     /**
@@ -53,6 +69,7 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
      * @see IRpcHandler.pause
      */
     pause() {
+        common_1.Guard.assertIsTruthy(this._msgBrokerConn, 'Must call "init" before use.');
         return this._msgBrokerConn.stopListen();
     }
     /**
@@ -65,6 +82,7 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
      * @see IRpcHandler.handle
      */
     async handle({ moduleName, actionName, handler, rawDest }) {
+        common_1.Guard.assertIsTruthy(this._msgBrokerConn, 'Must call "init" before use.');
         common_1.Guard.assertIsDefined(this.name, '`name` property is required.');
         const dest = Boolean(rawDest)
             ? rawDest
@@ -135,8 +153,9 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
 };
 MessageBrokerRpcHandler = __decorate([
     common_1.decorators.injectable(),
-    __param(0, common_1.decorators.inject(Types_1.Types.MSG_BROKER_CONNECTOR)),
-    __metadata("design:paramtypes", [Object])
+    __param(0, common_1.decorators.inject(common_1.Types.CONFIG_PROVIDER)),
+    __param(1, common_1.decorators.inject(Types_1.Types.MSG_BROKER_CONNECTOR_PROVIDER)),
+    __metadata("design:paramtypes", [Object, Object])
 ], MessageBrokerRpcHandler);
 exports.MessageBrokerRpcHandler = MessageBrokerRpcHandler;
 //# sourceMappingURL=MediateRpcHandler.js.map

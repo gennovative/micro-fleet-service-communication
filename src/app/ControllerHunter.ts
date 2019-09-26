@@ -59,7 +59,7 @@ export class ControllerHunter {
             if (typeof CtrlClass !== 'function') { continue }
             this._assertValidController(ctrlName, CtrlClass)
 
-            const bound = this._depContainer.bind(CtrlClass.name, CtrlClass)
+            const bound = this._depContainer.bindConstructor(CtrlClass.name, CtrlClass)
             if (this.controllerCreation == ControllerCreationStrategy.SINGLETON) {
                 bound.asSingleton()
             }

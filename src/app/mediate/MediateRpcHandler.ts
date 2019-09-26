@@ -1,14 +1,48 @@
 /// <reference types="debug" />
 const debug: debug.IDebugger = require('debug')('mcft:svccom:MessageBrokerRpcHandler')
 
-import { Guard, ValidationError, decorators as d } from '@micro-fleet/common'
+import { decorators as d, Types as cT, constants, Guard, ValidationError, IConfigurationProvider } from '@micro-fleet/common'
 
 import { Types as T } from '../constants/Types'
 import { IMessageBrokerConnector, BrokerMessage } from '../MessageBrokerConnector'
+import { IMessageBrokerConnectorProvider } from '../MessageBrokerProviderAddOn'
 import * as rpc from '../RpcCommon'
 
 
+const {
+    Service: S,
+} = constants
+
+export type MediateRpcHandlerOptions = {
+    /**
+     * The name used in "from" property of sent messages.
+     */
+    handlerName?: string,
+
+    /**
+     * Message broker connector instance to reuse.
+     */
+    connector?: IMessageBrokerConnector,
+
+    /**
+     * Message broker connector name to create new,
+     * if not reusing any existing connector.
+     *
+     * If neither `connector` nor `connectorName` is specified, a default name is used
+     */
+    connectorName?: string,
+}
+
 export interface IMediateRpcHandler extends rpc.IRpcHandler {
+    /**
+     * Gets the message broker connector instance used for handling mediate RPC request.
+     */
+    readonly msgBrokerConnector: IMessageBrokerConnector
+
+    /**
+     * Initializes this handler before use.
+     */
+    init(options?: MediateRpcHandlerOptions): Promise<void>
 }
 
 @d.injectable()
@@ -16,29 +50,48 @@ export class MessageBrokerRpcHandler
     extends rpc.RpcHandlerBase
     implements IMediateRpcHandler {
 
+    private _msgBrokerConn: IMessageBrokerConnector
     private _handlers: Map<string, rpc.RpcHandlerFunction>
 
+
+    /**
+     * @see IMediateRpcHandler.msgBrokerConnector
+     */
+    public get msgBrokerConnector(): IMessageBrokerConnector {
+        return this._msgBrokerConn
+    }
+
+
     constructor(
-        @d.inject(T.MSG_BROKER_CONNECTOR) private _msgBrokerConn: IMessageBrokerConnector
+        @d.inject(cT.CONFIG_PROVIDER) private _config: IConfigurationProvider,
+        @d.inject(T.MSG_BROKER_CONNECTOR_PROVIDER) private _msgBrokerConnProvider: IMessageBrokerConnectorProvider,
     ) {
         super()
-        Guard.assertArgDefined('_msgBrokerConn', _msgBrokerConn)
+        Guard.assertArgDefined('_msgBrokerConnProvider', _msgBrokerConnProvider)
     }
 
 
     /**
-     * @see IRpcHandler.init
+     * @see IMediateRpcHandler.init
      */
-    public init(): Promise<void> {
-        this._handlers = new Map<string, rpc.RpcHandlerFunction>()
+    public async init(options: MediateRpcHandlerOptions = {}): Promise<void> {
+        this.name = options.handlerName || this._config.get(S.SERVICE_SLUG).value
+        if (options.connector) {
+            this._msgBrokerConn = options.connector
+        }
+        else {
+            const name = options.connectorName || `Connector for RPC handler "${this.name}"`
+            this._msgBrokerConn = await this._msgBrokerConnProvider.create(name)
+        }
         this._msgBrokerConn.onError(err => this._emitError(err))
-        return Promise.resolve()
+        this._handlers = new Map<string, rpc.RpcHandlerFunction>()
     }
 
     /**
      * @see IRpcHandler.start
      */
     public start(): Promise<void> {
+        Guard.assertIsTruthy(this._msgBrokerConn, 'Must call "init" before use.')
         return this._msgBrokerConn.listen(this.onMessage.bind(this), false)
     }
 
@@ -59,6 +112,7 @@ export class MessageBrokerRpcHandler
      * @see IRpcHandler.pause
      */
     public pause(): Promise<void> {
+        Guard.assertIsTruthy(this._msgBrokerConn, 'Must call "init" before use.')
         return this._msgBrokerConn.stopListen()
     }
 
@@ -73,6 +127,7 @@ export class MessageBrokerRpcHandler
      * @see IRpcHandler.handle
      */
     public async handle({ moduleName, actionName, handler, rawDest }: rpc.RpcHandleOptions): Promise<void> {
+        Guard.assertIsTruthy(this._msgBrokerConn, 'Must call "init" before use.')
         Guard.assertIsDefined(this.name, '`name` property is required.')
         const dest = Boolean(rawDest)
             ? rawDest

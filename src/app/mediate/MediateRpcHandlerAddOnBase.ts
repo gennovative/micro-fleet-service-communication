@@ -28,9 +28,8 @@ export abstract class MediateRpcHandlerAddOnBase implements IServiceAddOn {
      * @see IServiceAddOn.init
      */
     public async init(): Promise<void> {
-        this._rpcHandler.name = this._configProvider.get(S.SERVICE_SLUG).value as string
-        this._errorHandler && this._rpcHandler.onError(this._errorHandler)
         await this._rpcHandler.init()
+        this._errorHandler && this._rpcHandler.onError(this._errorHandler)
         await this.handleRequests()
         await this._rpcHandler.start()
     }

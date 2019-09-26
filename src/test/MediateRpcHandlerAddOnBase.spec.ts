@@ -56,6 +56,7 @@ class MockConfigProvider implements IConfigurationProvider {
 }
 
 class MockMbConnector implements IMessageBrokerConnector {
+    public name = 'MockMbConnector'
     public messageExpiredIn: number
     public subscribedPatterns: string[]
 

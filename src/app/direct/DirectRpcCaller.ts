@@ -43,8 +43,8 @@ export class HttpRpcCaller
     /**
      * @see IRpcCaller.init
      */
-    public init(param?: any): void {
-        // Empty
+    public init(param?: any): Promise<void> {
+        return Promise.resolve()
     }
 
     /**

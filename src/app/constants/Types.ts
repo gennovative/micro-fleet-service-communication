@@ -8,6 +8,5 @@ export enum Types {
     MEDIATE_RPC_HANDLER_ADDON = 'service-communication.MediateRpcHandlerAddOn',
     MEDIATE_RPC_CALLER = 'service-communication.IMediateRpcCaller',
     MEDIATE_RPC_HANDLER = 'service-communication.IMediateRpcHandler',
-    MSG_BROKER_CONNECTOR = 'service-communication.IMessageBrokerConnector',
     MSG_BROKER_CONNECTOR_PROVIDER = 'service-communication.IMessageBrokerConnectionProvider',
 }

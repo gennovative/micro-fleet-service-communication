@@ -15,13 +15,21 @@ const events_1 = require("events");
 const shortid = require("shortid");
 const amqp = require("amqplib");
 const common_1 = require("@micro-fleet/common");
+exports.IDENTIFIER = 'service-communication.IMessageBrokerConnector';
 let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMessageBrokerConnector {
-    constructor() {
+    constructor(_name) {
+        this._name = _name;
         this._subscribedPatterns = [];
         this._emitter = new events_1.EventEmitter();
         this._queueBound = false;
         this._isConnected = false;
         this._isConnecting = false;
+    }
+    /**
+     * @see IMessageBrokerConnector.name
+     */
+    get name() {
+        return this._name;
     }
     /**
      * @see IMessageBrokerConnector.queue
@@ -444,7 +452,7 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
 TopicMessageBrokerConnector.CHANNEL_RECREATE_DELAY = 100; // Millisecs
 TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = __decorate([
     common_1.decorators.injectable(),
-    __metadata("design:paramtypes", [])
+    __metadata("design:paramtypes", [String])
 ], TopicMessageBrokerConnector);
 exports.TopicMessageBrokerConnector = TopicMessageBrokerConnector;
 //# sourceMappingURL=MessageBrokerConnector.js.map

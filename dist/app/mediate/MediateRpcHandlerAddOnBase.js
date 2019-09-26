@@ -28,9 +28,8 @@ let MediateRpcHandlerAddOnBase = class MediateRpcHandlerAddOnBase {
      * @see IServiceAddOn.init
      */
     async init() {
-        this._rpcHandler.name = this._configProvider.get(S.SERVICE_SLUG).value;
-        this._errorHandler && this._rpcHandler.onError(this._errorHandler);
         await this._rpcHandler.init();
+        this._errorHandler && this._rpcHandler.onError(this._errorHandler);
         await this.handleRequests();
         await this._rpcHandler.start();
     }

@@ -2,15 +2,50 @@
 const debug: debug.IDebugger = require('debug')('mcft:svccom:MessageBrokerRpcCaller')
 
 import * as shortid from 'shortid'
-import { Guard, MinorException, InternalErrorException,
-    decorators as d } from '@micro-fleet/common'
+import { decorators as d, Types as cT, constants, Guard, MinorException, InternalErrorException,
+    IConfigurationProvider, SettingItemDataType } from '@micro-fleet/common'
 
 import { Types as T } from '../constants/Types'
 import { IMessageBrokerConnector, BrokerMessage } from '../MessageBrokerConnector'
+import { IMessageBrokerConnectorProvider } from '../MessageBrokerProviderAddOn'
 import * as rpc from '../RpcCommon'
 
 
+const {
+    Service: S,
+    RPC,
+} = constants
+
+export type MediateRpcCallerOptions = {
+    /**
+     * The name used in "from" property of sent messages.
+     */
+    callerName?: string,
+
+    /**
+     * Message broker connector instance to reuse.
+     */
+    connector?: IMessageBrokerConnector,
+
+    /**
+     * Message broker connector name to create new,
+     * if not reusing any existing connector.
+     *
+     * If neither `connector` nor `connectorName` is specified, a default name is used
+     */
+    connectorName?: string,
+}
+
 export interface IMediateRpcCaller extends rpc.IRpcCaller {
+    /**
+     * Gets the message broker connector instance used for making mediate RPC calls.
+     */
+    readonly msgBrokerConnector: IMessageBrokerConnector
+
+    /**
+     * Initializes this caller before use.
+     */
+    init(options?: MediateRpcCallerOptions): Promise<void>
 }
 
 @d.injectable()
@@ -18,24 +53,42 @@ export class MessageBrokerRpcCaller
             extends rpc.RpcCallerBase
             implements IMediateRpcCaller {
 
+    private _msgBrokerConn: IMessageBrokerConnector
+
+    /**
+     * @see IMediateRpcCaller.msgBrokerConnector
+     */
+    public get msgBrokerConnector(): IMessageBrokerConnector {
+        return this._msgBrokerConn
+    }
+
     constructor(
-        @d.inject(T.MSG_BROKER_CONNECTOR) private _msgBrokerConn: IMessageBrokerConnector
+        @d.inject(cT.CONFIG_PROVIDER) private _config: IConfigurationProvider,
+        @d.inject(T.MSG_BROKER_CONNECTOR_PROVIDER) private _msgBrokerConnProvider: IMessageBrokerConnectorProvider
     ) {
         super()
-        Guard.assertArgDefined('_msgBrokerConn', _msgBrokerConn)
+        Guard.assertArgDefined('_msgBrokerConnProvider', _msgBrokerConnProvider)
 
         if (this._msgBrokerConn.queue) {
             debug('MessageBrokerRpcCaller should only use temporary unique queue.')
         }
-
     }
 
     /**
-     * @see IRpcCaller.init
+     * @see IMediateRpcCaller.init
      */
-    public init(params?: any): void {
-        const expire = this._msgBrokerConn.messageExpiredIn
-        this._msgBrokerConn.messageExpiredIn = expire > 0 ? expire : 30000 // Make sure we only use temporary unique queue.
+    public async init(options: MediateRpcCallerOptions = {}): Promise<void> {
+        this.name = options.callerName || this._config.get(S.SERVICE_SLUG).value
+        if (options.connector) {
+            this._msgBrokerConn = options.connector
+        }
+        else {
+            const name = options.connectorName || `Connector for RPC caller "${this.name}"`
+            this._msgBrokerConn = await this._msgBrokerConnProvider.create(name)
+        }
+        this._msgBrokerConn.messageExpiredIn = this._config
+            .get(RPC.RPC_CALLER_TIMEOUT, SettingItemDataType.Number)
+            .tryGetValue(30000)
         this._msgBrokerConn.onError(err => this._emitError(err))
     }
 
@@ -44,8 +97,8 @@ export class MessageBrokerRpcCaller
      */
     public async dispose(): Promise<void> {
         // DO NOT disconnect the connector as other RPC handlers and callers
-        // share this very connector.
-        this._msgBrokerConn = null
+        // may share this very connector.
+        this._msgBrokerConn && (this._msgBrokerConn = null)
         await super.dispose()
     }
 
@@ -53,6 +106,7 @@ export class MessageBrokerRpcCaller
      * @see IRpcCaller.call
      */
     public call({ moduleName, actionName, params, rawDest }: rpc.RpcCallerOptions): Promise<rpc.RpcResponse> {
+        Guard.assertIsTruthy(this._msgBrokerConn, 'Must call "init" before use.')
         if (!rawDest) {
             Guard.assertArgDefined('moduleName', moduleName)
             Guard.assertArgDefined('actionName', actionName)
@@ -121,6 +175,7 @@ export class MessageBrokerRpcCaller
      * @see IRpcCaller.callImpatient
      */
     public callImpatient({ moduleName, actionName, params, rawDest }: rpc.RpcCallerOptions): Promise<void> {
+        Guard.assertIsTruthy(this._msgBrokerConn, 'Must call "init" before use.')
         if (!rawDest) {
             Guard.assertArgDefined('moduleName', moduleName)
             Guard.assertArgDefined('actionName', actionName)

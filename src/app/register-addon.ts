@@ -1,4 +1,3 @@
-import * as inversify from 'inversify'
 import { IDependencyContainer, Guard, IServiceAddOn, serviceContext } from '@micro-fleet/common'
 
 import { Types as T } from './constants/Types'
@@ -7,20 +6,24 @@ import { DefaultDirectRpcHandlerAddOn } from './direct/DefaultDirectRpcHandlerAd
 import { DefaultMediateRpcHandlerAddOn } from './mediate/DefaultMediateRpcHandlerAddOn'
 import { IMediateRpcHandler, MessageBrokerRpcHandler } from './mediate/MediateRpcHandler'
 import { MessageBrokerProviderAddOn } from './MessageBrokerProviderAddOn'
-import { TopicMessageBrokerConnector } from './MessageBrokerConnector'
 import { IDirectRpcCaller, HttpRpcCaller } from './direct/DirectRpcCaller'
 import { IMediateRpcCaller, MessageBrokerRpcCaller } from './mediate/MediateRpcCaller'
 import { MediateRpcHandlerAddOnBase } from './mediate/MediateRpcHandlerAddOnBase'
+import { IDENTIFIER as MSG_BROKER_CONNECTOR, TopicMessageBrokerConnector } from './MessageBrokerConnector'
 import { IRpcCaller } from './RpcCommon'
 
 
 export function registerMessageBrokerAddOn(): IServiceAddOn {
     const depCon: IDependencyContainer = serviceContext.dependencyContainer
-    if (!depCon.isBound(T.MSG_BROKER_CONNECTOR)) {
-        depCon.bind(T.MSG_BROKER_CONNECTOR, TopicMessageBrokerConnector)
+
+    if (!depCon.isBound(MSG_BROKER_CONNECTOR)) {
+        depCon.bindFactory(MSG_BROKER_CONNECTOR, () => {
+            return (connectorName: string) => new TopicMessageBrokerConnector(connectorName)
+        })
     }
+
     if (!depCon.isBound(T.BROKER_ADDON)) {
-        depCon.bind(T.BROKER_ADDON, MessageBrokerProviderAddOn).asSingleton()
+        depCon.bindConstructor(T.BROKER_ADDON, MessageBrokerProviderAddOn).asSingleton()
     }
     const addon = depCon.resolve<IServiceAddOn>(T.BROKER_ADDON)
     if (!depCon.isBound(T.MSG_BROKER_CONNECTOR_PROVIDER)) {
@@ -32,10 +35,10 @@ export function registerMessageBrokerAddOn(): IServiceAddOn {
 export function registerDirectHandlerAddOn(): IServiceAddOn {
     const depCon: IDependencyContainer = serviceContext.dependencyContainer
     if (!depCon.isBound(T.DIRECT_RPC_HANDLER)) {
-        depCon.bind<IDirectRpcHandler>(T.DIRECT_RPC_HANDLER, ExpressRpcHandler).asSingleton()
+        depCon.bindConstructor<IDirectRpcHandler>(T.DIRECT_RPC_HANDLER, ExpressRpcHandler).asSingleton()
     }
     if (!depCon.isBound(T.DIRECT_RPC_HANDLER_ADDON)) {
-        depCon.bind<IServiceAddOn>(T.DIRECT_RPC_HANDLER_ADDON, DefaultDirectRpcHandlerAddOn).asSingleton()
+        depCon.bindConstructor<IServiceAddOn>(T.DIRECT_RPC_HANDLER_ADDON, DefaultDirectRpcHandlerAddOn).asSingleton()
     }
     return depCon.resolve<IServiceAddOn>(T.DIRECT_RPC_HANDLER_ADDON)
 }
@@ -43,8 +46,8 @@ export function registerDirectHandlerAddOn(): IServiceAddOn {
 export function registerDirectCaller(): void {
     const depCon: IDependencyContainer = serviceContext.dependencyContainer
     if (!depCon.isBound(T.DIRECT_RPC_CALLER)) {
-        depCon.bind<IDirectRpcCaller>(T.DIRECT_RPC_CALLER, HttpRpcCaller).asSingleton()
-        depCon.bind<IRpcCaller>(T.RPC_CALLER, HttpRpcCaller).asSingleton()
+        depCon.bindConstructor<IDirectRpcCaller>(T.DIRECT_RPC_CALLER, HttpRpcCaller).asSingleton()
+        depCon.bindConstructor<IRpcCaller>(T.RPC_CALLER, HttpRpcCaller).asSingleton()
     }
 }
 
@@ -55,10 +58,10 @@ export function registerMediateHandlerAddOn(): MediateRpcHandlerAddOnBase {
         'MessageBrokerAddOn must be registered before this one',
     )
     if (!depCon.isBound(T.MEDIATE_RPC_HANDLER)) {
-        depCon.bind<IMediateRpcHandler>(T.MEDIATE_RPC_HANDLER, MessageBrokerRpcHandler).asSingleton()
+        depCon.bindConstructor<IMediateRpcHandler>(T.MEDIATE_RPC_HANDLER, MessageBrokerRpcHandler).asSingleton()
     }
     if (!depCon.isBound(T.MEDIATE_RPC_HANDLER_ADDON)) {
-        depCon.bind(T.MEDIATE_RPC_HANDLER_ADDON, DefaultMediateRpcHandlerAddOn).asSingleton()
+        depCon.bindConstructor(T.MEDIATE_RPC_HANDLER_ADDON, DefaultMediateRpcHandlerAddOn).asSingleton()
     }
     return depCon.resolve<MediateRpcHandlerAddOnBase>(T.MEDIATE_RPC_HANDLER_ADDON)
 }
@@ -70,7 +73,7 @@ export function registerMediateCaller(): void {
         'MessageBrokerAddOn must be registered before this one',
     )
     if (!depCon.isBound(T.MEDIATE_RPC_CALLER)) {
-        depCon.bind<IMediateRpcCaller>(T.MEDIATE_RPC_CALLER, MessageBrokerRpcCaller).asSingleton()
-        depCon.bind<IRpcCaller>(T.RPC_CALLER, MessageBrokerRpcCaller).asSingleton()
+        depCon.bindConstructor<IMediateRpcCaller>(T.MEDIATE_RPC_CALLER, MessageBrokerRpcCaller).asSingleton()
+        depCon.bindConstructor<IRpcCaller>(T.RPC_CALLER, MessageBrokerRpcCaller).asSingleton()
     }
 }

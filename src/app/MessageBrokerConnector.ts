@@ -61,6 +61,10 @@ export type MessageBrokerConnectionOptions = {
     messageExpiredIn?: number;
 }
 
+
+export const IDENTIFIER = 'service-communication.IMessageBrokerConnector'
+export type MessageBrokerConnectorFactory = (connectorName: string) => IMessageBrokerConnector
+
 export interface IMessageBrokerConnector {
 
     /**

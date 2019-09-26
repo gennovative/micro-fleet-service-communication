@@ -29,7 +29,7 @@ let HttpRpcCaller = class HttpRpcCaller extends rpc.RpcCallerBase {
      * @see IRpcCaller.init
      */
     init(param) {
-        // Empty
+        return Promise.resolve();
     }
     /**
      * @see IRpcCaller.dispose
