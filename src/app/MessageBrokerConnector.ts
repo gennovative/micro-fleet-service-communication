@@ -64,6 +64,11 @@ export type MessageBrokerConnectionOptions = {
 export interface IMessageBrokerConnector {
 
     /**
+     * User-defined connector name.
+     */
+    readonly name: string
+
+    /**
      * Gets or sets queue name.
      * Queue can only be changed before it is bound.
      * Queue is bound on the first call to `subscribe()` method.
@@ -174,7 +179,10 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
     private _messageExpiredIn: number
     private _subscribedPatterns: string[]
 
-    constructor() {
+
+    constructor(
+        private _name: string
+    ) {
         this._subscribedPatterns = []
         this._emitter = new EventEmitter()
         this._queueBound = false
@@ -182,6 +190,12 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
         this._isConnecting = false
     }
 
+    /**
+     * @see IMessageBrokerConnector.name
+     */
+    public get name(): string {
+        return this._name
+    }
 
     /**
      * @see IMessageBrokerConnector.queue
@@ -352,8 +366,12 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
                 (msg: amqp.Message) => {
                     const ack = () => ch.ack(msg),
                         nack = () => ch.nack(msg, false, true)
-
-                    onMessage(this.parseMessage(msg), ack, nack)
+                    try {
+                        onMessage(this.parseMessage(msg), ack, nack)
+                    }
+                    catch (err) {
+                        this._emitter.emit('error', err)
+                    }
                 },
                 { noAck }
             )
@@ -638,10 +656,24 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
             properties: raw.properties || {},
         }
 
-        if (msg.properties.contentType == 'text/plain') {
-            msg.data = raw.content.toString(msg.properties.contentEncoding)
-        } else {
-            msg.data = JSON.parse(<any>raw.content)
+        const { contentType, contentEncoding } = msg.properties
+
+        if (raw.content instanceof Buffer) {
+            const strContent = raw.content.toString(contentEncoding)
+            if (contentType === 'application/json') {
+                msg.data = JSON.parse(strContent)
+            }
+            else {
+                msg.data = strContent
+            }
+        }
+        else {
+            if (contentType === 'application/json') {
+                msg.data = JSON.parse(String(raw.content))
+            }
+            else {
+                msg.data = raw.content
+            }
         }
 
         return <BrokerMessage>msg

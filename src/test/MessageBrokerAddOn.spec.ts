@@ -4,7 +4,7 @@ import * as spies from 'chai-spies'
 import { IConfigurationProvider, Maybe } from '@micro-fleet/common'
 
 import { IMessageBrokerConnector, MessageBrokerConnectionOptions, MessageBrokerPublishOptions,
-    MessageHandleFunction, MessageBrokerAddOn } from '../app'
+    MessageHandleFunction, MessageBrokerProviderAddOn } from '../app'
 
 
 chai.use(spies)
@@ -103,7 +103,7 @@ describe('MessageBrokerAddOn', () => {
     describe('init', () => {
         it('should call connector.connect', async () => {
             // Arrange
-            const dbAddOn = new MessageBrokerAddOn(new MockConfigAddOn(), new MockMbConnector()),
+            const dbAddOn = new MessageBrokerProviderAddOn(new MockConfigAddOn(), new MockMbConnector()),
                 connectSpy = chai.spy.on(dbAddOn['_msgBrokerCnn'], 'connect')
 
             // Act
@@ -118,7 +118,7 @@ describe('MessageBrokerAddOn', () => {
     describe('dispose', () => {
         it('should call connector.disconnect', async () => {
             // Arrange
-            const dbAddOn = new MessageBrokerAddOn(new MockConfigAddOn(), new MockMbConnector()),
+            const dbAddOn = new MessageBrokerProviderAddOn(new MockConfigAddOn(), new MockMbConnector()),
                 disconnectSpy = chai.spy.on(dbAddOn['_msgBrokerCnn'], 'disconnect')
 
             // Act

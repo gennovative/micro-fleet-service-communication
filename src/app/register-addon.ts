@@ -1,3 +1,4 @@
+import * as inversify from 'inversify'
 import { IDependencyContainer, Guard, IServiceAddOn, serviceContext } from '@micro-fleet/common'
 
 import { Types as T } from './constants/Types'
@@ -5,7 +6,7 @@ import { IDirectRpcHandler, ExpressRpcHandler } from './direct/DirectRpcHandler'
 import { DefaultDirectRpcHandlerAddOn } from './direct/DefaultDirectRpcHandlerAddOn'
 import { DefaultMediateRpcHandlerAddOn } from './mediate/DefaultMediateRpcHandlerAddOn'
 import { IMediateRpcHandler, MessageBrokerRpcHandler } from './mediate/MediateRpcHandler'
-import { MessageBrokerAddOn } from './MessageBrokerAddOn'
+import { MessageBrokerProviderAddOn } from './MessageBrokerProviderAddOn'
 import { TopicMessageBrokerConnector } from './MessageBrokerConnector'
 import { IDirectRpcCaller, HttpRpcCaller } from './direct/DirectRpcCaller'
 import { IMediateRpcCaller, MessageBrokerRpcCaller } from './mediate/MediateRpcCaller'
@@ -16,12 +17,16 @@ import { IRpcCaller } from './RpcCommon'
 export function registerMessageBrokerAddOn(): IServiceAddOn {
     const depCon: IDependencyContainer = serviceContext.dependencyContainer
     if (!depCon.isBound(T.MSG_BROKER_CONNECTOR)) {
-        depCon.bind(T.MSG_BROKER_CONNECTOR, TopicMessageBrokerConnector).asSingleton()
+        depCon.bind(T.MSG_BROKER_CONNECTOR, TopicMessageBrokerConnector)
     }
     if (!depCon.isBound(T.BROKER_ADDON)) {
-        depCon.bind(T.BROKER_ADDON, MessageBrokerAddOn).asSingleton()
+        depCon.bind(T.BROKER_ADDON, MessageBrokerProviderAddOn).asSingleton()
     }
-    return depCon.resolve<IServiceAddOn>(T.BROKER_ADDON)
+    const addon = depCon.resolve<IServiceAddOn>(T.BROKER_ADDON)
+    if (!depCon.isBound(T.MSG_BROKER_CONNECTOR_PROVIDER)) {
+        depCon.bindConstant(T.MSG_BROKER_CONNECTOR_PROVIDER, addon)
+    }
+    return addon
 }
 
 export function registerDirectHandlerAddOn(): IServiceAddOn {
