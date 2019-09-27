@@ -2,22 +2,35 @@ import * as amqp from 'amqplib'
 import * as chai from 'chai'
 import * as spies from 'chai-spies'
 import * as shortid from 'shortid'
-import { MinorException } from '@micro-fleet/common'
+import { mock, instance, when } from 'ts-mockito'
+import { constants, MinorException, IConfigurationProvider, Maybe } from '@micro-fleet/common'
 
 import { MessageBrokerRpcHandler, BrokerMessage, IMessageBrokerConnector, IMediateRpcHandler,
-    TopicMessageBrokerConnector, RpcRequest, RpcResponse, RpcHandlerFunction, RpcError } from '../app'
+    TopicMessageBrokerConnector, RpcRequest, RpcResponse, RpcHandlerFunction,
+    RpcError, IMessageBrokerConnectorProvider
+} from '../app'
 
 import rabbitOpts from './rabbit-options'
 
 chai.use(spies)
 const expect = chai.expect
+const {
+    Service: S,
+} = constants
 
 
-const NAME = 'TestHandler'
+const NAME = 'TestHandler',
+    SERVICE_SLUG = 'mock-service-slug'
+
+let MockConfigProviderClass,
+    MockConnProviderHandler
+
 
 let handlerMbConn: IMessageBrokerConnector,
     callerMbConn: IMessageBrokerConnector,
-    rpcHandler: IMediateRpcHandler
+    rpcHandler: IMediateRpcHandler,
+    config: IConfigurationProvider,
+    handlerConnProvider: IMessageBrokerConnectorProvider
 
 // tslint:disable: no-floating-promises
 
@@ -25,15 +38,22 @@ describe('MediateRpcHandler', function () {
     this.timeout(5000)
     // this.timeout(60000) // For debugging
 
+    beforeEach(() => {
+        MockConfigProviderClass = mock<IConfigurationProvider>()
+        when(MockConfigProviderClass.get(S.SERVICE_SLUG)).thenReturn(Maybe.Just(SERVICE_SLUG))
+        config = instance(MockConfigProviderClass)
+
+        MockConnProviderHandler = mock<IMessageBrokerConnectorProvider>()
+        handlerConnProvider = instance(MockConnProviderHandler)
+    })
+
     describe('init', () => {
         it('Should raise error if problems occur', (done) => {
             // Arrange
             const ERROR = 'Test error'
 
-            handlerMbConn = new TopicMessageBrokerConnector()
-            rpcHandler = new MessageBrokerRpcHandler(
-                handlerMbConn
-            )
+            handlerMbConn = new TopicMessageBrokerConnector(SERVICE_SLUG)
+            rpcHandler = new MessageBrokerRpcHandler(config, handlerConnProvider)
 
             // Act
             // handler.module = MODULE;
@@ -56,9 +76,9 @@ describe('MediateRpcHandler', function () {
     describe('handle', () => {
 
         beforeEach((done) => {
-            callerMbConn = new TopicMessageBrokerConnector()
-            handlerMbConn = new TopicMessageBrokerConnector()
-            rpcHandler = new MessageBrokerRpcHandler(handlerMbConn)
+            callerMbConn = new TopicMessageBrokerConnector(SERVICE_SLUG)
+            handlerMbConn = new TopicMessageBrokerConnector(SERVICE_SLUG)
+            rpcHandler = new MessageBrokerRpcHandler(config, handlerConnProvider)
 
             handlerMbConn.onError((err) => {
                 console.error('Handler error:\n', err)

@@ -61,6 +61,10 @@ export class MessageBrokerRpcHandler
         return this._msgBrokerConn
     }
 
+    private get _isInit(): boolean {
+        return Boolean(this._msgBrokerConn)
+    }
+
 
     constructor(
         @d.inject(cT.CONFIG_PROVIDER) private _config: IConfigurationProvider,
@@ -91,7 +95,7 @@ export class MessageBrokerRpcHandler
      * @see IRpcHandler.start
      */
     public start(): Promise<void> {
-        Guard.assertIsTruthy(this._msgBrokerConn, 'Must call "init" before use.')
+        Guard.assertIsTruthy(this._isInit, 'Must call "init" before use.')
         return this._msgBrokerConn.listen(this.onMessage.bind(this), false)
     }
 
@@ -112,7 +116,7 @@ export class MessageBrokerRpcHandler
      * @see IRpcHandler.pause
      */
     public pause(): Promise<void> {
-        Guard.assertIsTruthy(this._msgBrokerConn, 'Must call "init" before use.')
+        Guard.assertIsTruthy(this._isInit, 'Must call "init" before use.')
         return this._msgBrokerConn.stopListen()
     }
 
@@ -127,7 +131,7 @@ export class MessageBrokerRpcHandler
      * @see IRpcHandler.handle
      */
     public async handle({ moduleName, actionName, handler, rawDest }: rpc.RpcHandleOptions): Promise<void> {
-        Guard.assertIsTruthy(this._msgBrokerConn, 'Must call "init" before use.')
+        Guard.assertIsTruthy(this._isInit, 'Must call "init" before use.')
         Guard.assertIsDefined(this.name, '`name` property is required.')
         const dest = Boolean(rawDest)
             ? rawDest

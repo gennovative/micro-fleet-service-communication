@@ -1,9 +1,8 @@
-import { IConfigurationProvider, constants, decorators as d,
+import { IConfigurationProvider, decorators as d,
     Guard, IServiceAddOn} from '@micro-fleet/common'
 
 import { IMediateRpcHandler } from './MediateRpcHandler'
 
-const { Service: S } = constants
 
 /**
  * Base class for MediateRpcAddOn.

@@ -41,6 +41,7 @@
         "mocha": "~6.2",
         "nyc": "~14.1",
         "rimraf": "~3.0",
+        "ts-mockito": "^2.5.0",
         "tslint": "~5.19",
         "typescript": "~3.6"
     },
