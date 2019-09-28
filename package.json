@@ -1,6 +1,6 @@
 {
     "name": "@micro-fleet/service-communication",
-    "version": "2.3.0-rc4",
+    "version": "2.3.0-rc5",
     "description": "Provides methods for microservices to communicate with each other.",
     "scripts": {
         "build": "npm run compile && npm run test",
@@ -46,7 +46,7 @@
         "typescript": "~3.6"
     },
     "peerDependencies": {
-        "@micro-fleet/common": "=2.3.0-rc3"
+        "@micro-fleet/common": "=2.3.0-rc5"
     },
     "publishConfig": {
         "access": "public"

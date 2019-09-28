@@ -39,14 +39,15 @@ let MediateRpcHandlerAddOnBase = class MediateRpcHandlerAddOnBase {
      * @see IServiceAddOn.deadLetter
      */
     deadLetter() {
-        return this._rpcHandler.pause()
-            .then(() => this._rpcHandler.dispose());
+        return this._rpcHandler.pause();
+        // .then(() => this._rpcHandler.dispose())
     }
     /**
      * @see IServiceAddOn.dispose
      */
-    dispose() {
+    async dispose() {
         this._configProvider = null;
+        await this._rpcHandler.dispose();
         this._rpcHandler = null;
         return Promise.resolve();
     }

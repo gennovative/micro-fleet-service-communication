@@ -25,6 +25,11 @@ export type MessageBrokerPublishOptions = {
 
 export type MessageBrokerConnectionOptions = {
     /**
+     * Connection name, for management purpose.
+     */
+    name: string;
+
+    /**
      * IP address or host name where message broker is located.
      */
     hostAddress: string;
@@ -53,7 +58,7 @@ export type MessageBrokerConnectionOptions = {
      * The queue name for RPC handler to bind.
      * If not specified or given falsey values (empty string, null,...), a queue with random name will be created.
      */
-    handlerQueue?: string;
+    queue?: string;
 
     /**
      * Milliseconds to expire messages arriving in the queue.
@@ -63,7 +68,7 @@ export type MessageBrokerConnectionOptions = {
 
 
 export const IDENTIFIER = 'service-communication.IMessageBrokerConnector'
-export type MessageBrokerConnectorFactory = (connectorName: string) => IMessageBrokerConnector
+export type MessageBrokerConnectorFactory = (options: MessageBrokerConnectionOptions) => IMessageBrokerConnector
 
 export interface IMessageBrokerConnector {
 
@@ -94,10 +99,15 @@ export interface IMessageBrokerConnector {
     readonly subscribedPatterns: string[]
 
     /**
-     * Creates a connection to message broker engine.
-     * @param {MessageBrokerConnectionOptions} options
+     * Returns `true` if the connector is connecting or has connected.
+     * Otherwise, return `false`.
      */
-    connect(options: MessageBrokerConnectionOptions): Promise<void>
+    readonly isActive: boolean
+
+    /**
+     * Creates a connection to message broker engine.
+     */
+    connect(): Promise<void>
 
     /**
      * Closes all channels and the connection.
@@ -185,20 +195,26 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
 
 
     constructor(
-        private _name: string
+        private _options: MessageBrokerConnectionOptions,
     ) {
         this._subscribedPatterns = []
         this._emitter = new EventEmitter()
         this._queueBound = false
         this._isConnected = false
         this._isConnecting = false
+
+        this._exchange = _options.exchange
+        this.queue = _options.queue
+        this.messageExpiredIn = _options.messageExpiredIn
     }
+
+    //#region Accessors
 
     /**
      * @see IMessageBrokerConnector.name
      */
     public get name(): string {
-        return this._name
+        return this._options.name
     }
 
     /**
@@ -242,25 +258,30 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
         return this._subscribedPatterns
     }
 
+    /**
+     * @see IMessageBrokerConnector.isActive
+     */
+    public get isActive(): boolean {
+        return this._isConnecting || this._isConnected
+    }
 
     private get isListening(): boolean {
         return this._consumerTag != null
     }
 
+    //#endregion Accessors
+
 
     /**
      * @see IMessageBrokerConnector.connect
      */
-    public connect(options: MessageBrokerConnectionOptions): Promise<void> {
+    public connect(): Promise<void> {
+        const opts = this._options
         let credentials = ''
-
-        this._exchange = options.exchange
-        this.queue = options.handlerQueue
-        this.messageExpiredIn = options.messageExpiredIn
         this._isConnecting = true
 
-        options.reconnectDelay = (options.reconnectDelay >= 0)
-            ? options.reconnectDelay
+        opts.reconnectDelay = (opts.reconnectDelay >= 0)
+            ? opts.reconnectDelay
             : 3000 // 3s
 
         // Output:
@@ -268,12 +289,12 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
         // - "@pass"
         // - "usr@"
         // - ""
-        if (!isEmpty(options.username) || !isEmpty(options.password)) {
-            credentials = `${options.username || ''}:${options.password || ''}@`
+        if (!isEmpty(opts.username) || !isEmpty(opts.password)) {
+            credentials = `${opts.username || ''}:${opts.password || ''}@`
         }
 
         // URI format: amqp://usr:pass@10.1.2.3/vhost
-        return <any>this.createConnection(credentials, options)
+        return <any>this.createConnection(credentials, opts)
     }
 
     /**
@@ -601,7 +622,7 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
     private async bindQueue(channel: amqp.Channel, matchingPattern: string): Promise<void> {
         try {
             const queue = this.queue,
-                isTempQueue = (queue.indexOf('auto-gen') == 0)
+                isTempQueue = queue.startsWith('auto-gen')
 
             // Setting queue as "exclusive" to delete the temp queue when connection closes.
             await channel.assertQueue(queue, {

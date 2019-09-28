@@ -1,19 +1,17 @@
-import { mock, instance, when, anything } from 'ts-mockito'
-import { Types as cT, constants as c, IConfigurationProvider, Maybe,
+import { instance, when, anything } from 'ts-mockito'
+import { Mocker } from 'ts-mockito/lib/Mock'
+import { Types as cT, IConfigurationProvider, Maybe,
     DependencyContainer, serviceContext, IDependencyContainer
 } from '@micro-fleet/common'
 
 import * as app from '../../app'
+import rabbitOpts from '../rabbit-options'
 
-
-const {
-    Service: S,
-} = c
 
 export const constants = {
     SERVICE_SLUG: 'test-service',
     CALLER_NAME: 'rpcCaller',
-    CALLER_TIMEOUT: 1000,
+    CALLER_TIMEOUT: 5000,
     HANDLER_NAME: 'rpcHandler',
     HANDLER_PORT: 30e3,
     HANDLER_ADDR: `localhost:${30e3}`,
@@ -23,6 +21,14 @@ export function sleep(milisec: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, milisec))
 }
 
+
+export function betterMock<T>(clazz?: (new(...args: any[]) => T) | (Function & { prototype: T }) ): T {
+    const mocker = new Mocker(clazz)
+    mocker['excludedPropertyNames'] = ['hasOwnProperty', 'then']
+    return mocker.getMock()
+}
+
+
 export function mockDependencyContainer(): IDependencyContainer {
     const depContainer = new DependencyContainer()
     serviceContext.setDependencyContainer(depContainer)
@@ -31,12 +37,12 @@ export function mockDependencyContainer(): IDependencyContainer {
 }
 
 export function mockConfigProvider(settings: object = {}): IConfigurationProvider {
-    const MockConfigProviderClass = mock<IConfigurationProvider>()
+    const MockConfigProviderClass = betterMock<IConfigurationProvider>()
     const resolver = (key: string) => {
         if (settings[key] !== undefined) {
-            return Maybe.Just(settings[key])
+            return Maybe.Just(settings[key], key)
         }
-        return Maybe.Nothing()
+        return Maybe.Nothing(key)
     }
     when(MockConfigProviderClass.get(anything())).thenCall(resolver)
     when(MockConfigProviderClass.get(anything(), anything())).thenCall(resolver)
@@ -44,12 +50,15 @@ export function mockConfigProvider(settings: object = {}): IConfigurationProvide
 }
 
 export async function mockMediateRpcCaller(
-    config: IConfigurationProvider, preInit: boolean = true
+    preInit: boolean = true
 ): Promise<[app.IMediateRpcCaller, app.IMessageBrokerConnector, app.IMessageBrokerConnectorProvider]> {
-    const serviceSlug = config.get(S.SERVICE_SLUG).tryGetValue('mock-service-slug')
-    const connector = new app.TopicMessageBrokerConnector(serviceSlug)
-    const MockConnProviderCaller = mock<app.IMessageBrokerConnectorProvider>()
-    when(MockConnProviderCaller.create(anything())).thenResolve(connector)
+    const connector = new app.TopicMessageBrokerConnector({
+        ...rabbitOpts,
+        queue: null,
+        name: constants.CALLER_NAME,
+    })
+    const MockConnProviderCaller = betterMock<app.IMessageBrokerConnectorProvider>()
+    when(MockConnProviderCaller.create(anything())).thenReturn(connector)
     const caller = new app.MessageBrokerRpcCaller(instance(MockConnProviderCaller))
     if (preInit) {
         await caller.init({
@@ -62,12 +71,14 @@ export async function mockMediateRpcCaller(
 }
 
 export async function mockMediateRpcHandler(
-    config: IConfigurationProvider, preInit: boolean = true,
+    preInit: boolean = true,
 ): Promise<[app.IMediateRpcHandler, app.IMessageBrokerConnector, app.IMessageBrokerConnectorProvider]> {
-    const serviceSlug = config.get(S.SERVICE_SLUG).tryGetValue('mock-service-slug')
-    const connector = new app.TopicMessageBrokerConnector(serviceSlug)
-    const MockConnProviderHandler = mock<app.IMessageBrokerConnectorProvider>()
-    when(MockConnProviderHandler.create(anything())).thenResolve(connector)
+    const connector = new app.TopicMessageBrokerConnector({
+        ...rabbitOpts,
+        name: constants.HANDLER_NAME,
+    })
+    const MockConnProviderHandler = betterMock<app.IMessageBrokerConnectorProvider>()
+    when(MockConnProviderHandler.create(anything())).thenReturn(connector)
     const handler = new app.MessageBrokerRpcHandler(instance(MockConnProviderHandler))
     if (preInit) {
         await handler.init({

@@ -17,6 +17,7 @@ const {
     CALLER_NAME,
     HANDLER_ADDR,
     HANDLER_NAME,
+    HANDLER_PORT,
 } = constants
 
 describe('HttpRpcCaller', function() {
@@ -29,15 +30,17 @@ describe('HttpRpcCaller', function() {
     })
 
     describe('init', () => {
-        it('Should do nothing', async () => {
+        it('Should set caller name and baseAddress', async () => {
             // Arrange
 
             // Act
             await caller.init({
+                callerName: CALLER_NAME,
                 baseAddress: HANDLER_ADDR,
             })
 
             // Assert
+            expect(caller.name).to.equal(CALLER_NAME)
             expect(caller.baseAddress).to.equal(HANDLER_ADDR)
         })
     }) // END describe 'init'
@@ -82,8 +85,9 @@ describe('HttpRpcCaller', function() {
                 })
             })
 
-            server = app.listen(3000, () => {
+            server = app.listen(HANDLER_PORT, () => {
                 caller.init({
+                    callerName: CALLER_NAME,
                     baseAddress: HANDLER_ADDR,
                 })
                 .then(() => caller.call({
@@ -100,6 +104,7 @@ describe('HttpRpcCaller', function() {
                     done()
                 })
                 .catch(err => {
+                    console.error(err)
                     expect(err).to.not.exist
                 })
             })
@@ -109,6 +114,7 @@ describe('HttpRpcCaller', function() {
             // Arrange
             // tslint:disable-next-line: no-floating-promises
             caller.init({
+                callerName: CALLER_NAME,
                 baseAddress: HANDLER_ADDR,
             })
 

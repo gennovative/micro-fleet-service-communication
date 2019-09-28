@@ -83,20 +83,27 @@ export class MessageBrokerRpcCaller
      */
     public async init(options: MediateRpcCallerOptions): Promise<void> {
         this.$name = options.callerName
+
+        let conn
         if (options.connector) {
-            this._msgBrokerConn = options.connector
+            conn = this._msgBrokerConn = options.connector
+            isTempQueue(conn.queue) || console.warn('Mediate RPC Caller expects an auto-generated and temporary queue, '
+                + `but gets queue name: "${conn.queue}"`)
         }
         else {
             const name = options.connectorName || `Connector for RPC caller "${this.name}"`
-            this._msgBrokerConn = await this._msgBrokerConnProvider.create(name)
+            conn = this._msgBrokerConn = await this._msgBrokerConnProvider.create(name)
             if (options.messageExpiredIn != null) {
-                this._msgBrokerConn.messageExpiredIn = options.messageExpiredIn
+                conn.messageExpiredIn = options.messageExpiredIn
             }
-            this._msgBrokerConn.onError(err => this.$emitError(err))
+            conn.onError(err => this.$emitError(err))
+            conn.queue = null
         }
-
         if (options.timeout != null) {
             this.$timeout = options.timeout
+        }
+        if (!conn.isActive) {
+            await conn.connect()
         }
     }
 
@@ -129,17 +136,21 @@ export class MessageBrokerRpcCaller
                     : `response.${moduleName}.${actionName}@${correlationId}`,
                 conn = this._msgBrokerConn
 
+            const stopWaiting = async () => {
+                await conn.unsubscribe(replyTo)
+                await conn.stopListen()
+            }
+
             conn.subscribe(replyTo)
                 .then(() => {
                     let token: NodeJS.Timer
                     const onMessage = async (msg: BrokerMessage) => {
                         clearTimeout(token)
                         // We got what we want, stop consuming.
-                        await conn.unsubscribe(replyTo)
-                        await conn.stopListen()
+                        await stopWaiting()
 
                         const response: rpc.RpcResponse = msg.data
-                        if (!response.isSuccess) {
+                        if (response.hasOwnProperty('isSuccess') && !response.isSuccess) {
                             response.payload = this.$rebuildError(response.payload)
                             if (response.payload instanceof InternalErrorException) {
                                 return reject(response.payload)
@@ -151,7 +162,7 @@ export class MessageBrokerRpcCaller
                     // In case this request never has response.
                     token = setTimeout(() => {
                         this.$emitter && this.$emitter.removeListener(correlationId, onMessage)
-                        conn && conn.unsubscribe(replyTo).catch(() => { /* Swallow */ })
+                        stopWaiting().catch(() => { /* Swallow */ })
                         reject(new MinorException('Response waiting timeout'))
                     }, this.timeout)
 
@@ -175,6 +186,7 @@ export class MessageBrokerRpcCaller
                 })
                 .catch(err => {
                     reject(new MinorException(`RPC error: ${err}`))
+                    return stopWaiting().catch(() => { /* Swallow */ })
                 })
         })
     }
@@ -198,4 +210,8 @@ export class MessageBrokerRpcCaller
         return this._msgBrokerConn.publish(rawDest || `request.${moduleName}.${actionName}`, request)
             .catch(err => new MinorException(`RPC error: ${err}`)) as any
     }
+}
+
+function isTempQueue(queue: string): boolean {
+    return (queue === '') || (typeof queue === 'string' &&  queue.startsWith('auto-gen'))
 }

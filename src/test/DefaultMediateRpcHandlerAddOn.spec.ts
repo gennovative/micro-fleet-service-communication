@@ -2,26 +2,27 @@ import * as path from 'path'
 
 import * as chai from 'chai'
 import * as spies from 'chai-spies'
+chai.use(spies)
+const expect = chai.expect
 
-import { IConfigurationProvider, constants,
-    DependencyContainer, MinorException, CriticalException,
-    } from '@micro-fleet/common'
+import { Types as cT, IConfigurationProvider, constants,
+    DependencyContainer, MinorException, CriticalException, IServiceAddOn,
+} from '@micro-fleet/common'
+const {
+    Service: S,
+    RPC,
+    MessageBroker: MB,
+} = constants
 
-import { RpcResponse, IMediateRpcHandler, IMediateRpcCaller,
-    IMessageBrokerConnector, DefaultMediateRpcHandlerAddOn, RpcError,
-} from '../app'
+import * as app from '../app'
+const {
+    Types: T,
+} = app
 
 import rabbitOpts from './rabbit-options'
 import * as mc from './shared/mediate-controllers'
 import * as h from './shared/helper'
 
-
-chai.use(spies)
-const expect = chai.expect
-const {
-    Service: S,
-    RPC,
-} = constants
 
 const {
     SERVICE_SLUG,
@@ -33,11 +34,12 @@ const TEXT_REQUEST = '1346468764131687'
 
 
 let depContainer: DependencyContainer,
-    callerMbConn: IMessageBrokerConnector,
-    handlerMbConn: IMessageBrokerConnector,
-    handler: IMediateRpcHandler,
-    caller: IMediateRpcCaller,
-    addon: DefaultMediateRpcHandlerAddOn,
+    // callerMbConn: app.IMessageBrokerConnector,
+    // handlerMbConn: app.IMessageBrokerConnector,
+    connProvider: IServiceAddOn,
+    handler: app.IMediateRpcHandler,
+    caller: app.IMediateRpcCaller,
+    addon: app.DefaultMediateRpcHandlerAddOn,
     config: IConfigurationProvider
 
 // tslint:disable: no-floating-promises
@@ -48,34 +50,53 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
     // this.timeout(60e3)
 
     beforeEach(async () => {
+        /*
+         * In this test, we resolve from dependency container
+         * and not using mock for message broker connetor,
+         * to test a real-life scenario.
+         */
         config = h.mockConfigProvider({
             [S.SERVICE_SLUG]: SERVICE_SLUG,
             [RPC.RPC_CALLER_TIMEOUT]: CALLER_TIMEOUT,
+            [MB.MSG_BROKER_HOST]: rabbitOpts.hostAddress,
+            [MB.MSG_BROKER_USERNAME]: rabbitOpts.username,
+            [MB.MSG_BROKER_PASSWORD]: rabbitOpts.password,
+            [MB.MSG_BROKER_EXCHANGE]: rabbitOpts.exchange,
+            [MB.MSG_BROKER_HANDLER_QUEUE]: rabbitOpts.queue,
+            [MB.MSG_BROKER_MSG_EXPIRE]: rabbitOpts.messageExpiredIn,
         })
-        depContainer = h.mockDependencyContainer();
+        depContainer = h.mockDependencyContainer()
+        depContainer.bindConstant(cT.CONFIG_PROVIDER, config)
 
-        [caller, callerMbConn] = await h.mockMediateRpcCaller(config);
-        [handler, handlerMbConn] = await h.mockMediateRpcHandler(config, false)
+        app.registerMessageBrokerAddOn()
+        app.registerMediateHandlerAddOn()
+        app.registerMediateCaller()
 
-        callerMbConn.onError((err) => {
+        caller = depContainer.resolve<app.IMediateRpcCaller>(T.MEDIATE_RPC_CALLER)
+        handler = depContainer.resolve<app.IMediateRpcHandler>(T.MEDIATE_RPC_HANDLER)
+
+        caller.onError((err) => {
             console.error('Caller error:\n', err)
         })
 
-        handlerMbConn.onError((err) => {
+        handler.onError((err) => {
             console.error('Handler error:\n', err)
         })
 
-        addon = new DefaultMediateRpcHandlerAddOn(
+        addon = new app.DefaultMediateRpcHandlerAddOn(
             config,
             depContainer,
             handler,
         )
         addon.controllerPath = path.join(process.cwd(), 'dist', 'test', 'shared', 'mediate-controllers')
 
-        return Promise.all([
-            callerMbConn.connect(rabbitOpts.caller),
-            handlerMbConn.connect(rabbitOpts.handler),
-        ])
+        connProvider = depContainer.resolve<IServiceAddOn>(T.MSG_BROKER_CONNECTOR_PROVIDER)
+        await connProvider.init()
+        await caller.init({
+            callerName: CALLER_NAME,
+            timeout: CALLER_TIMEOUT,
+            messageExpiredIn: rabbitOpts.messageExpiredIn,
+        })
     })
 
     afterEach(async () => {
@@ -83,10 +104,7 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
             addon.dispose(),
             caller.dispose(),
         ])
-        await Promise.all([
-            callerMbConn.disconnect(),
-            handlerMbConn.disconnect(),
-        ])
+        await connProvider.dispose() // Will also disconnect all connectors
         depContainer.dispose()
     })
 
@@ -97,7 +115,7 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
 
             // Act
             try {
-                const res: RpcResponse = await caller.call({
+                const res: app.RpcResponse = await caller.call({
                     moduleName: mc.MODULE_NAME,
                     actionName: mc.ACT_DO_IT,
                     params: {
@@ -123,7 +141,7 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
 
             // Act
             try {
-                const res: RpcResponse = await caller.call({
+                const res: app.RpcResponse = await caller.call({
                     moduleName: mc.MODULE_NAME,
                     actionName: mc.ACT_GET_IT,
                 })
@@ -153,7 +171,7 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
 
             // Act
             try {
-                const res: RpcResponse = await caller.call({
+                const res: app.RpcResponse = await caller.call({
                     moduleName: AUTO_MODULE_NAME,
                     actionName: mc.ACT_REFUSE_IT,
                 })
@@ -162,7 +180,7 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
                 expect(res).to.exist
                 expect(res.isSuccess).to.be.false
 
-                const resError: RpcError = res.payload
+                const resError: app.RpcError = res.payload
                 expect(resError).is.instanceOf(MinorException)
                 expect(resError.message).to.equal(mc.RES_REFUSE_IT)
 
@@ -189,7 +207,7 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
 
             // Act
             try {
-                const res: RpcResponse = await caller.call({
+                const res: app.RpcResponse = await caller.call({
                     moduleName: AUTO_MODULE_NAME,
                     actionName: mc.ACT_EXCEPT_IT,
                 })
@@ -198,7 +216,7 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
                 expect(res).to.exist
                 expect(res.isSuccess).to.be.false
 
-                const resError: RpcError = res.payload
+                const resError: app.RpcError = res.payload
                 expect(resError).is.instanceOf(CriticalException)
                 expect(resError.message).to.equal(mc.RES_EXCEPT_IT)
 
@@ -224,7 +242,7 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
 
             // Act
             try {
-                const res: RpcResponse = await caller.call({
+                const res: app.RpcResponse = await caller.call({
                     moduleName: AUTO_MODULE_NAME,
                     actionName: mc.ACT_OBJ_IT,
                 })
@@ -233,7 +251,7 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
                 expect(res).to.exist
                 expect(res.isSuccess).to.be.false
 
-                const resError: RpcError = res.payload
+                const resError: app.RpcError = res.payload
                 expect(resError).is.instanceOf(MinorException)
                 expect(resError.details).to.deep.equal(mc.RES_OBJ_IT)
 
@@ -310,13 +328,12 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
                     //          Handler no longer accepts requests
                     expect(acceptCounter).to.equal(INIT_CALL_NUM)
                     expect(rejectCounter).to.equal(MORE_CALL_NUM)
+                    done()
                 })
                 .catch(err => {
-                    err && console.error(err)
+                    // err && console.error(err)
                     expect(err).to.not.exist
-                })
-                .finally(() => {
-                    done()
+                    done(err)
                 })
         })
 
@@ -350,7 +367,7 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
                             moduleName: mc.MODULE_NAME,
                             actionName: mc.ACT_GET_IT,
                         })
-                        .then((res: RpcResponse) => {
+                        .then((res: app.RpcResponse) => {
                             console.log(`Got the ${res.payload}-th response`)
                         })
                         .catch(done)
@@ -385,18 +402,18 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
                     // Assert: "counter" not increased.
                     //          Handler no longer accepts requests
                     expect(acceptCounter).to.equal(INIT_CALL_NUM)
-                })
-                .catch(err => {
-                    err && console.error(err)
-                    expect(err).to.not.exist
-                })
-                .finally(async () => {
+
                     resolvers.forEach(resolve => resolve())
                     return h.sleep(3000)
                 })
                 .then(() => {
                     expect(resolveCounter).to.equal(INIT_CALL_NUM)
                     done()
+                })
+                .catch(err => {
+                    // err && console.error(err)
+                    expect(err).to.not.exist
+                    done(err)
                 })
         })
     }) // END describe 'deadLetter'

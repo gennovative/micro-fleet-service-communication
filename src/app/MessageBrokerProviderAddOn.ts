@@ -12,7 +12,7 @@ export interface IMessageBrokerConnectorProvider {
      * Establishes new connection to message broker and returns an instance of the connector.
      * @param name The connector name for later reference.
      */
-    create(name: string): Promise<IMessageBrokerConnector>
+    create(name: string): IMessageBrokerConnector
 
     /**
      * Gets all created and managed connectors.
@@ -31,7 +31,7 @@ export class MessageBrokerProviderAddOn implements IServiceAddOn, IMessageBroker
 
     public readonly name: string = 'MessageBrokerProviderAddOn'
 
-    private _connectorOptions: MessageBrokerConnectionOptions
+    private _connectorOptions: Partial<MessageBrokerConnectionOptions>
     private _connectors: IMessageBrokerConnector[]
 
     constructor(
@@ -48,10 +48,12 @@ export class MessageBrokerProviderAddOn implements IServiceAddOn, IMessageBroker
     /**
      * @see IMessageBrokerConnectorProvider.create
      */
-    public async create(name: string): Promise<IMessageBrokerConnector> {
+    public create(name: string): IMessageBrokerConnector {
         Guard.assertIsDefined(this._connectorOptions, 'MessageBrokerProviderAddOn must be initialized before creating connectors.')
-        const connector = this._createConnector(name)
-        await connector.connect(this._connectorOptions)
+        const connector = this._createConnector({
+            ...this._connectorOptions as MessageBrokerConnectionOptions,
+            name,
+        })
         this._connectors.push(connector)
         return connector
     }
@@ -85,7 +87,7 @@ export class MessageBrokerProviderAddOn implements IServiceAddOn, IMessageBroker
                 username: cfgAdt.get(S.MSG_BROKER_USERNAME).value as string,
                 password: cfgAdt.get(S.MSG_BROKER_PASSWORD).value as string,
                 exchange: cfgAdt.get(S.MSG_BROKER_EXCHANGE).value as string,
-                handlerQueue: cfgAdt.get(S.MSG_BROKER_HANDLER_QUEUE).tryGetValue(null) as string,
+                queue: cfgAdt.get(S.MSG_BROKER_HANDLER_QUEUE).tryGetValue(null) as string,
                 reconnectDelay: cfgAdt.get(S.MSG_BROKER_RECONN_TIMEOUT).tryGetValue(3000) as number,
                 messageExpiredIn: cfgAdt.get(S.MSG_BROKER_MSG_EXPIRE).tryGetValue(50000) as number,
             }

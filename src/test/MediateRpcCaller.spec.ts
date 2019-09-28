@@ -1,28 +1,19 @@
 import { EventEmitter } from 'events'
 
 import { expect } from 'chai'
-import { mock, instance, when, anything, anyFunction, reset } from 'ts-mockito'
-import { constants, MinorException, IConfigurationProvider } from '@micro-fleet/common'
+import { instance, when, anyFunction } from 'ts-mockito'
+import { MinorException, InternalErrorException } from '@micro-fleet/common'
 
 import { MessageBrokerRpcCaller, BrokerMessage,
-    TopicMessageBrokerConnector, RpcRequest, RpcResponse,
+    RpcRequest, RpcResponse,
     IMessageBrokerConnectorProvider,
     IMediateRpcCaller,
     IMessageBrokerConnector,
 } from '../app'
-
-import rabbitOpts from './rabbit-options'
 import * as h from './shared/helper'
 
 
 const {
-    Service: S,
-    MessageBroker: MB,
-    RPC,
-} = constants
-
-const {
-    SERVICE_SLUG,
     CALLER_NAME,
     HANDLER_NAME,
 } = h.constants
@@ -34,37 +25,39 @@ const CALLER_TIMEOUT = 3000, // Time to wait before cancel the request
 
 let globalHandlerMbConn: IMessageBrokerConnector,
     globalCallerMbConn: IMessageBrokerConnector,
-    globalCaller: IMediateRpcCaller,
-    config: IConfigurationProvider
+    globalCaller: IMediateRpcCaller
 
 // tslint:disable: no-floating-promises
 
 describe('MessageBrokerRpcCaller', function() {
     this.timeout(10e3)
-
-    beforeEach(() => {
-        config = h.mockConfigProvider({
-            [S.SERVICE_SLUG]: SERVICE_SLUG,
-            [MB.MSG_BROKER_MSG_EXPIRE]: CALLER_QUEUE_TTL,
-            [RPC.RPC_CALLER_TIMEOUT]: 3e3,
-        })
-    })
+    // this.timeout(60e3) // For debugging
 
     describe('init', () => {
+
+        afterEach(async () => {
+            await globalCaller.dispose()
+            globalCaller = null
+        })
+
         it('Should use existing message broker connector', () => {
             // Arrange
-            const ConnProviderClass = mock<IMessageBrokerConnectorProvider>()
-            const connector = new TopicMessageBrokerConnector(SERVICE_SLUG)
-            const caller = new MessageBrokerRpcCaller(instance(ConnProviderClass))
+            const ConnProviderClass = h.betterMock<IMessageBrokerConnectorProvider>()
+            const ConnectorClass = h.betterMock<IMessageBrokerConnector>()
+            when(ConnectorClass.queue).thenReturn('')
+            const connector = instance(ConnectorClass)
+            globalCaller = new MessageBrokerRpcCaller(instance(ConnProviderClass))
 
             // Act
-            caller.init({
+            globalCaller.init({
                 connector,
                 callerName: CALLER_NAME,
+                timeout: CALLER_TIMEOUT,
+                messageExpiredIn: CALLER_QUEUE_TTL,
             })
 
             // Assert
-            expect(caller['_msgBrokerConn']).to.equal(connector)
+            expect(globalCaller['_msgBrokerConn']).to.equal(connector)
         })
 
         it('Should raise error if problems occur', done => {
@@ -72,40 +65,33 @@ describe('MessageBrokerRpcCaller', function() {
             const ERROR = 'Test error'
 
             const emitter = new EventEmitter()
-            const ConnectorClass = mock<IMessageBrokerConnector>()
+            const ConnectorClass = h.betterMock<IMessageBrokerConnector>()
+            when(ConnectorClass.queue).thenReturn('')
             when(ConnectorClass.onError(anyFunction())).thenCall((errorHandler: Function) => {
                 emitter.on('error', errorHandler as any)
             })
-            when(ConnectorClass.connect(anything())).thenResolve()
+            when(ConnectorClass.connect()).thenResolve()
             when(ConnectorClass.disconnect()).thenResolve()
             const connector = instance(ConnectorClass)
 
-            const stubConnector = {
-                onError(errorHandler: Function) {
-                    emitter.on('error', errorHandler as any)
-                },
-            }
-            let MockConnProviderHandler
-            let caller: IMediateRpcCaller
-
-            h.mockMediateRpcCaller(config, false)
+            h.mockMediateRpcCaller(false)
                 .then(result => {
-                    caller = result[0]
-                    MockConnProviderHandler = result[2]
-                    reset(MockConnProviderHandler)
-                    when(MockConnProviderHandler.create(anything()))
-                        .thenResolve(stubConnector as any) // Cannot thenResolve(connector) because of ts-mockito's bug
-                    return caller.init({ callerName: CALLER_NAME })
+                    globalCaller = result[0]
+                    connector.onError(err => globalCaller['$emitError'](err))
+                    return globalCaller.init({
+                        callerName: CALLER_NAME,
+                        connector,
+                    })
                 })
                 .then(() => {
                     // Act
-                    caller.onError(err => {
+                    globalCaller.onError(err => {
                         // Assert
                         expect(err).to.equal(ERROR)
                         connector.disconnect().then(() => done())
                     })
 
-                    connector.connect(rabbitOpts.caller)
+                    connector.connect()
                         .then(() => {
                             emitter.emit('error', ERROR)
                         })
@@ -119,21 +105,18 @@ describe('MessageBrokerRpcCaller', function() {
         // this.timeout(30e3);
 
         beforeEach(async () => {
-            [globalCaller, globalCallerMbConn] = await h.mockMediateRpcCaller(config, false);
-            [, globalHandlerMbConn] = await h.mockMediateRpcHandler(config, false)
+            [globalCaller, globalCallerMbConn] = await h.mockMediateRpcCaller(false);
+            [, globalHandlerMbConn] = await h.mockMediateRpcHandler(false)
 
             globalHandlerMbConn.onError((err) => {
                 console.error('Handler error:\n' + JSON.stringify(err))
             })
 
-            globalCallerMbConn.onError((err) => {
+            globalCaller.onError((err) => {
                 console.error('Caller error:\n' + JSON.stringify(err))
             })
 
-            await Promise.all([
-                globalHandlerMbConn.connect(rabbitOpts.handler),
-                globalCallerMbConn.connect(rabbitOpts.caller),
-            ])
+            await globalHandlerMbConn.connect()
 
             await globalCaller.init({
                 connector: globalCallerMbConn,
@@ -174,7 +157,7 @@ describe('MessageBrokerRpcCaller', function() {
                     done()
                 }))
                 // Act
-                .then(() => globalCaller.call({
+                .then(() => globalCaller.callImpatient({
                     moduleName: HANDLER_NAME,
                     actionName: ACTION,
                     params: { text: TEXT },
@@ -231,48 +214,49 @@ describe('MessageBrokerRpcCaller', function() {
                 })
         })
 
-        // it('Should reject when response says it unsuccessful.', (done) => {
-        //     // Arrange
-        //     const ACTION = 'echo',
-        //         ERROR_MSG = 'errrrorrrr'
+        it('Should reject when response says it unsuccessful.', (done) => {
+            // Arrange
+            const ACTION = 'echo',
+                ERROR_MSG = 'errrrorrr'
 
-        //     // This is the topic that caller should make
-        //     const topic = `request.${HANDLER_NAME}.${ACTION}`
-        //     globalCaller.init({
-            //     connector: globalCallerMbConn,
-            // })
+            // This is the topic that caller should make
+            const topic = `request.${HANDLER_NAME}.${ACTION}`
 
-        //     handlerMbConn.subscribe(topic)
-        //         .then(() => {
-        //             return handlerMbConn.listen((msg: BrokerMessage) => {
-        //                 const request: RpcRequest = msg.data,
-        //                     props = msg.properties,
-        //                     response: RpcResponse = {
-        //                         isSuccess: false,
-        //                         from: request.to,
-        //                         to: request.from,
-        //                         payload: {
-        //                             type: 'InternalErrorException',
-        //                             message: ERROR_MSG,
-        //                         },
-        //                     }
-        //                 handlerMbConn.publish(props.replyTo, response, { correlationId: props.correlationId })
-        //             })
-        //         }).then(() => {
-        //             // Act
-        //             return globalCaller.call(HANDLER_NAME, ACTION)
-        //         })
-        //         .then((res: RpcResponse) => {
-        //             // Assert
-        //             console.error(res)
-        //             expect(res).not.to.exist
-        //         })
-        //         .catch(err => {
-        //             expect(err.type).to.equal('InternalErrorException')
-        //             expect(err.message).to.equal(ERROR_MSG)
-        //             done()
-        //         })
-        // })
+            globalHandlerMbConn.subscribe(topic)
+                .then(() => {
+                    return globalHandlerMbConn.listen((msg: BrokerMessage) => {
+                        const request: RpcRequest = msg.data,
+                            props = msg.properties,
+                            response: RpcResponse = {
+                                isSuccess: false,
+                                from: request.to,
+                                to: request.from,
+                                payload: {
+                                    type: 'InternalErrorException',
+                                    message: ERROR_MSG,
+                                },
+                            }
+                        globalHandlerMbConn.publish(props.replyTo, response, { correlationId: props.correlationId })
+                    })
+                })
+                .then(() => {
+                    // Act
+                    return globalCaller.call({
+                        moduleName: HANDLER_NAME,
+                        actionName: ACTION,
+                    })
+                })
+                .then((res: RpcResponse) => {
+                    // Assert
+                    console.error(res)
+                    expect(res, 'Should not be successful').not.to.exist
+                })
+                .catch(err => {
+                    expect(err).to.be.instanceOf(InternalErrorException)
+                    expect(err.message).to.equal(ERROR_MSG)
+                    done()
+                })
+        })
 
         it('Should reject if an error occurs', done => {
             // Arrange
@@ -287,6 +271,7 @@ describe('MessageBrokerRpcCaller', function() {
                         expect(true, 'Should NOT get any request!').to.be.false
                     })
                 }).then(() => {
+                    // Disconnect to cause error when making call.
                     return globalCallerMbConn.disconnect()
                 })
                 .then(() => {
@@ -307,6 +292,46 @@ describe('MessageBrokerRpcCaller', function() {
                 })
         })
 
+    }) // END describe 'call'
+
+    describe('call - timeout', () => {
+        beforeEach(async () => {
+            [globalCaller, globalCallerMbConn] = await h.mockMediateRpcCaller(false);
+            [, globalHandlerMbConn] = await h.mockMediateRpcHandler(false)
+
+            globalHandlerMbConn.onError((err) => {
+                console.error('Handler error:\n' + JSON.stringify(err))
+            })
+
+            globalCaller.onError((err) => {
+                console.error('Caller error:\n' + JSON.stringify(err))
+            })
+
+            globalCallerMbConn.messageExpiredIn = CALLER_QUEUE_TTL
+            globalHandlerMbConn.messageExpiredIn = CALLER_QUEUE_TTL
+
+            await globalHandlerMbConn.connect()
+
+            await globalCaller.init({
+                connector: globalCallerMbConn,
+                callerName: CALLER_NAME,
+                timeout: CALLER_TIMEOUT,
+            })
+        })
+
+        afterEach(async function() {
+            this.timeout(5000)
+            await globalHandlerMbConn.stopListen()
+            await Promise.all([
+                globalHandlerMbConn.deleteQueue(),
+                globalCaller.dispose(),
+            ])
+            await Promise.all([
+                globalHandlerMbConn.disconnect(),
+                globalCallerMbConn.disconnect(),
+            ])
+        })
+
         it('Should reject if request times out', function (done) {
             // Arrange
             const ACTION = 'echo',
@@ -318,7 +343,6 @@ describe('MessageBrokerRpcCaller', function() {
 
             // This is the topic that caller should make
             const topic = `request.${HANDLER_NAME}.${ACTION}`
-            globalCallerMbConn.messageExpiredIn = CALLER_QUEUE_TTL
 
             // Step 1: Caller sends a request, waits in CALLER_TIMEOUT millisecs,
             //         then stops waiting for response.
@@ -347,6 +371,7 @@ describe('MessageBrokerRpcCaller', function() {
                 .then(() => {
                     // Act
                     // Step 1
+                    globalCaller['$timeout'] = CALLER_TIMEOUT
                     return globalCaller.call({
                         moduleName: HANDLER_NAME,
                         actionName: ACTION,
@@ -374,6 +399,5 @@ describe('MessageBrokerRpcCaller', function() {
                     }, CALLER_QUEUE_TTL + 500)
                 })
         })
-
-    }) // END describe 'call'
+    }) // END describe 'Timeout'
 })

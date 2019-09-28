@@ -14,7 +14,6 @@ import { IMediateRpcHandler, IMediateRpcCaller,
 } from '../../app'
 import * as rc from '../shared/payload-controller'
 import { SampleModel } from '../shared/SampleModel'
-import rabbitOpts from '../rabbit-options'
 import { mockConfigProvider, mockMediateRpcCaller, mockMediateRpcHandler } from '../shared/helper'
 
 
@@ -32,8 +31,8 @@ let depContainer: DependencyContainer,
     addon: DefaultMediateRpcHandlerAddOn
 
 describe('@payload() - mediate', function() {
-    // this.timeout(5000)
-    this.timeout(60e3) // For debugging
+    this.timeout(5000)
+    // this.timeout(60e3) // For debugging
 
     beforeEach(async () => {
         depContainer = new DependencyContainer()
@@ -45,8 +44,8 @@ describe('@payload() - mediate', function() {
             [RPC.RPC_HANDLER_PORT]: HANDLER_PORT,
         });
 
-        [caller, callerMbConn] = await mockMediateRpcCaller(config);
-        [handler, handlerMbConn] = await mockMediateRpcHandler(config, false)
+        [caller, callerMbConn] = await mockMediateRpcCaller();
+        [handler, handlerMbConn] = await mockMediateRpcHandler(false)
 
         addon = new DefaultMediateRpcHandlerAddOn(
             config,
@@ -56,10 +55,7 @@ describe('@payload() - mediate', function() {
         addon.controllerPath = path.join(
             process.cwd(),
             'dist', 'test', 'shared', 'payload-controller')
-        return Promise.all([
-            callerMbConn.connect(rabbitOpts.caller),
-            handlerMbConn.connect(rabbitOpts.handler),
-        ])
+        return handlerMbConn.connect()
     })
 
     afterEach(async () => {

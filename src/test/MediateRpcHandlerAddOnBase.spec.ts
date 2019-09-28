@@ -1,10 +1,17 @@
 import { mock, instance, verify, when, anything } from 'ts-mockito'
 
-import { IConfigurationProvider, Types as ConT,
-    decorators as d } from '@micro-fleet/common'
+import { IConfigurationProvider, Types as ConT, decorators as d, constants } from '@micro-fleet/common'
 
 import { Types as ComT, IMediateRpcHandler, MediateRpcHandlerAddOnBase } from '../app'
+import * as h from './shared/helper'
 
+const {
+    Service: S,
+} = constants
+
+const {
+    SERVICE_SLUG,
+} = h.constants
 
 @d.injectable()
 class CustomAddOn extends MediateRpcHandlerAddOnBase {
@@ -47,15 +54,19 @@ class CustomAddOn extends MediateRpcHandlerAddOnBase {
     }
 }
 
+let config: IConfigurationProvider
 
 describe('MediateRpcHandlerAddOnBase', () => {
+
+    before(() => {
+        config = h.mockConfigProvider({
+            [S.SERVICE_SLUG]: SERVICE_SLUG,
+        })
+    })
 
     describe('init', () => {
         it('Should init RPC handler', async () => {
             // Arrange
-            const MockConfigProviderClass = mock<IConfigurationProvider>()
-            const config = instance(MockConfigProviderClass)
-
             const MockMediateRpcHandler = mock<IMediateRpcHandler>()
             const handler = instance(MockMediateRpcHandler)
 
@@ -73,12 +84,8 @@ describe('MediateRpcHandlerAddOnBase', () => {
     describe('deadLetter', () => {
         it('should call RPC handler.dispose', async () => {
             // Arrange
-            const MockConfigProviderClass = mock<IConfigurationProvider>()
-            const config = instance(MockConfigProviderClass)
-
             const MockMediateRpcHandler = mock<IMediateRpcHandler>()
             when(MockMediateRpcHandler.pause()).thenResolve()
-            when(MockMediateRpcHandler.dispose()).thenResolve()
             const handler = instance(MockMediateRpcHandler)
 
             const addon = new CustomAddOn(config, handler)
@@ -88,7 +95,6 @@ describe('MediateRpcHandlerAddOnBase', () => {
 
             // Assert
             verify(MockMediateRpcHandler.pause()).once()
-            verify(MockMediateRpcHandler.dispose()).once()
         })
     }) // END describe 'deadLetter'
 })

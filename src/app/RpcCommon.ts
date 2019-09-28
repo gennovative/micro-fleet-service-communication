@@ -302,8 +302,13 @@ export abstract class RpcCallerBase {
     }
 
     protected $rebuildError(error: RpcError): any {
+        if (!error.type) { return error }
+
+        const ExceptionClass: any = global['gennova'][error.type]
+        if (!ExceptionClass) { return error }
+
         // Expect response.payload.type = MinorException | ValidationError...
-        const exception: Exception = new global['gennova'][error.type](error.message)
+        const exception: Exception = new ExceptionClass(error.message)
         exception.details = (typeof error.details === 'string')
             ? JSON.parse(error.details)
             : error.details

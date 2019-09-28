@@ -14,7 +14,6 @@ import { IMediateRpcHandler, IMediateRpcCaller,
     DefaultMediateRpcHandlerAddOn, RpcResponse, IMessageBrokerConnector,
     } from '../../app'
 import * as rc from '../shared/resolve-reject-controller'
-import rabbitOpts from '../rabbit-options'
 import { mockConfigProvider, mockMediateRpcCaller, mockMediateRpcHandler } from '../shared/helper'
 
 
@@ -45,8 +44,8 @@ describe('@rejectFn() - mediate', function() {
             [S.SERVICE_SLUG]: SERVICE_SLUG,
             [R.RPC_HANDLER_PORT]: HANDLER_PORT,
         });
-        [caller, callerMbConn] = await mockMediateRpcCaller(config);
-        [handler, handlerMbConn] = await mockMediateRpcHandler(config, false)
+        [caller, callerMbConn] = await mockMediateRpcCaller();
+        [handler, handlerMbConn] = await mockMediateRpcHandler(false)
 
         addon = new DefaultMediateRpcHandlerAddOn(
             config,
@@ -54,10 +53,7 @@ describe('@rejectFn() - mediate', function() {
             handler
         )
         addon.controllerPath = path.join(process.cwd(), 'dist', 'test', 'shared', 'resolve-reject-controller')
-        return Promise.all([
-            callerMbConn.connect(rabbitOpts.caller),
-            handlerMbConn.connect(rabbitOpts.handler),
-        ])
+        return handlerMbConn.connect()
     })
 
     afterEach(async () => {

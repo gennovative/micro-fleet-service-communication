@@ -14,7 +14,7 @@ function registerMessageBrokerAddOn() {
     const depCon = common_1.serviceContext.dependencyContainer;
     if (!depCon.isBound(MessageBrokerConnector_1.IDENTIFIER)) {
         depCon.bindFactory(MessageBrokerConnector_1.IDENTIFIER, () => {
-            return (connectorName) => new MessageBrokerConnector_1.TopicMessageBrokerConnector(connectorName);
+            return (options) => new MessageBrokerConnector_1.TopicMessageBrokerConnector(options);
         });
     }
     if (!depCon.isBound(Types_1.Types.BROKER_ADDON)) {

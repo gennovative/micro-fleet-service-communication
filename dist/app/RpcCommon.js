@@ -81,8 +81,15 @@ let RpcCallerBase = class RpcCallerBase {
         this.$emitter.emit('error', err);
     }
     $rebuildError(error) {
+        if (!error.type) {
+            return error;
+        }
+        const ExceptionClass = global['gennova'][error.type];
+        if (!ExceptionClass) {
+            return error;
+        }
         // Expect response.payload.type = MinorException | ValidationError...
-        const exception = new global['gennova'][error.type](error.message);
+        const exception = new ExceptionClass(error.message);
         exception.details = (typeof error.details === 'string')
             ? JSON.parse(error.details)
             : error.details;

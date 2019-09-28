@@ -12,7 +12,6 @@ import { RpcResponse, IDirectRpcCaller,
     IMediateRpcHandler, IMediateRpcCaller, IMessageBrokerConnector,
 } from '../../app'
 import * as rc from '../shared/rpcRequest-rawMessage-controller'
-import rabbitOpts from '../rabbit-options'
 import * as h from '../shared/helper'
 
 
@@ -153,8 +152,8 @@ describe('@rpcRequest()', function() {
         addon: DefaultMediateRpcHandlerAddOn
 
         beforeEach(async () => {
-            [caller, callerMbConn] = await h.mockMediateRpcCaller(config);
-            [handler, handlerMbConn] = await h.mockMediateRpcHandler(config, false)
+            [caller, callerMbConn] = await h.mockMediateRpcCaller();
+            [handler, handlerMbConn] = await h.mockMediateRpcHandler(false)
 
             addon = new DefaultMediateRpcHandlerAddOn(
                 config,
@@ -165,10 +164,7 @@ describe('@rpcRequest()', function() {
                 process.cwd(),
                 'dist', 'test', 'shared', CONTROLLER_NAME,
             )
-            return Promise.all([
-                callerMbConn.connect(rabbitOpts.caller),
-                handlerMbConn.connect(rabbitOpts.handler),
-            ])
+            return handlerMbConn.connect()
         })
 
         afterEach(async () => {

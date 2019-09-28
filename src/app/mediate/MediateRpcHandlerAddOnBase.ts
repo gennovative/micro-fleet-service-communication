@@ -42,14 +42,15 @@ export abstract class MediateRpcHandlerAddOnBase implements IServiceAddOn {
      */
     public deadLetter(): Promise<void> {
         return this._rpcHandler.pause()
-            .then(() => this._rpcHandler.dispose())
+            // .then(() => this._rpcHandler.dispose())
     }
 
     /**
      * @see IServiceAddOn.dispose
      */
-    public dispose(): Promise<void> {
+    public async dispose(): Promise<void> {
         this._configProvider = null
+        await this._rpcHandler.dispose()
         this._rpcHandler = null
         return Promise.resolve()
     }

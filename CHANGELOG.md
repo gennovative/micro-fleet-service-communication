@@ -4,6 +4,7 @@
 ### 2.3.0
 - Sync version with other packages.
 - `@payload()` can automatically infer model class from param type.
+- `MediateRpcCaller` and `MediateRpcHandler` no longer share same connector.
 
 ## 0.3.1
 - Added parameters decorators for action methods.

@@ -4,7 +4,7 @@ import { CriticalException } from '@micro-fleet/common'
 import { decorators as d, RpcRequest } from '../../app'
 
 
-export const MODULE_NAME = 'direct-module'
+export const MODULE_NAME = 'mediate-module'
 
 export const ACT_DO_IT = 'doIt'
 export const ACT_GET_IT = 'getIt'

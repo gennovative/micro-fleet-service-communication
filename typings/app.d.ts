@@ -70,17 +70,17 @@ declare module '@micro-fleet/service-communication/dist/app/RpcCommon' {
         /**
          * A name used in "from" and "to" request property.
          */
-        name: string;
+        readonly name: string;
         /**
          * Number of milliseconds to wait for response before cancelling the request.
          * Must be between (inclusive) 1000 and 60000 (Min: 1s, Max: 60s).
          */
-        timeout: number;
+        readonly timeout: number;
         /**
          * Sets up this RPC caller with specified `param`. Each implementation class requires
          * different kinds of `param`.
          */
-        init(params?: any): any;
+        init(params?: any): Promise<void>;
         /**
          * Clear resources.
          */
@@ -148,7 +148,7 @@ declare module '@micro-fleet/service-communication/dist/app/RpcCommon' {
         /**
          * A name used in "from" and "to" request property.
          */
-        name: string;
+        readonly name: string;
         /**
          * Sets up this RPC handler with specified `param`. Each implementation class requires
          * different kinds of `param`.
@@ -184,41 +184,41 @@ declare module '@micro-fleet/service-communication/dist/app/RpcCommon' {
         onError(handler: (err: any) => void): void;
     }
     export abstract class RpcCallerBase {
+        protected $name: string;
+        protected $timeout: number;
+        protected $emitter: EventEmitter;
+        constructor();
         /**
          * @see IRpcCaller.name
          */
-        name: string;
-                protected _emitter: EventEmitter;
-        constructor();
+        readonly name: string;
         /**
          * @see IRpcCaller.timeout
          */
-        /**
-        * @see IRpcCaller.timeout
-        */
-        timeout: number;
+        readonly timeout: number;
         dispose(): Promise<void>;
         /**
          * @see IRpcCaller.onError
          */
         onError(handler: (err: any) => void): void;
-        protected _emitError(err: any): void;
-        protected _rebuildError(error: RpcError): any;
+        protected $emitError(err: any): void;
+        protected $rebuildError(error: RpcError): any;
     }
     export abstract class RpcHandlerBase {
+        protected $name: string;
+        protected $emitter: EventEmitter;
+                constructor();
         /**
          * @see IRpcHandler.name
          */
-        name: string;
-        protected _emitter: EventEmitter;
-                constructor();
+        readonly name: string;
         /**
          * @see IRpcHandler.onError
          */
         onError(handler: (err: any) => void): void;
-        protected _emitError(err: any): void;
-        protected _createResponse(isSuccess: boolean, payload: any, replyTo: string): RpcResponse;
-        protected _createError({ isIntended, reason }: HandlerRejection): RpcError;
+        protected $emitError(err: any): void;
+        protected $createResponse(isSuccess: boolean, payload: any, replyTo: string): RpcResponse;
+        protected $createError({ isIntended, reason }: HandlerRejection): RpcError;
     }
 
 }
@@ -344,6 +344,10 @@ declare module '@micro-fleet/service-communication/dist/app/MessageBrokerConnect
     };
     export type MessageBrokerConnectionOptions = {
         /**
+         * Connection name, for management purpose.
+         */
+        name: string;
+        /**
          * IP address or host name where message broker is located.
          */
         hostAddress: string;
@@ -367,13 +371,19 @@ declare module '@micro-fleet/service-communication/dist/app/MessageBrokerConnect
          * The queue name for RPC handler to bind.
          * If not specified or given falsey values (empty string, null,...), a queue with random name will be created.
          */
-        handlerQueue?: string;
+        queue?: string;
         /**
          * Milliseconds to expire messages arriving in the queue.
          */
         messageExpiredIn?: number;
     };
+    export const IDENTIFIER = "service-communication.IMessageBrokerConnector";
+    export type MessageBrokerConnectorFactory = (options: MessageBrokerConnectionOptions) => IMessageBrokerConnector;
     export interface IMessageBrokerConnector {
+        /**
+         * User-defined connector name.
+         */
+        readonly name: string;
         /**
          * Gets or sets queue name.
          * Queue can only be changed before it is bound.
@@ -393,10 +403,14 @@ declare module '@micro-fleet/service-communication/dist/app/MessageBrokerConnect
          */
         readonly subscribedPatterns: string[];
         /**
-         * Creates a connection to message broker engine.
-         * @param {MessageBrokerConnectionOptions} options
+         * Returns `true` if the connector is connecting or has connected.
+         * Otherwise, return `false`.
          */
-        connect(options: MessageBrokerConnectionOptions): Promise<void>;
+        readonly isActive: boolean;
+        /**
+         * Creates a connection to message broker engine.
+         */
+        connect(): Promise<void>;
         /**
          * Closes all channels and the connection.
          */
@@ -451,7 +465,11 @@ declare module '@micro-fleet/service-communication/dist/app/MessageBrokerConnect
         onError(handler: (err: any) => void): void;
     }
     export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
-                                                                                                                constructor();
+                                                                                                                        constructor(_options: MessageBrokerConnectionOptions);
+        /**
+         * @see IMessageBrokerConnector.name
+         */
+        readonly name: string;
         /**
          * @see IMessageBrokerConnector.queue
          */
@@ -470,10 +488,14 @@ declare module '@micro-fleet/service-communication/dist/app/MessageBrokerConnect
          * @see IMessageBrokerConnector.subscribedPatterns
          */
         readonly subscribedPatterns: string[];
+        /**
+         * @see IMessageBrokerConnector.isActive
+         */
+        readonly isActive: boolean;
                 /**
          * @see IMessageBrokerConnector.connect
          */
-        connect(options: MessageBrokerConnectionOptions): Promise<void>;
+        connect(): Promise<void>;
         /**
          * @see IMessageBrokerConnector.disconnect
          */
@@ -517,27 +539,39 @@ declare module '@micro-fleet/service-communication/dist/app/MessageBrokerConnect
                                                                                                             }
 
 }
-declare module '@micro-fleet/service-communication/dist/app/constants/Types' {
-    export enum Types {
-        BROKER_ADDON = "service-communication.MessageBrokerAddOn",
-        RPC_CALLER = "service-communication.IRpcCaller",
-        RPC_HANDLER = "service-communication.IRpcHandler",
-        DIRECT_RPC_HANDLER_ADDON = "service-communication.DirectRpcHandlerAddOn",
-        DIRECT_RPC_CALLER = "service-communication.IDirectRpcCaller",
-        DIRECT_RPC_HANDLER = "service-communication.IDirectRpcHandler",
-        MEDIATE_RPC_HANDLER_ADDON = "service-communication.MediateRpcHandlerAddOn",
-        MEDIATE_RPC_CALLER = "service-communication.IMediateRpcCaller",
-        MEDIATE_RPC_HANDLER = "service-communication.IMediateRpcHandler",
-        MSG_BROKER_CONNECTOR = "service-communication.IMessageBrokerConnector"
-    }
-
-}
-declare module '@micro-fleet/service-communication/dist/app/MessageBrokerAddOn' {
+declare module '@micro-fleet/service-communication/dist/app/MessageBrokerProviderAddOn' {
     import { IConfigurationProvider, IServiceAddOn } from '@micro-fleet/common';
-    import { IMessageBrokerConnector } from '@micro-fleet/service-communication/dist/app/MessageBrokerConnector';
-    export class MessageBrokerAddOn implements IServiceAddOn {
+    import { IMessageBrokerConnector, MessageBrokerConnectorFactory } from '@micro-fleet/service-communication/dist/app/MessageBrokerConnector';
+    export interface IMessageBrokerConnectorProvider {
+        /**
+         * Establishes new connection to message broker and returns an instance of the connector.
+         * @param name The connector name for later reference.
+         */
+        create(name: string): IMessageBrokerConnector;
+        /**
+         * Gets all created and managed connectors.
+         */
+        getAll(): IMessageBrokerConnector[];
+        /**
+         * Gets a connector by its name.
+         */
+        get(name: string): IMessageBrokerConnector;
+    }
+    export class MessageBrokerProviderAddOn implements IServiceAddOn, IMessageBrokerConnectorProvider {
                         readonly name: string;
-        constructor(_configProvider: IConfigurationProvider, _msgBrokerCnn: IMessageBrokerConnector);
+                        constructor(_createConnector: MessageBrokerConnectorFactory, _configProvider: IConfigurationProvider);
+        /**
+         * @see IMessageBrokerConnectorProvider.create
+         */
+        create(name: string): IMessageBrokerConnector;
+        /**
+         * @see IMessageBrokerConnectorProvider.getAll
+         */
+        getAll(): IMessageBrokerConnector[];
+        /**
+         * @see IMessageBrokerConnectorProvider.get
+         */
+        get(name: string): IMessageBrokerConnector;
         /**
          * @see IServiceAddOn.init
          */
@@ -746,21 +780,47 @@ declare module '@micro-fleet/service-communication/dist/app/decorators/index' {
     export const decorators: Decorators;
 
 }
+declare module '@micro-fleet/service-communication/dist/app/constants/Types' {
+    export enum Types {
+        BROKER_ADDON = "service-communication.MessageBrokerAddOn",
+        RPC_CALLER = "service-communication.IRpcCaller",
+        RPC_HANDLER = "service-communication.IRpcHandler",
+        DIRECT_RPC_HANDLER_ADDON = "service-communication.DirectRpcHandlerAddOn",
+        DIRECT_RPC_CALLER = "service-communication.IDirectRpcCaller",
+        DIRECT_RPC_HANDLER = "service-communication.IDirectRpcHandler",
+        MEDIATE_RPC_HANDLER_ADDON = "service-communication.MediateRpcHandlerAddOn",
+        MEDIATE_RPC_CALLER = "service-communication.IMediateRpcCaller",
+        MEDIATE_RPC_HANDLER = "service-communication.IMediateRpcHandler",
+        MSG_BROKER_CONNECTOR_PROVIDER = "service-communication.IMessageBrokerConnectionProvider"
+    }
+
+}
 declare module '@micro-fleet/service-communication/dist/app/direct/DirectRpcHandler' {
     import * as rpc from '@micro-fleet/service-communication/dist/app/RpcCommon';
-    export interface IDirectRpcHandler extends rpc.IRpcHandler {
+    export type DirectRpcHandlerOptions = {
+        /**
+         * The name used in "from" property of sent messages.
+         */
+        handlerName: string;
         /**
          * Http ports to listen
          */
         port: number;
+    };
+    export interface IDirectRpcHandler extends rpc.IRpcHandler {
+        /**
+         * Http ports to listen. Default as 30000
+         */
+        readonly port: number;
+        init(options: DirectRpcHandlerOptions): Promise<void>;
     }
     export class ExpressRpcHandler extends rpc.RpcHandlerBase implements IDirectRpcHandler {
                                                         constructor();
-        port: number;
+        readonly port: number;
         /**
          * @see IDirectRpcHandler.init
          */
-        init(params?: any): Promise<void>;
+        init(options: DirectRpcHandlerOptions): Promise<void>;
         /**
          * @see IRpcHandler.start
          */
@@ -845,15 +905,45 @@ declare module '@micro-fleet/service-communication/dist/app/direct/DefaultDirect
 }
 declare module '@micro-fleet/service-communication/dist/app/mediate/MediateRpcHandler' {
     import { IMessageBrokerConnector } from '@micro-fleet/service-communication/dist/app/MessageBrokerConnector';
+    import { IMessageBrokerConnectorProvider } from '@micro-fleet/service-communication/dist/app/MessageBrokerProviderAddOn';
     import * as rpc from '@micro-fleet/service-communication/dist/app/RpcCommon';
+    export type MediateRpcHandlerOptions = {
+        /**
+         * The name used in "from" property of sent messages.
+         */
+        handlerName: string;
+        /**
+         * Message broker connector instance to reuse.
+         */
+        connector?: IMessageBrokerConnector;
+        /**
+         * Message broker connector name to create new,
+         * if not reusing any existing connector.
+         *
+         * If neither `connector` nor `connectorName` is specified, a default name is used
+         */
+        connectorName?: string;
+    };
     export interface IMediateRpcHandler extends rpc.IRpcHandler {
+        /**
+         * Gets the message broker connector instance used for handling mediate RPC request.
+         */
+        readonly msgBrokerConnector: IMessageBrokerConnector;
+        /**
+         * Initializes this handler before use.
+         */
+        init(options: MediateRpcHandlerOptions): Promise<void>;
     }
     export class MessageBrokerRpcHandler extends rpc.RpcHandlerBase implements IMediateRpcHandler {
-                        constructor(_msgBrokerConn: IMessageBrokerConnector);
-        /**
-         * @see IRpcHandler.init
+                                /**
+         * @see IMediateRpcHandler.msgBrokerConnector
          */
-        init(): Promise<void>;
+        readonly msgBrokerConnector: IMessageBrokerConnector;
+                constructor(_msgBrokerConnProvider: IMessageBrokerConnectorProvider);
+        /**
+         * @see IMediateRpcHandler.init
+         */
+        init(options: MediateRpcHandlerOptions): Promise<void>;
         /**
          * @see IRpcHandler.start
          */
@@ -938,21 +1028,34 @@ declare module '@micro-fleet/service-communication/dist/app/mediate/DefaultMedia
 }
 declare module '@micro-fleet/service-communication/dist/app/direct/DirectRpcCaller' {
     import * as rpc from '@micro-fleet/service-communication/dist/app/RpcCommon';
-    export interface IDirectRpcCaller extends rpc.IRpcCaller {
+    export type DirectRpcCallerOptions = {
+        /**
+         * The name used in "from" property of sent messages.
+         */
+        callerName: string;
         /**
          * IP address or host name including port number.
          * Do not include protocol (http, ftp...) because different class implementations
          * will prepend different protocols.
          */
         baseAddress: string;
+    };
+    export interface IDirectRpcCaller extends rpc.IRpcCaller {
+        /**
+         * IP address or host name including port number.
+         * Do not include protocol (http, ftp...) because different class implementations
+         * will prepend different protocols.
+         */
+        readonly baseAddress: string;
+        init(options: DirectRpcCallerOptions): Promise<void>;
     }
     export class HttpRpcCaller extends rpc.RpcCallerBase implements IDirectRpcCaller {
                         constructor();
-        baseAddress: string;
+        readonly baseAddress: string;
         /**
          * @see IRpcCaller.init
          */
-        init(param?: any): void;
+        init(options: DirectRpcCallerOptions): Promise<void>;
         /**
          * @see IRpcCaller.dispose
          */
@@ -970,15 +1073,54 @@ declare module '@micro-fleet/service-communication/dist/app/direct/DirectRpcCall
 }
 declare module '@micro-fleet/service-communication/dist/app/mediate/MediateRpcCaller' {
     import { IMessageBrokerConnector } from '@micro-fleet/service-communication/dist/app/MessageBrokerConnector';
+    import { IMessageBrokerConnectorProvider } from '@micro-fleet/service-communication/dist/app/MessageBrokerProviderAddOn';
     import * as rpc from '@micro-fleet/service-communication/dist/app/RpcCommon';
+    export type MediateRpcCallerOptions = {
+        /**
+         * The name used in "from" property of sent messages.
+         */
+        callerName: string;
+        /**
+         * Message broker connector instance to reuse.
+         */
+        connector?: IMessageBrokerConnector;
+        /**
+         * Message broker connector name to create new,
+         * if not reusing any existing connector.
+         *
+         * If neither `connector` nor `connectorName` is specified, a default name is used
+         */
+        connectorName?: string;
+        /**
+         * Time to live (in milliseconds) of the sent messages.
+         */
+        messageExpiredIn?: number;
+        /**
+         * Number of milliseconds to wait for response before cancelling the request.
+         * Must be between (inclusive) 1000 and 60000 (Min: 1s, Max: 60s).
+         */
+        timeout?: number;
+    };
     export interface IMediateRpcCaller extends rpc.IRpcCaller {
+        /**
+         * Gets the message broker connector instance used for making mediate RPC calls.
+         */
+        readonly msgBrokerConnector: IMessageBrokerConnector;
+        /**
+         * Initializes this caller before use.
+         */
+        init(options: MediateRpcCallerOptions): Promise<void>;
     }
     export class MessageBrokerRpcCaller extends rpc.RpcCallerBase implements IMediateRpcCaller {
-                constructor(_msgBrokerConn: IMessageBrokerConnector);
-        /**
-         * @see IRpcCaller.init
+                        /**
+         * @see IMediateRpcCaller.msgBrokerConnector
          */
-        init(params?: any): void;
+        readonly msgBrokerConnector: IMessageBrokerConnector;
+                constructor(_msgBrokerConnProvider: IMessageBrokerConnectorProvider);
+        /**
+         * @see IMediateRpcCaller.init
+         */
+        init(options: MediateRpcCallerOptions): Promise<void>;
         /**
          * @see IRpcCaller.dispose
          */
@@ -1017,7 +1159,7 @@ declare module '@micro-fleet/service-communication' {
     export * from '@micro-fleet/service-communication/dist/app/mediate/MediateRpcCaller';
     export * from '@micro-fleet/service-communication/dist/app/mediate/MediateRpcHandler';
     export * from '@micro-fleet/service-communication/dist/app/mediate/MediateRpcHandlerAddOnBase';
-    export * from '@micro-fleet/service-communication/dist/app/MessageBrokerAddOn';
+    export * from '@micro-fleet/service-communication/dist/app/MessageBrokerProviderAddOn';
     export * from '@micro-fleet/service-communication/dist/app/MessageBrokerConnector';
     export * from '@micro-fleet/service-communication/dist/app/constants/Types';
 

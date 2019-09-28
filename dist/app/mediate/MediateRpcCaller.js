@@ -38,19 +38,26 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
      */
     async init(options) {
         this.$name = options.callerName;
+        let conn;
         if (options.connector) {
-            this._msgBrokerConn = options.connector;
+            conn = this._msgBrokerConn = options.connector;
+            isTempQueue(conn.queue) || console.warn('Mediate RPC Caller expects an auto-generated and temporary queue, '
+                + `but gets queue name: "${conn.queue}"`);
         }
         else {
             const name = options.connectorName || `Connector for RPC caller "${this.name}"`;
-            this._msgBrokerConn = await this._msgBrokerConnProvider.create(name);
+            conn = this._msgBrokerConn = await this._msgBrokerConnProvider.create(name);
             if (options.messageExpiredIn != null) {
-                this._msgBrokerConn.messageExpiredIn = options.messageExpiredIn;
+                conn.messageExpiredIn = options.messageExpiredIn;
             }
-            this._msgBrokerConn.onError(err => this.$emitError(err));
+            conn.onError(err => this.$emitError(err));
+            conn.queue = null;
         }
         if (options.timeout != null) {
             this.$timeout = options.timeout;
+        }
+        if (!conn.isActive) {
+            await conn.connect();
         }
     }
     /**
@@ -77,16 +84,19 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
             const correlationId = shortid.generate(), replyTo = Boolean(rawDest)
                 ? `response.${rawDest}@${correlationId}`
                 : `response.${moduleName}.${actionName}@${correlationId}`, conn = this._msgBrokerConn;
+            const stopWaiting = async () => {
+                await conn.unsubscribe(replyTo);
+                await conn.stopListen();
+            };
             conn.subscribe(replyTo)
                 .then(() => {
                 let token;
                 const onMessage = async (msg) => {
                     clearTimeout(token);
                     // We got what we want, stop consuming.
-                    await conn.unsubscribe(replyTo);
-                    await conn.stopListen();
+                    await stopWaiting();
                     const response = msg.data;
-                    if (!response.isSuccess) {
+                    if (response.hasOwnProperty('isSuccess') && !response.isSuccess) {
                         response.payload = this.$rebuildError(response.payload);
                         if (response.payload instanceof common_1.InternalErrorException) {
                             return reject(response.payload);
@@ -97,7 +107,7 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
                 // In case this request never has response.
                 token = setTimeout(() => {
                     this.$emitter && this.$emitter.removeListener(correlationId, onMessage);
-                    conn && conn.unsubscribe(replyTo).catch(() => { });
+                    stopWaiting().catch(() => { });
                     reject(new common_1.MinorException('Response waiting timeout'));
                 }, this.timeout);
                 this.$emitter.once(correlationId, onMessage);
@@ -117,6 +127,7 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
             })
                 .catch(err => {
                 reject(new common_1.MinorException(`RPC error: ${err}`));
+                return stopWaiting().catch(() => { });
             });
         });
     }
@@ -145,4 +156,7 @@ MessageBrokerRpcCaller = __decorate([
     __metadata("design:paramtypes", [Object])
 ], MessageBrokerRpcCaller);
 exports.MessageBrokerRpcCaller = MessageBrokerRpcCaller;
+function isTempQueue(queue) {
+    return (queue === '') || (typeof queue === 'string' && queue.startsWith('auto-gen'));
+}
 //# sourceMappingURL=MediateRpcCaller.js.map

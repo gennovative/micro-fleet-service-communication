@@ -6,10 +6,13 @@ import { MinorException } from '@micro-fleet/common'
 
 import { ExpressRpcHandler, RpcRequest, RpcResponse,
     RpcHandlerFunction, RpcError} from '../app'
+import { constants } from './shared/helper'
 
 chai.use(spies)
 const expect = chai.expect
-
+const {
+    HANDLER_PORT,
+} = constants
 
 const NAME = 'TestHandler'
 
@@ -152,7 +155,6 @@ describe('ExpressDirectRpcHandler', function () {
             // Arrange
             const moduleName = 'accounts'
             const createAction = 'create'
-            const port = 10000
             const result: any = {
                 text: 'successsss',
             }
@@ -170,7 +172,7 @@ describe('ExpressDirectRpcHandler', function () {
             return handler.start()
                 .then(() => requestMaker({
                     method: 'POST',
-                    uri: `http://localhost:${port}/${moduleName}/${createAction}`,
+                    uri: `http://localhost:${HANDLER_PORT}/${moduleName}/${createAction}`,
                     body: {},
                     json: true,
                 }))

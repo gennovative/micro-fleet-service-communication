@@ -9,7 +9,8 @@ import { MessageBrokerProviderAddOn } from './MessageBrokerProviderAddOn'
 import { IDirectRpcCaller, HttpRpcCaller } from './direct/DirectRpcCaller'
 import { IMediateRpcCaller, MessageBrokerRpcCaller } from './mediate/MediateRpcCaller'
 import { MediateRpcHandlerAddOnBase } from './mediate/MediateRpcHandlerAddOnBase'
-import { IDENTIFIER as MSG_BROKER_CONNECTOR, TopicMessageBrokerConnector } from './MessageBrokerConnector'
+import { IDENTIFIER as MSG_BROKER_CONNECTOR, TopicMessageBrokerConnector,
+    MessageBrokerConnectionOptions } from './MessageBrokerConnector'
 import { IRpcCaller } from './RpcCommon'
 
 
@@ -18,7 +19,7 @@ export function registerMessageBrokerAddOn(): IServiceAddOn {
 
     if (!depCon.isBound(MSG_BROKER_CONNECTOR)) {
         depCon.bindFactory(MSG_BROKER_CONNECTOR, () => {
-            return (connectorName: string) => new TopicMessageBrokerConnector(connectorName)
+            return (options: MessageBrokerConnectionOptions) => new TopicMessageBrokerConnector(options)
         })
     }
 

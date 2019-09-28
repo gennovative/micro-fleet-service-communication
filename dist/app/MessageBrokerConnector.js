@@ -17,19 +17,23 @@ const amqp = require("amqplib");
 const common_1 = require("@micro-fleet/common");
 exports.IDENTIFIER = 'service-communication.IMessageBrokerConnector';
 let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMessageBrokerConnector {
-    constructor(_name) {
-        this._name = _name;
+    constructor(_options) {
+        this._options = _options;
         this._subscribedPatterns = [];
         this._emitter = new events_1.EventEmitter();
         this._queueBound = false;
         this._isConnected = false;
         this._isConnecting = false;
+        this._exchange = _options.exchange;
+        this.queue = _options.queue;
+        this.messageExpiredIn = _options.messageExpiredIn;
     }
+    //#region Accessors
     /**
      * @see IMessageBrokerConnector.name
      */
     get name() {
-        return this._name;
+        return this._options.name;
     }
     /**
      * @see IMessageBrokerConnector.queue
@@ -67,31 +71,36 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
     get subscribedPatterns() {
         return this._subscribedPatterns;
     }
+    /**
+     * @see IMessageBrokerConnector.isActive
+     */
+    get isActive() {
+        return this._isConnecting || this._isConnected;
+    }
     get isListening() {
         return this._consumerTag != null;
     }
+    //#endregion Accessors
     /**
      * @see IMessageBrokerConnector.connect
      */
-    connect(options) {
+    connect() {
+        const opts = this._options;
         let credentials = '';
-        this._exchange = options.exchange;
-        this.queue = options.handlerQueue;
-        this.messageExpiredIn = options.messageExpiredIn;
         this._isConnecting = true;
-        options.reconnectDelay = (options.reconnectDelay >= 0)
-            ? options.reconnectDelay
+        opts.reconnectDelay = (opts.reconnectDelay >= 0)
+            ? opts.reconnectDelay
             : 3000; // 3s
         // Output:
         // - "usr@pass"
         // - "@pass"
         // - "usr@"
         // - ""
-        if (!common_1.isEmpty(options.username) || !common_1.isEmpty(options.password)) {
-            credentials = `${options.username || ''}:${options.password || ''}@`;
+        if (!common_1.isEmpty(opts.username) || !common_1.isEmpty(opts.password)) {
+            credentials = `${opts.username || ''}:${opts.password || ''}@`;
         }
         // URI format: amqp://usr:pass@10.1.2.3/vhost
-        return this.createConnection(credentials, options);
+        return this.createConnection(credentials, opts);
     }
     /**
      * @see IMessageBrokerConnector.disconnect
@@ -378,7 +387,7 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
     }
     async bindQueue(channel, matchingPattern) {
         try {
-            const queue = this.queue, isTempQueue = (queue.indexOf('auto-gen') == 0);
+            const queue = this.queue, isTempQueue = queue.startsWith('auto-gen');
             // Setting queue as "exclusive" to delete the temp queue when connection closes.
             await channel.assertQueue(queue, {
                 exclusive: isTempQueue,
@@ -452,7 +461,7 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
 TopicMessageBrokerConnector.CHANNEL_RECREATE_DELAY = 100; // Millisecs
 TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = __decorate([
     common_1.decorators.injectable(),
-    __metadata("design:paramtypes", [String])
+    __metadata("design:paramtypes", [Object])
 ], TopicMessageBrokerConnector);
 exports.TopicMessageBrokerConnector = TopicMessageBrokerConnector;
 //# sourceMappingURL=MessageBrokerConnector.js.map

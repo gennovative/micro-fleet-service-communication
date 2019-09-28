@@ -75,13 +75,19 @@ export class MessageBrokerRpcHandler
      */
     public async init(options: MediateRpcHandlerOptions): Promise<void> {
         this.$name = options.handlerName
+
+        let conn
         if (options.connector) {
-            this._msgBrokerConn = options.connector
+            conn = this._msgBrokerConn = options.connector
         }
         else {
             const name = options.connectorName || `Connector for RPC handler "${this.name}"`
-            this._msgBrokerConn = await this._msgBrokerConnProvider.create(name)
-            this._msgBrokerConn.onError(err => this.$emitError(err))
+            conn = this._msgBrokerConn = await this._msgBrokerConnProvider.create(name)
+            conn.onError(err => this.$emitError(err))
+        }
+
+        if (!conn.isActive) {
+            await conn.connect()
         }
         this._handlers = new Map<string, rpc.RpcHandlerFunction>()
     }

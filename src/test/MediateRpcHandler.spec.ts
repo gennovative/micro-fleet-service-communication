@@ -4,12 +4,12 @@ import * as amqp from 'amqplib'
 import * as chai from 'chai'
 import * as spies from 'chai-spies'
 import * as shortid from 'shortid'
-import { mock, instance, when, anyFunction, anything, reset } from 'ts-mockito'
-import { constants, MinorException, IConfigurationProvider } from '@micro-fleet/common'
+import { instance, when, anyFunction, anything, reset } from 'ts-mockito'
+import { constants, MinorException } from '@micro-fleet/common'
 
-import { MessageBrokerRpcHandler, BrokerMessage, IMessageBrokerConnector, IMediateRpcHandler,
+import { BrokerMessage, IMessageBrokerConnector, IMediateRpcHandler,
     TopicMessageBrokerConnector, RpcRequest, RpcResponse, RpcHandlerFunction,
-    RpcError, IMessageBrokerConnectorProvider
+    RpcError
 } from '../app'
 
 import rabbitOpts from './rabbit-options'
@@ -18,38 +18,30 @@ import * as h from './shared/helper'
 chai.use(spies)
 const expect = chai.expect
 const {
-    Service: S,
 } = constants
 
 const {
-    SERVICE_SLUG,
+    CALLER_NAME,
     HANDLER_NAME,
 } = h.constants
 
 
 let handlerMbConn: IMessageBrokerConnector,
     callerMbConn: IMessageBrokerConnector,
-    rpcHandler: IMediateRpcHandler,
-    config: IConfigurationProvider
+    rpcHandler: IMediateRpcHandler
 
 // tslint:disable: no-floating-promises
 
 describe('MediateRpcHandler', function () {
-    this.timeout(5000)
-    // this.timeout(60e3) // For debugging
-
-    beforeEach(() => {
-        config = h.mockConfigProvider({
-            [S.SERVICE_SLUG]: SERVICE_SLUG,
-        })
-    })
+    // this.timeout(5000)
+    this.timeout(60e3) // For debugging
 
     describe('init', () => {
-        it('Should use existing message broker connector', () => {
+        it('Should use existing message broker connector', async () => {
             // Arrange
-            const ConnProviderClass = mock<IMessageBrokerConnectorProvider>()
-            const connector = new TopicMessageBrokerConnector(SERVICE_SLUG)
-            rpcHandler = new MessageBrokerRpcHandler(instance(ConnProviderClass))
+            const ConnectorClass = h.betterMock<IMessageBrokerConnector>()
+            const connector = instance(ConnectorClass);
+            [rpcHandler] = await h.mockMediateRpcHandler(false)
 
             // Act
             rpcHandler.init({
@@ -66,29 +58,23 @@ describe('MediateRpcHandler', function () {
             const ERROR = 'Test error'
 
             const emitter = new EventEmitter()
-            const ConnectorClass = mock<IMessageBrokerConnector>()
+            const ConnectorClass = h.betterMock<IMessageBrokerConnector>()
             when(ConnectorClass.onError(anyFunction())).thenCall((errorHandler: Function) => {
                 emitter.on('error', errorHandler as any)
             })
-            when(ConnectorClass.connect(anything())).thenResolve()
+            when(ConnectorClass.connect()).thenResolve()
             when(ConnectorClass.disconnect()).thenResolve()
             const connector = instance(ConnectorClass)
 
-            const stubConnector = {
-                onError(errorHandler: Function) {
-                    emitter.on('error', errorHandler as any)
-                },
-            }
-
             let MockConnProviderHandler
             let handler: IMediateRpcHandler
-            h.mockMediateRpcHandler(config, false)
+            h.mockMediateRpcHandler(false)
                 .then(result => {
                     handler = result[0]
                     MockConnProviderHandler = result[2]
                     reset(MockConnProviderHandler)
                     when(MockConnProviderHandler.create(anything()))
-                        .thenResolve(stubConnector as any) // Cannot thenResolve(connector) because of ts-mockito's bug
+                        .thenReturn(connector)
                     return handler.init({ handlerName: HANDLER_NAME })
                 })
                 .then(() => {
@@ -99,7 +85,7 @@ describe('MediateRpcHandler', function () {
                         connector.disconnect().then(() => done())
                     })
 
-                    connector.connect(rabbitOpts.handler)
+                    connector.connect()
                         .then(() => {
                             emitter.emit('error', ERROR)
                         })
@@ -111,8 +97,12 @@ describe('MediateRpcHandler', function () {
     describe('handle', () => {
 
         beforeEach(async () => {
-            callerMbConn = new TopicMessageBrokerConnector(SERVICE_SLUG);
-            [rpcHandler, handlerMbConn] = await h.mockMediateRpcHandler(config, false)
+            callerMbConn = new TopicMessageBrokerConnector({
+                ...rabbitOpts,
+                queue: '', // Caller queue must be auto-gen and temporary.
+                name: CALLER_NAME,
+            });
+            [rpcHandler, handlerMbConn] = await h.mockMediateRpcHandler(true)
 
             handlerMbConn.onError((err) => {
                 console.error('Handler error:\n', err)
@@ -122,14 +112,7 @@ describe('MediateRpcHandler', function () {
                 console.error('Caller error:\n', err)
             })
 
-            await Promise.all([
-                handlerMbConn.connect(rabbitOpts.handler),
-                callerMbConn.connect(rabbitOpts.caller),
-            ])
-            await rpcHandler.init({
-                connector: handlerMbConn,
-                handlerName: HANDLER_NAME,
-            })
+            await callerMbConn.connect()
         })
 
         afterEach(async () => {

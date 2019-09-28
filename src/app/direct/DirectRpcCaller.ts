@@ -12,14 +12,14 @@ export type DirectRpcCallerOptions = {
     /**
      * The name used in "from" property of sent messages.
      */
-    callerName?: string,
+    callerName: string,
 
     /**
      * IP address or host name including port number.
      * Do not include protocol (http, ftp...) because different class implementations
      * will prepend different protocols.
      */
-    baseAddress?: string
+    baseAddress: string,
 }
 
 export interface IDirectRpcCaller extends rpc.IRpcCaller {
