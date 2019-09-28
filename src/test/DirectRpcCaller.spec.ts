@@ -6,6 +6,7 @@ import * as bodyParser from 'body-parser'
 import { MinorException } from '@micro-fleet/common'
 
 import { HttpRpcCaller, IDirectRpcCaller, RpcRequest, RpcResponse } from '../app'
+import { mockConfigProvider } from './shared/helper'
 
 
 const HANDLER_ADDR = 'localhost:3000',
@@ -16,21 +17,23 @@ const HANDLER_ADDR = 'localhost:3000',
     ACTION = 'getMessage'
 
 describe('HttpRpcCaller', function() {
-    this.timeout(5000)
+    this.timeout(5e3)
 
     let caller: IDirectRpcCaller
 
     beforeEach(() => {
-        caller = new HttpRpcCaller()
+        const config = mockConfigProvider()
+        caller = new HttpRpcCaller(config)
     })
 
     describe('init', () => {
         it('Should do nothing', async () => {
             // Arrange
-            caller.baseAddress = HANDLER_ADDR
 
             // Act
-            await caller.init()
+            await caller.init({
+                baseAddress: HANDLER_ADDR,
+            })
 
             // Assert
             expect(caller.baseAddress).to.equal(HANDLER_ADDR)
@@ -55,9 +58,6 @@ describe('HttpRpcCaller', function() {
             const app = express(),
                 router = express.Router()
 
-            caller.name = CALLER_NAME
-            caller.baseAddress = HANDLER_ADDR
-
             // Prepare mock handler
             app.use(bodyParser.json()) // Parse JSON in POST request
             app.use(`/${HANDLER_NAME}`, router)
@@ -81,13 +81,16 @@ describe('HttpRpcCaller', function() {
             })
 
             server = app.listen(3000, () => {
-                caller.call({
+                caller.init({
+                    baseAddress: HANDLER_ADDR,
+                })
+                .then(() => caller.call({
                     moduleName: HANDLER_NAME,
                     actionName: ACTION,
                     params: {
                         msg: TEXT_REQUEST,
                     },
-                })
+                }))
                 .then((res: RpcResponse) => {
                     // Assert
                     expect(res).to.exist
@@ -102,8 +105,10 @@ describe('HttpRpcCaller', function() {
 
         it('Should reject if problem occur', done => {
             // Arrange
-            caller.name = CALLER_NAME
-            caller.baseAddress = HANDLER_ADDR
+            // tslint:disable-next-line: no-floating-promises
+            caller.init({
+                baseAddress: HANDLER_ADDR,
+            })
 
             caller.call({
                 moduleName: HANDLER_NAME,

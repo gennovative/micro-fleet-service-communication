@@ -1,55 +1,18 @@
 import * as chai from 'chai'
 import * as spies from 'chai-spies'
 
-import { IConfigurationProvider, Types as ConT, constants, Maybe,
-     decorators as d } from '@micro-fleet/common'
+import { decorators as d, Types as ConT, constants, IConfigurationProvider } from '@micro-fleet/common'
 import { IDirectRpcHandler, ExpressRpcHandler,
     DirectRpcHandlerAddOnBase, Types as ComT } from '../app'
+import { mockConfigProvider } from './shared/helper'
+
 
 chai.use(spies)
 const expect = chai.expect
-const { RPC: RpcS, Service: SvcS } = constants
+const { RPC, Service: S } = constants
 
 const SERVICE_SLUG = 'test-service',
-    HANDLER_PORT = 30000
-
-class MockConfigProvider implements IConfigurationProvider {
-
-    public readonly name: string = 'MockConfigProvider'
-    public configFilePath: string
-
-    get enableRemote(): boolean {
-        return true
-    }
-
-    public init(): Promise<void> {
-        return Promise.resolve()
-    }
-
-    public deadLetter(): Promise<void> {
-        return Promise.resolve()
-    }
-
-    public dispose(): Promise<void> {
-        return Promise.resolve()
-    }
-
-    public onUpdate(listener: (changedKeys: string[]) => void) {
-        // Empty
-    }
-
-    public get(key: string): Maybe<number | boolean | string> {
-        switch (key) {
-            case RpcS.RPC_HANDLER_PORT: return Maybe.Just(HANDLER_PORT)
-            case SvcS.SERVICE_SLUG: return Maybe.Just(SERVICE_SLUG)
-            default: return Maybe.Nothing()
-        }
-    }
-
-    public async fetch(): Promise<boolean> {
-        return Promise.resolve(true)
-    }
-}
+    HANDLER_PORT = 30e3
 
 
 @d.injectable()
@@ -102,9 +65,12 @@ let handler: IDirectRpcHandler,
 describe('DirectRpcHandlerAddOnBase', () => {
 
     beforeEach(() => {
-        // depContainer = new DependencyContainer();
-        handler = new ExpressRpcHandler()
-        addon = new CustomAddOn(new MockConfigProvider(), handler)
+        const config = mockConfigProvider({
+            [S.SERVICE_SLUG]: SERVICE_SLUG,
+            [RPC.RPC_HANDLER_PORT]: HANDLER_PORT,
+        })
+        handler = new ExpressRpcHandler(config)
+        addon = new CustomAddOn(config, handler)
     })
 
     describe('init', () => {

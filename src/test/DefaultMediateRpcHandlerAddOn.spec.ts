@@ -1,116 +1,81 @@
-import * as chai from 'chai'
-import * as spies from 'chai-spies'
 import * as path from 'path'
 
-import { IConfigurationProvider, constants, Maybe,
-    DependencyContainer, serviceContext, Types as CmT, MinorException, CriticalException,
+import * as chai from 'chai'
+import * as spies from 'chai-spies'
+
+import { Types as CmT, IConfigurationProvider, constants,
+    DependencyContainer, serviceContext, MinorException, CriticalException,
     } from '@micro-fleet/common'
 
 import { RpcResponse, IMediateRpcHandler, IMediateRpcCaller,
     IMessageBrokerConnector, TopicMessageBrokerConnector,
-    MessageBrokerRpcHandler, MessageBrokerRpcCaller,
-    DefaultMediateRpcHandlerAddOn,
-    RpcError,
-    } from '../app'
+    DefaultMediateRpcHandlerAddOn, RpcError,
+} from '../app'
 
 import rabbitOpts from './rabbit-options'
 import * as mc from './shared/mediate-controllers'
-import { sleep } from './shared/helper'
+import { sleep, mockConfigProvider, mockMediateRpcCaller, mockMediateRpcHandler } from './shared/helper'
 
 
 chai.use(spies)
 const expect = chai.expect
-const { Service: S } = constants
+const {
+    Service: S,
+    RPC,
+} = constants
 
 const SERVICE_SLUG = 'test-service',
     CALLER_NAME = 'caller',
     HANDLER_NAME = 'handler',
     TEXT_REQUEST = '1346468764131687'
 
-class MockConfigProvider implements IConfigurationProvider {
-
-    public readonly name: string = 'MockConfigProvider'
-    public configFilePath: string
-
-    get enableRemote(): boolean {
-        return true
-    }
-
-    public init(): Promise<void> {
-        return Promise.resolve()
-    }
-
-    public deadLetter(): Promise<void> {
-        return Promise.resolve()
-    }
-
-    public dispose(): Promise<void> {
-        return Promise.resolve()
-    }
-
-    public onUpdate(listener: (changedKeys: string[]) => void) {
-        // Empty
-    }
-
-    public get(key: string): Maybe<number | boolean | string> {
-        switch (key) {
-            case S.SERVICE_SLUG: return Maybe.Just(SERVICE_SLUG)
-            default: return Maybe.Nothing()
-        }
-    }
-
-    public async fetch(): Promise<boolean> {
-        return Promise.resolve(true)
-    }
-}
-
-
 
 let depContainer: DependencyContainer,
-    connectorCall: IMessageBrokerConnector,
-    connectorHandle: IMessageBrokerConnector,
+    callerMbConn: IMessageBrokerConnector,
+    handlerMbConn: IMessageBrokerConnector,
     handler: IMediateRpcHandler,
     caller: IMediateRpcCaller,
-    addon: DefaultMediateRpcHandlerAddOn
+    addon: DefaultMediateRpcHandlerAddOn,
+    config: IConfigurationProvider
 
 // tslint:disable: no-floating-promises
 
 describe('DefaultMediateRpcHandlerAddOn', function() {
     this.timeout(20000)
     // For debugging
-    // this.timeout(60000)
+    // this.timeout(60e3)
 
-    beforeEach(() => {
+    beforeEach(async () => {
         depContainer = new DependencyContainer()
         serviceContext.setDependencyContainer(depContainer)
         depContainer.bindConstant(CmT.DEPENDENCY_CONTAINER, depContainer)
 
-        connectorCall = new TopicMessageBrokerConnector()
-        connectorHandle = new TopicMessageBrokerConnector()
+        config = mockConfigProvider({
+            [S.SERVICE_SLUG]: SERVICE_SLUG,
+            [RPC.RPC_CALLER_TIMEOUT]: 3000,
+        });
+        [caller, callerMbConn] = await mockMediateRpcCaller(config);
+        [handler, handlerMbConn] = await mockMediateRpcHandler(config, false)
+        handlerMbConn = new TopicMessageBrokerConnector(HANDLER_NAME)
 
-        connectorCall.onError((err) => {
+        callerMbConn.onError((err) => {
             console.error('Caller error:\n', err)
         })
 
-        connectorHandle.onError((err) => {
+        handlerMbConn.onError((err) => {
             console.error('Handler error:\n', err)
         })
 
-        caller = new MessageBrokerRpcCaller(connectorCall)
-        caller.name = CALLER_NAME
-
-        handler = new MessageBrokerRpcHandler(connectorHandle)
-        handler.name = HANDLER_NAME
         addon = new DefaultMediateRpcHandlerAddOn(
-            new MockConfigProvider(),
+            config,
             depContainer,
             handler,
         )
         addon.controllerPath = path.join(process.cwd(), 'dist', 'test', 'shared', 'mediate-controllers')
 
         return Promise.all([
-            connectorCall.connect(rabbitOpts.caller),
-            connectorHandle.connect(rabbitOpts.handler),
+            callerMbConn.connect(rabbitOpts.caller),
+            handlerMbConn.connect(rabbitOpts.handler),
         ])
     })
 
@@ -120,8 +85,8 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
             caller.dispose(),
         ])
         await Promise.all([
-            connectorCall.disconnect(),
-            connectorHandle.disconnect(),
+            callerMbConn.disconnect(),
+            handlerMbConn.disconnect(),
         ])
         depContainer.dispose()
     })
@@ -304,7 +269,6 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
                         resolve(curCount)
                     }
 
-                    caller.timeout = 3000
                     // Act 1
                     for (i = 1; i <= INIT_CALL_NUM; ++i) {
                         caller.call({
@@ -324,7 +288,6 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
                     console.log(`All ${INIT_CALL_NUM} requests accepted`)
 
                     const tasks = []
-                    caller.timeout = 3000
                     for (; i <= INIT_CALL_NUM + MORE_CALL_NUM; ++i) {
                         const cur = i
                         tasks.push(
@@ -381,7 +344,7 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
                         })
                     }
 
-                    caller.timeout = 6000
+                    caller['_timeout'] = 6000
                     // Act 1
                     for (i = 1; i <= INIT_CALL_NUM; ++i) {
                         caller.call({
@@ -404,7 +367,6 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
 
                     // Act 2
                     const tasks = []
-                    caller.timeout = 3000
                     for (; i <= INIT_CALL_NUM + MORE_CALL_NUM; ++i) {
                         tasks.push(
                             caller.call({

@@ -4,17 +4,31 @@ const debug: debug.IDebugger = require('debug')('mcft:svccom:ExpressRpcHandler')
 import * as http from 'http'
 
 import * as express from 'express'
-import { Guard, CriticalException, ValidationError,
-    decorators as d } from '@micro-fleet/common'
+import { decorators as d, Types as cT, constants, Guard, CriticalException,
+    ValidationError, IConfigurationProvider} from '@micro-fleet/common'
 
 import * as rpc from '../RpcCommon'
 
+
+const {
+    Service: S,
+} = constants
+
+
+export type DirectRpcHandlerOptions = {
+    /**
+     * The name used in "from" property of sent messages.
+     */
+    handlerName?: string,
+}
 
 export interface IDirectRpcHandler extends rpc.IRpcHandler {
     /**
      * Http ports to listen
      */
     port: number
+
+    init(options?: DirectRpcHandlerOptions): Promise<void>
 
 }
 
@@ -37,7 +51,9 @@ export class ExpressRpcHandler
     private _isOpen: boolean
 
 
-    constructor() {
+    constructor(
+        @d.inject(cT.CONFIG_PROVIDER) private _config: IConfigurationProvider,
+    ) {
         super()
         this._port = 30000
         this._isOpen = false
@@ -59,7 +75,8 @@ export class ExpressRpcHandler
     /**
      * @see IDirectRpcHandler.init
      */
-    public init(params?: any): Promise<void> {
+    public init(options: DirectRpcHandlerOptions = {}): Promise<void> {
+        this.$name = options.handlerName || this._config.get(S.SERVICE_SLUG).value
         Guard.assertIsFalsey(this._routers, 'This RPC Handler is already initialized!')
         Guard.assertIsTruthy(this.name, '`name` property must be set!')
 
@@ -91,7 +108,7 @@ export class ExpressRpcHandler
                 this._isOpen = true
                 resolve()
             })
-            this._server.on('error', err => this._emitError(err))
+            this._server.on('error', err => this.$emitError(err))
         })
     }
 
@@ -191,20 +208,20 @@ export class ExpressRpcHandler
                 }
             }))
             .then(result => {
-                res.status(200).send(this._createResponse(true, result, request.from))
+                res.status(200).send(this.$createResponse(true, result, request.from))
             })
             .catch((error: rpc.HandlerRejection) => {
                 if (!error.isIntended) {
-                    this._emitError(error.reason)
+                    this.$emitError(error.reason)
                     res.sendStatus(500)
                     return
                 }
-                const errObj = this._createError(error)
-                res.status(200).send(this._createResponse(false, errObj, request.from))
+                const errObj = this.$createError(error)
+                res.status(200).send(this.$createResponse(false, errObj, request.from))
             })
             // Catch error thrown by `createError()` or `createResponse()`
             .catch((error: any) => {
-                this._emitError(error)
+                this.$emitError(error)
                 res.sendStatus(500)
             })
         }

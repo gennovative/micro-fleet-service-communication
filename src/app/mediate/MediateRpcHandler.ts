@@ -79,15 +79,15 @@ export class MessageBrokerRpcHandler
      * @see IMediateRpcHandler.init
      */
     public async init(options: MediateRpcHandlerOptions = {}): Promise<void> {
-        this.name = options.handlerName || this._config.get(S.SERVICE_SLUG).value
+        this.$name = options.handlerName || this._config.get(S.SERVICE_SLUG).value
         if (options.connector) {
             this._msgBrokerConn = options.connector
         }
         else {
             const name = options.connectorName || `Connector for RPC handler "${this.name}"`
             this._msgBrokerConn = await this._msgBrokerConnProvider.create(name)
+            this._msgBrokerConn.onError(err => this.$emitError(err))
         }
-        this._msgBrokerConn.onError(err => this._emitError(err))
         this._handlers = new Map<string, rpc.RpcHandlerFunction>()
     }
 
@@ -184,27 +184,27 @@ export class MessageBrokerRpcHandler
         }))
         .then(result => { // When `actionFn` calls `resolve` from inside.
             // Sends response to reply topic
-            return this._msgBrokerConn.publish(replyTo, this._createResponse(true, result, request.from), { correlationId })
+            return this._msgBrokerConn.publish(replyTo, this.$createResponse(true, result, request.from), { correlationId })
         })
         .catch((error: rpc.HandlerRejection) => {
             // If error from `publish()`
             if (error.isIntended == null) {
-                this._emitError(error)
+                this.$emitError(error)
                 return Promise.resolve()
             }
             else if (error.isIntended === false) {
-                this._emitError(error.reason)
+                this.$emitError(error.reason)
             }
 
             // If HandlerRejection error, let caller know
-            const errObj = this._createError(error)
+            const errObj = this.$createError(error)
             return this._msgBrokerConn.publish(
                 replyTo,
-                this._createResponse(false, errObj, request.from), { correlationId }
+                this.$createResponse(false, errObj, request.from), { correlationId }
             )
         })
         // Catch error thrown by `createError()` or `publish()` in above catch
-        .catch(this._emitError.bind(this))
+        .catch(this.$emitError.bind(this))
     }
 
 }

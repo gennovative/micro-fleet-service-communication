@@ -8,27 +8,31 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 /// <reference types="debug" />
 const debug = require('debug')('mcft:svccom:HttpRpcCaller');
 const request = require("request-promise-native");
 const common_1 = require("@micro-fleet/common");
 const rpc = require("../RpcCommon");
+const { Service: S, } = common_1.constants;
 let HttpRpcCaller = class HttpRpcCaller extends rpc.RpcCallerBase {
-    constructor() {
+    constructor(_config) {
         super();
+        this._config = _config;
         this._requestMaker = request;
     }
     get baseAddress() {
         return this._baseAddress;
     }
-    set baseAddress(val) {
-        this._baseAddress = val;
-    }
     /**
      * @see IRpcCaller.init
      */
-    init(param) {
+    init(options = {}) {
+        this.$name = options.callerName || this._config.get(S.SERVICE_SLUG).value;
+        this._baseAddress = options.baseAddress;
         return Promise.resolve();
     }
     /**
@@ -65,7 +69,7 @@ let HttpRpcCaller = class HttpRpcCaller extends rpc.RpcCallerBase {
         return this._requestMaker(options)
             .then((res) => {
             if (!res.isSuccess) {
-                res.payload = this._rebuildError(res.payload);
+                res.payload = this.$rebuildError(res.payload);
                 if (res.payload instanceof common_1.InternalErrorException) {
                     return Promise.reject(res.payload);
                 }
@@ -95,7 +99,8 @@ let HttpRpcCaller = class HttpRpcCaller extends rpc.RpcCallerBase {
 };
 HttpRpcCaller = __decorate([
     common_1.decorators.injectable(),
-    __metadata("design:paramtypes", [])
+    __param(0, common_1.decorators.inject(common_1.Types.CONFIG_PROVIDER)),
+    __metadata("design:paramtypes", [Object])
 ], HttpRpcCaller);
 exports.HttpRpcCaller = HttpRpcCaller;
 //# sourceMappingURL=DirectRpcCaller.js.map

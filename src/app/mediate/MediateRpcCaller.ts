@@ -1,5 +1,5 @@
 /// <reference types="debug" />
-const debug: debug.IDebugger = require('debug')('mcft:svccom:MessageBrokerRpcCaller')
+// const debug: debug.IDebugger = require('debug')('mcft:svccom:MessageBrokerRpcCaller')
 
 import * as shortid from 'shortid'
 import { decorators as d, Types as cT, constants, Guard, MinorException, InternalErrorException,
@@ -13,6 +13,7 @@ import * as rpc from '../RpcCommon'
 
 const {
     Service: S,
+    MessageBroker: MB,
     RPC,
 } = constants
 
@@ -62,34 +63,37 @@ export class MessageBrokerRpcCaller
         return this._msgBrokerConn
     }
 
+    private get _isInit(): boolean {
+        return Boolean(this._msgBrokerConn)
+    }
+
     constructor(
         @d.inject(cT.CONFIG_PROVIDER) private _config: IConfigurationProvider,
         @d.inject(T.MSG_BROKER_CONNECTOR_PROVIDER) private _msgBrokerConnProvider: IMessageBrokerConnectorProvider
     ) {
         super()
         Guard.assertArgDefined('_msgBrokerConnProvider', _msgBrokerConnProvider)
-
-        if (this._msgBrokerConn.queue) {
-            debug('MessageBrokerRpcCaller should only use temporary unique queue.')
-        }
     }
 
     /**
      * @see IMediateRpcCaller.init
      */
     public async init(options: MediateRpcCallerOptions = {}): Promise<void> {
-        this.name = options.callerName || this._config.get(S.SERVICE_SLUG).value
+        this.$name = options.callerName || this._config.get(S.SERVICE_SLUG).value
         if (options.connector) {
             this._msgBrokerConn = options.connector
         }
         else {
             const name = options.connectorName || `Connector for RPC caller "${this.name}"`
             this._msgBrokerConn = await this._msgBrokerConnProvider.create(name)
+            this._msgBrokerConn.messageExpiredIn = this._config
+                .get(MB.MSG_BROKER_MSG_EXPIRE, SettingItemDataType.Number)
+                .tryGetValue(30e3)
+            this._msgBrokerConn.onError(err => this.$emitError(err))
         }
-        this._msgBrokerConn.messageExpiredIn = this._config
+        this.$timeout = this._config
             .get(RPC.RPC_CALLER_TIMEOUT, SettingItemDataType.Number)
-            .tryGetValue(30000)
-        this._msgBrokerConn.onError(err => this._emitError(err))
+            .tryGetValue(30e3)
     }
 
     /**
@@ -106,7 +110,7 @@ export class MessageBrokerRpcCaller
      * @see IRpcCaller.call
      */
     public call({ moduleName, actionName, params, rawDest }: rpc.RpcCallerOptions): Promise<rpc.RpcResponse> {
-        Guard.assertIsTruthy(this._msgBrokerConn, 'Must call "init" before use.')
+        Guard.assertIsTruthy(this._isInit, 'Must call "init" before use.')
         if (!rawDest) {
             Guard.assertArgDefined('moduleName', moduleName)
             Guard.assertArgDefined('actionName', actionName)
@@ -132,7 +136,7 @@ export class MessageBrokerRpcCaller
 
                         const response: rpc.RpcResponse = msg.data
                         if (!response.isSuccess) {
-                            response.payload = this._rebuildError(response.payload)
+                            response.payload = this.$rebuildError(response.payload)
                             if (response.payload instanceof InternalErrorException) {
                                 return reject(response.payload)
                             }
@@ -142,16 +146,16 @@ export class MessageBrokerRpcCaller
 
                     // In case this request never has response.
                     token = setTimeout(() => {
-                        this._emitter && this._emitter.removeListener(correlationId, onMessage)
+                        this.$emitter && this.$emitter.removeListener(correlationId, onMessage)
                         conn && conn.unsubscribe(replyTo).catch(() => { /* Swallow */ })
                         reject(new MinorException('Response waiting timeout'))
                     }, this.timeout)
 
-                    this._emitter.once(correlationId, onMessage)
+                    this.$emitter.once(correlationId, onMessage)
 
                     return conn.listen((msg: BrokerMessage) => {
                         // Announce that we've got a response with this correlationId.
-                        this._emitter.emit(msg.properties.correlationId, msg)
+                        this.$emitter.emit(msg.properties.correlationId, msg)
                     })
                 })
                 .then(() => {
@@ -175,7 +179,7 @@ export class MessageBrokerRpcCaller
      * @see IRpcCaller.callImpatient
      */
     public callImpatient({ moduleName, actionName, params, rawDest }: rpc.RpcCallerOptions): Promise<void> {
-        Guard.assertIsTruthy(this._msgBrokerConn, 'Must call "init" before use.')
+        Guard.assertIsTruthy(this._isInit, 'Must call "init" before use.')
         if (!rawDest) {
             Guard.assertArgDefined('moduleName', moduleName)
             Guard.assertArgDefined('actionName', actionName)

@@ -2,8 +2,8 @@ import * as amqp from 'amqplib'
 import * as chai from 'chai'
 import * as spies from 'chai-spies'
 import * as shortid from 'shortid'
-import { mock, instance, when } from 'ts-mockito'
-import { constants, MinorException, IConfigurationProvider, Maybe } from '@micro-fleet/common'
+import { mock, instance, when, anyFunction, anything, reset } from 'ts-mockito'
+import { constants, MinorException, IConfigurationProvider } from '@micro-fleet/common'
 
 import { MessageBrokerRpcHandler, BrokerMessage, IMessageBrokerConnector, IMediateRpcHandler,
     TopicMessageBrokerConnector, RpcRequest, RpcResponse, RpcHandlerFunction,
@@ -11,6 +11,8 @@ import { MessageBrokerRpcHandler, BrokerMessage, IMessageBrokerConnector, IMedia
 } from '../app'
 
 import rabbitOpts from './rabbit-options'
+import { mockMediateRpcHandler, mockConfigProvider } from './shared/helper'
+import { EventEmitter } from 'events'
 
 chai.use(spies)
 const expect = chai.expect
@@ -22,52 +24,83 @@ const {
 const NAME = 'TestHandler',
     SERVICE_SLUG = 'mock-service-slug'
 
-let MockConfigProviderClass,
-    MockConnProviderHandler
-
 
 let handlerMbConn: IMessageBrokerConnector,
     callerMbConn: IMessageBrokerConnector,
     rpcHandler: IMediateRpcHandler,
-    config: IConfigurationProvider,
-    handlerConnProvider: IMessageBrokerConnectorProvider
+    config: IConfigurationProvider
 
 // tslint:disable: no-floating-promises
 
 describe('MediateRpcHandler', function () {
-    this.timeout(5000)
-    // this.timeout(60000) // For debugging
+    this.timeout(5e3)
+    // this.timeout(60e3) // For debugging
 
     beforeEach(() => {
-        MockConfigProviderClass = mock<IConfigurationProvider>()
-        when(MockConfigProviderClass.get(S.SERVICE_SLUG)).thenReturn(Maybe.Just(SERVICE_SLUG))
-        config = instance(MockConfigProviderClass)
-
-        MockConnProviderHandler = mock<IMessageBrokerConnectorProvider>()
-        handlerConnProvider = instance(MockConnProviderHandler)
+        config = mockConfigProvider({
+            [S.SERVICE_SLUG]: SERVICE_SLUG,
+        })
     })
 
     describe('init', () => {
+        it('Should use existing message broker connector', () => {
+            // Arrange
+            const ConnProviderClass = mock<IMessageBrokerConnectorProvider>()
+            const connector = new TopicMessageBrokerConnector(SERVICE_SLUG)
+            rpcHandler = new MessageBrokerRpcHandler(config, instance(ConnProviderClass))
+
+            // Act
+            rpcHandler.init({
+                connector,
+                handlerName: NAME,
+            })
+
+            // Assert
+            expect(rpcHandler['_msgBrokerConn']).to.equal(connector)
+        })
+
         it('Should raise error if problems occur', (done) => {
             // Arrange
             const ERROR = 'Test error'
 
-            handlerMbConn = new TopicMessageBrokerConnector(SERVICE_SLUG)
-            rpcHandler = new MessageBrokerRpcHandler(config, handlerConnProvider)
-
-            // Act
-            // handler.module = MODULE;
-            rpcHandler.name = NAME
-            rpcHandler.init()
-            rpcHandler.onError(err => {
-                // Assert
-                expect(err).to.equal(ERROR)
-                handlerMbConn.disconnect().then(() => done())
+            const emitter = new EventEmitter()
+            const ConnectorClass = mock<IMessageBrokerConnector>()
+            when(ConnectorClass.onError(anyFunction())).thenCall((errorHandler: Function) => {
+                emitter.on('error', errorHandler as any)
             })
+            when(ConnectorClass.connect(anything())).thenResolve()
+            when(ConnectorClass.disconnect()).thenResolve()
+            const connector = instance(ConnectorClass)
 
-            handlerMbConn.connect(rabbitOpts.handler)
+            const stubConnector = {
+                onError(errorHandler: Function) {
+                    emitter.on('error', errorHandler as any)
+                },
+            }
+
+            let MockConnProviderHandler
+            let handler: IMediateRpcHandler
+            mockMediateRpcHandler(config, false)
+                .then(result => {
+                    handler = result[0]
+                    MockConnProviderHandler = result[2]
+                    reset(MockConnProviderHandler)
+                    when(MockConnProviderHandler.create(anything()))
+                        .thenResolve(stubConnector as any) // Cannot thenResolve(connector) because of ts-mockito's bug
+                    return handler.init()
+                })
                 .then(() => {
-                    handlerMbConn['_emitter'].emit('error', ERROR)
+                    // Act
+                    handler.onError(err => {
+                        // Assert
+                        expect(err).to.equal(ERROR)
+                        connector.disconnect().then(() => done())
+                    })
+
+                    connector.connect(rabbitOpts.handler)
+                        .then(() => {
+                            emitter.emit('error', ERROR)
+                        })
                 })
         })
 
@@ -75,10 +108,9 @@ describe('MediateRpcHandler', function () {
 
     describe('handle', () => {
 
-        beforeEach((done) => {
-            callerMbConn = new TopicMessageBrokerConnector(SERVICE_SLUG)
-            handlerMbConn = new TopicMessageBrokerConnector(SERVICE_SLUG)
-            rpcHandler = new MessageBrokerRpcHandler(config, handlerConnProvider)
+        beforeEach(async () => {
+            callerMbConn = new TopicMessageBrokerConnector(SERVICE_SLUG);
+            [rpcHandler, handlerMbConn] = await mockMediateRpcHandler(config, false)
 
             handlerMbConn.onError((err) => {
                 console.error('Handler error:\n', err)
@@ -88,13 +120,14 @@ describe('MediateRpcHandler', function () {
                 console.error('Caller error:\n', err)
             })
 
-            rpcHandler.name = NAME
-            Promise.all([
+            await Promise.all([
                 handlerMbConn.connect(rabbitOpts.handler),
                 callerMbConn.connect(rabbitOpts.caller),
             ])
-            .then(() => rpcHandler.init())
-            .then(() => done())
+            await rpcHandler.init({
+                connector: handlerMbConn,
+                handlerName: NAME,
+            })
         })
 
         afterEach(async () => {

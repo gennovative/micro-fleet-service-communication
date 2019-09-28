@@ -2,12 +2,31 @@
 const debug: debug.IDebugger = require('debug')('mcft:svccom:HttpRpcCaller')
 
 import * as request from 'request-promise-native'
-import { Guard, InternalErrorException, MinorException,
-     decorators as d } from '@micro-fleet/common'
+import { decorators as d, Types as cT, constants, Guard,
+    InternalErrorException, MinorException, IConfigurationProvider,
+} from '@micro-fleet/common'
 
 import * as rpc from '../RpcCommon'
 import { StatusCodeError } from 'request-promise-native/errors'
 
+
+const {
+    Service: S,
+} = constants
+
+export type DirectRpcCallerOptions = {
+    /**
+     * The name used in "from" property of sent messages.
+     */
+    callerName?: string,
+
+    /**
+     * IP address or host name including port number.
+     * Do not include protocol (http, ftp...) because different class implementations
+     * will prepend different protocols.
+     */
+    baseAddress?: string
+}
 
 export interface IDirectRpcCaller extends rpc.IRpcCaller {
     /**
@@ -15,7 +34,9 @@ export interface IDirectRpcCaller extends rpc.IRpcCaller {
      * Do not include protocol (http, ftp...) because different class implementations
      * will prepend different protocols.
      */
-    baseAddress: string
+    readonly baseAddress: string
+
+    init(options?: DirectRpcCallerOptions): Promise<void>
 }
 
 @d.injectable()
@@ -26,7 +47,9 @@ export class HttpRpcCaller
     private _baseAddress: string
     private _requestMaker: (options: any) => Promise<any>
 
-    constructor() {
+    constructor(
+        @d.inject(cT.CONFIG_PROVIDER) private _config: IConfigurationProvider,
+    ) {
         super()
         this._requestMaker = <any>request
     }
@@ -35,15 +58,13 @@ export class HttpRpcCaller
         return this._baseAddress
     }
 
-    public set baseAddress(val: string) {
-        this._baseAddress = val
-    }
-
 
     /**
      * @see IRpcCaller.init
      */
-    public init(param?: any): Promise<void> {
+    public init(options: DirectRpcCallerOptions = {}): Promise<void> {
+        this.$name = options.callerName || this._config.get(S.SERVICE_SLUG).value
+        this._baseAddress = options.baseAddress
         return Promise.resolve()
     }
 
@@ -85,7 +106,7 @@ export class HttpRpcCaller
         return this._requestMaker(options)
             .then((res: rpc.RpcResponse) => {
                 if (!res.isSuccess) {
-                    res.payload = this._rebuildError(res.payload)
+                    res.payload = this.$rebuildError(res.payload)
                     if (res.payload instanceof InternalErrorException) {
                         return Promise.reject(res.payload) as Promise<any>
                     }

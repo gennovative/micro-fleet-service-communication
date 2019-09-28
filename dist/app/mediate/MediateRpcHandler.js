@@ -31,26 +31,29 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
     get msgBrokerConnector() {
         return this._msgBrokerConn;
     }
+    get _isInit() {
+        return Boolean(this._msgBrokerConn);
+    }
     /**
      * @see IMediateRpcHandler.init
      */
     async init(options = {}) {
-        this.name = options.handlerName || this._config.get(S.SERVICE_SLUG).value;
+        this.$name = options.handlerName || this._config.get(S.SERVICE_SLUG).value;
         if (options.connector) {
             this._msgBrokerConn = options.connector;
         }
         else {
             const name = options.connectorName || `Connector for RPC handler "${this.name}"`;
             this._msgBrokerConn = await this._msgBrokerConnProvider.create(name);
+            this._msgBrokerConn.onError(err => this.$emitError(err));
         }
-        this._msgBrokerConn.onError(err => this._emitError(err));
         this._handlers = new Map();
     }
     /**
      * @see IRpcHandler.start
      */
     start() {
-        common_1.Guard.assertIsTruthy(this._msgBrokerConn, 'Must call "init" before use.');
+        common_1.Guard.assertIsTruthy(this._isInit, 'Must call "init" before use.');
         return this._msgBrokerConn.listen(this.onMessage.bind(this), false);
     }
     /**
@@ -69,7 +72,7 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
      * @see IRpcHandler.pause
      */
     pause() {
-        common_1.Guard.assertIsTruthy(this._msgBrokerConn, 'Must call "init" before use.');
+        common_1.Guard.assertIsTruthy(this._isInit, 'Must call "init" before use.');
         return this._msgBrokerConn.stopListen();
     }
     /**
@@ -82,7 +85,7 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
      * @see IRpcHandler.handle
      */
     async handle({ moduleName, actionName, handler, rawDest }) {
-        common_1.Guard.assertIsTruthy(this._msgBrokerConn, 'Must call "init" before use.');
+        common_1.Guard.assertIsTruthy(this._isInit, 'Must call "init" before use.');
         common_1.Guard.assertIsDefined(this.name, '`name` property is required.');
         const dest = Boolean(rawDest)
             ? rawDest
@@ -132,23 +135,23 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
         }))
             .then(result => {
             // Sends response to reply topic
-            return this._msgBrokerConn.publish(replyTo, this._createResponse(true, result, request.from), { correlationId });
+            return this._msgBrokerConn.publish(replyTo, this.$createResponse(true, result, request.from), { correlationId });
         })
             .catch((error) => {
             // If error from `publish()`
             if (error.isIntended == null) {
-                this._emitError(error);
+                this.$emitError(error);
                 return Promise.resolve();
             }
             else if (error.isIntended === false) {
-                this._emitError(error.reason);
+                this.$emitError(error.reason);
             }
             // If HandlerRejection error, let caller know
-            const errObj = this._createError(error);
-            return this._msgBrokerConn.publish(replyTo, this._createResponse(false, errObj, request.from), { correlationId });
+            const errObj = this.$createError(error);
+            return this._msgBrokerConn.publish(replyTo, this.$createResponse(false, errObj, request.from), { correlationId });
         })
             // Catch error thrown by `createError()` or `publish()` in above catch
-            .catch(this._emitError.bind(this));
+            .catch(this.$emitError.bind(this));
     }
 };
 MessageBrokerRpcHandler = __decorate([

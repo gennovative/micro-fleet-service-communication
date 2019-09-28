@@ -110,13 +110,13 @@ export interface IRpcCaller {
     /**
      * A name used in "from" and "to" request property.
      */
-    name: string
+    readonly name: string
 
     /**
      * Number of milliseconds to wait for response before cancelling the request.
      * Must be between (inclusive) 1000 and 60000 (Min: 1s, Max: 60s).
      */
-    timeout: number
+    readonly timeout: number
 
     /**
      * Sets up this RPC caller with specified `param`. Each implementation class requires
@@ -206,7 +206,7 @@ export interface IRpcHandler {
     /**
      * A name used in "from" and "to" request property.
      */
-    name: string
+    readonly name: string
 
     /**
      * Sets up this RPC handler with specified `param`. Each implementation class requires
@@ -256,41 +256,37 @@ export interface IRpcHandler {
 @d.injectable()
 export abstract class RpcCallerBase {
 
-    /**
-     * @see IRpcCaller.name
-     */
-    public name: string
+    protected $name: string
 
-    private _timeout: number
+    protected $timeout: number
 
-    protected _emitter: EventEmitter
+    protected $emitter: EventEmitter
 
 
     constructor() {
-        this._emitter = new EventEmitter()
-        this._timeout = 30000
+        this.$emitter = new EventEmitter()
+        this.$timeout = 30e3
     }
 
+
+    /**
+     * @see IRpcCaller.name
+     */
+    public get name(): string {
+        return this.$name
+    }
 
     /**
      * @see IRpcCaller.timeout
      */
     public get timeout(): number {
-        return this._timeout
+        return this.$timeout
     }
 
-    /**
-     * @see IRpcCaller.timeout
-     */
-    public set timeout(val: number) {
-        if (val >= 1000 && val <= 60000) {
-            this._timeout = val
-        }
-    }
 
     public dispose(): Promise<void> {
-        this._emitter.removeAllListeners()
-        this._emitter = null
+        this.$emitter.removeAllListeners()
+        this.$emitter = null
         return Promise.resolve()
     }
 
@@ -298,14 +294,14 @@ export abstract class RpcCallerBase {
      * @see IRpcCaller.onError
      */
     public onError(handler: (err: any) => void): void {
-        this._emitter.on('error', handler)
+        this.$emitter.on('error', handler)
     }
 
-    protected _emitError(err: any): void {
-        this._emitter.emit('error', err)
+    protected $emitError(err: any): void {
+        this.$emitter.emit('error', err)
     }
 
-    protected _rebuildError(error: RpcError): any {
+    protected $rebuildError(error: RpcError): any {
         // Expect response.payload.type = MinorException | ValidationError...
         const exception: Exception = new global['gennova'][error.type](error.message)
         exception.details = (typeof error.details === 'string')
@@ -318,38 +314,41 @@ export abstract class RpcCallerBase {
 @d.injectable()
 export abstract class RpcHandlerBase {
 
-    /**
-     * @see IRpcHandler.name
-     */
-    public name: string
-
-    protected _emitter: EventEmitter
+    protected $name: string
+    protected $emitter: EventEmitter
     private _hasErrHandler: boolean
 
 
     constructor() {
-        this._emitter = new EventEmitter()
+        this.$emitter = new EventEmitter()
         this._hasErrHandler = false
     }
 
 
     /**
+     * @see IRpcHandler.name
+     */
+    public get name(): string {
+        return this.$name
+    }
+
+    /**
      * @see IRpcHandler.onError
      */
     public onError(handler: (err: any) => void): void {
-        this._emitter.on('error', handler)
+        this.$emitter.on('error', handler)
         this._hasErrHandler = true
     }
 
 
-    protected _emitError(err: any): void {
+    protected $emitError(err: any): void {
         if (!this._hasErrHandler) {
             console.warn('No error handler registered. Emitted error will be thrown as exception.')
         }
-        this._emitter.emit('error', err)
+        this.$emitter.emit('error', err)
     }
 
-    protected _createResponse(isSuccess: boolean, payload: any, replyTo: string): RpcResponse {
+    protected $createResponse(isSuccess: boolean, payload: any, replyTo: string): RpcResponse {
         return {
             isSuccess,
             from: this.name,
@@ -358,7 +357,7 @@ export abstract class RpcHandlerBase {
         }
     }
 
-    protected _createError({ isIntended, reason}: HandlerRejection): RpcError {
+    protected $createError({ isIntended, reason}: HandlerRejection): RpcError {
         // TODO: Should log this unexpected error.
         const rpcError: RpcError = {
             type: 'InternalErrorException',

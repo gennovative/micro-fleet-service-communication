@@ -51,38 +51,36 @@ if (!gennova['InternalErrorException']) {
 // RPC Base classes
 let RpcCallerBase = class RpcCallerBase {
     constructor() {
-        this._emitter = new events_1.EventEmitter();
-        this._timeout = 30000;
+        this.$emitter = new events_1.EventEmitter();
+        this.$timeout = 30e3;
+    }
+    /**
+     * @see IRpcCaller.name
+     */
+    get name() {
+        return this.$name;
     }
     /**
      * @see IRpcCaller.timeout
      */
     get timeout() {
-        return this._timeout;
-    }
-    /**
-     * @see IRpcCaller.timeout
-     */
-    set timeout(val) {
-        if (val >= 1000 && val <= 60000) {
-            this._timeout = val;
-        }
+        return this.$timeout;
     }
     dispose() {
-        this._emitter.removeAllListeners();
-        this._emitter = null;
+        this.$emitter.removeAllListeners();
+        this.$emitter = null;
         return Promise.resolve();
     }
     /**
      * @see IRpcCaller.onError
      */
     onError(handler) {
-        this._emitter.on('error', handler);
+        this.$emitter.on('error', handler);
     }
-    _emitError(err) {
-        this._emitter.emit('error', err);
+    $emitError(err) {
+        this.$emitter.emit('error', err);
     }
-    _rebuildError(error) {
+    $rebuildError(error) {
         // Expect response.payload.type = MinorException | ValidationError...
         const exception = new global['gennova'][error.type](error.message);
         exception.details = (typeof error.details === 'string')
@@ -98,23 +96,29 @@ RpcCallerBase = __decorate([
 exports.RpcCallerBase = RpcCallerBase;
 let RpcHandlerBase = class RpcHandlerBase {
     constructor() {
-        this._emitter = new events_1.EventEmitter();
+        this.$emitter = new events_1.EventEmitter();
         this._hasErrHandler = false;
+    }
+    /**
+     * @see IRpcHandler.name
+     */
+    get name() {
+        return this.$name;
     }
     /**
      * @see IRpcHandler.onError
      */
     onError(handler) {
-        this._emitter.on('error', handler);
+        this.$emitter.on('error', handler);
         this._hasErrHandler = true;
     }
-    _emitError(err) {
+    $emitError(err) {
         if (!this._hasErrHandler) {
             console.warn('No error handler registered. Emitted error will be thrown as exception.');
         }
-        this._emitter.emit('error', err);
+        this.$emitter.emit('error', err);
     }
-    _createResponse(isSuccess, payload, replyTo) {
+    $createResponse(isSuccess, payload, replyTo) {
         return {
             isSuccess,
             from: this.name,
@@ -122,7 +126,7 @@ let RpcHandlerBase = class RpcHandlerBase {
             payload,
         };
     }
-    _createError({ isIntended, reason }) {
+    $createError({ isIntended, reason }) {
         // TODO: Should log this unexpected error.
         const rpcError = {
             type: 'InternalErrorException',

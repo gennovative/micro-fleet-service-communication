@@ -103,7 +103,9 @@ export class MessageBrokerProviderAddOn implements IServiceAddOn, IMessageBroker
      * @see IServiceAddOn.dispose
      */
     public dispose(): Promise<void> {
-        return Promise.all(this._connectors.map(c => c.disconnect())) as Promise<any>
+        return Promise
+            .all(this._connectors.map(c => c.disconnect()))
+            .then(() => this._connectors = []) as Promise<any>
     }
 
     //#endregion Implements IServiceAddOn

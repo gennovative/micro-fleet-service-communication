@@ -8,6 +8,9 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
 var ExpressRpcHandler_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 "use strict";
@@ -16,9 +19,11 @@ const debug = require('debug')('mcft:svccom:ExpressRpcHandler');
 const express = require("express");
 const common_1 = require("@micro-fleet/common");
 const rpc = require("../RpcCommon");
+const { Service: S, } = common_1.constants;
 let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rpc.RpcHandlerBase {
-    constructor() {
+    constructor(_config) {
         super();
+        this._config = _config;
         this._port = 30000;
         this._isOpen = false;
     }
@@ -35,7 +40,8 @@ let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rp
     /**
      * @see IDirectRpcHandler.init
      */
-    init(params) {
+    init(options = {}) {
+        this.$name = options.handlerName || this._config.get(S.SERVICE_SLUG).value;
         common_1.Guard.assertIsFalsey(this._routers, 'This RPC Handler is already initialized!');
         common_1.Guard.assertIsTruthy(this.name, '`name` property must be set!');
         // this._instanceUid = shortid.generate();
@@ -63,7 +69,7 @@ let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rp
                 this._isOpen = true;
                 resolve();
             });
-            this._server.on('error', err => this._emitError(err));
+            this._server.on('error', err => this.$emitError(err));
         });
     }
     /**
@@ -155,20 +161,20 @@ let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rp
                 }
             }))
                 .then(result => {
-                res.status(200).send(this._createResponse(true, result, request.from));
+                res.status(200).send(this.$createResponse(true, result, request.from));
             })
                 .catch((error) => {
                 if (!error.isIntended) {
-                    this._emitError(error.reason);
+                    this.$emitError(error.reason);
                     res.sendStatus(500);
                     return;
                 }
-                const errObj = this._createError(error);
-                res.status(200).send(this._createResponse(false, errObj, request.from));
+                const errObj = this.$createError(error);
+                res.status(200).send(this.$createResponse(false, errObj, request.from));
             })
                 // Catch error thrown by `createError()` or `createResponse()`
                 .catch((error) => {
-                this._emitError(error);
+                this.$emitError(error);
                 res.sendStatus(500);
             });
         };
@@ -181,7 +187,8 @@ ExpressRpcHandler.URL_TESTER = (function () {
 })();
 ExpressRpcHandler = ExpressRpcHandler_1 = __decorate([
     common_1.decorators.injectable(),
-    __metadata("design:paramtypes", [])
+    __param(0, common_1.decorators.inject(common_1.Types.CONFIG_PROVIDER)),
+    __metadata("design:paramtypes", [Object])
 ], ExpressRpcHandler);
 exports.ExpressRpcHandler = ExpressRpcHandler;
 //# sourceMappingURL=DirectRpcHandler.js.map

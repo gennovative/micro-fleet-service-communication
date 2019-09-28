@@ -3,7 +3,7 @@ import { IConfigurationProvider, constants, decorators as d,
 
 import { IDirectRpcHandler } from './DirectRpcHandler'
 
-const { RPC: R, Service: S } = constants
+const { RPC: R } = constants
 
 
 /**
@@ -28,7 +28,6 @@ export abstract class DirectRpcHandlerAddOnBase implements IServiceAddOn {
      * @see IServiceAddOn.init
      */
     public init(): Promise<void> {
-        this._rpcHandler.name = this._configProvider.get(S.SERVICE_SLUG).value as string
         this._rpcHandler.port = this._configProvider.get(R.RPC_HANDLER_PORT).value as number
         this._errorHandler && this._rpcHandler.onError(this._errorHandler)
         return this._rpcHandler.init()

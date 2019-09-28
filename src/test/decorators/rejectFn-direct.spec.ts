@@ -5,8 +5,8 @@ import * as spies from 'chai-spies'
 chai.use(spies)
 const expect = chai.expect
 
-import { IConfigurationProvider, constants, Maybe,
-    DependencyContainer, serviceContext, Types as CmT,
+import { constants, Types as CmT,
+    DependencyContainer, serviceContext,
     InternalErrorException, MinorException,
     } from '@micro-fleet/common'
 
@@ -15,52 +15,15 @@ import { IDirectRpcHandler, IDirectRpcCaller, ExpressRpcHandler, HttpRpcCaller,
     } from '../../app'
 
 import * as rc from '../shared/resolve-reject-controller'
+import { mockConfigProvider } from '../shared/helper'
 
 
-const { RPC: RpcS, Service: SvcS } = constants
+const { RPC: R, Service: S } = constants
 
 const SERVICE_SLUG = 'test-service',
-    HANDLER_PORT = 30000,
+    HANDLER_PORT = 30e3,
     HANDLER_ADDR = `localhost:${HANDLER_PORT}`,
     CALLER_NAME = 'caller'
-
-class MockConfigProvider implements IConfigurationProvider {
-
-    public readonly name: string = 'MockConfigProvider'
-    public configFilePath: string
-
-    get enableRemote(): boolean {
-        return true
-    }
-
-    public init(): Promise<void> {
-        return Promise.resolve()
-    }
-
-    public deadLetter(): Promise<void> {
-        return Promise.resolve()
-    }
-
-    public dispose(): Promise<void> {
-        return Promise.resolve()
-    }
-
-    public onUpdate(listener: (changedKeys: string[]) => void) {
-        // Empty
-    }
-
-    public get(key: string): Maybe<number | boolean | string> {
-        switch (key) {
-            case RpcS.RPC_HANDLER_PORT: return Maybe.Just(HANDLER_PORT)
-            case SvcS.SERVICE_SLUG: return Maybe.Just(SERVICE_SLUG)
-            default: return Maybe.Nothing()
-        }
-    }
-
-    public async fetch(): Promise<boolean> {
-        return Promise.resolve(true)
-    }
-}
 
 
 let depContainer: DependencyContainer,
@@ -69,22 +32,32 @@ let depContainer: DependencyContainer,
     addon: DefaultDirectRpcHandlerAddOn
 
 
+// tslint:disable: no-floating-promises
+
 describe('@rejectFn() - direct', function() {
-    this.timeout(5000)
-    // this.timeout(60000) // For debugging
+    this.timeout(5e3)
+    // this.timeout(60e3) // For debugging
 
     beforeEach(() => {
         depContainer = new DependencyContainer()
         serviceContext.setDependencyContainer(depContainer)
         depContainer.bindConstant(CmT.DEPENDENCY_CONTAINER, depContainer)
 
-        caller = new HttpRpcCaller()
-        caller.name = CALLER_NAME
-        caller.baseAddress = HANDLER_ADDR
+        const config = mockConfigProvider({
+            [S.SERVICE_SLUG]: SERVICE_SLUG,
+            [R.RPC_HANDLER_PORT]: HANDLER_PORT,
+        })
 
-        handler = new ExpressRpcHandler()
+        caller = new HttpRpcCaller(config)
+        caller.init({
+            callerName: CALLER_NAME,
+            baseAddress: HANDLER_ADDR,
+        })
+
+        handler = new ExpressRpcHandler(config)
+        handler.init()
         addon = new DefaultDirectRpcHandlerAddOn(
-            new MockConfigProvider(),
+            config,
             depContainer,
             handler
         )

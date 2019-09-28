@@ -74,7 +74,9 @@ let MessageBrokerProviderAddOn = class MessageBrokerProviderAddOn {
      * @see IServiceAddOn.dispose
      */
     dispose() {
-        return Promise.all(this._connectors.map(c => c.disconnect()));
+        return Promise
+            .all(this._connectors.map(c => c.disconnect()))
+            .then(() => this._connectors = []);
     }
 };
 MessageBrokerProviderAddOn = __decorate([

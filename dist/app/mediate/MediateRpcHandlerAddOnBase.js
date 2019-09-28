@@ -13,7 +13,6 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const common_1 = require("@micro-fleet/common");
-const { Service: S } = common_1.constants;
 /**
  * Base class for MediateRpcAddOn.
  */

@@ -2,10 +2,11 @@ import * as chai from 'chai'
 import * as spies from 'chai-spies'
 import * as express from 'express'
 import * as requestMaker from 'request-promise-native'
-import { MinorException } from '@micro-fleet/common'
+import { MinorException, IConfigurationProvider } from '@micro-fleet/common'
 
 import { ExpressRpcHandler, RpcRequest, RpcResponse,
     RpcHandlerFunction, RpcError} from '../app'
+import { mockConfigProvider } from './shared/helper'
 
 chai.use(spies)
 const expect = chai.expect
@@ -13,20 +14,27 @@ const expect = chai.expect
 
 const NAME = 'TestHandler'
 
+let config: IConfigurationProvider
+
 // tslint:disable: no-floating-promises
 
 describe('ExpressDirectRpcHandler', function () {
-    this.timeout(5000)
-    // this.timeout(60000); // For debugging
+    this.timeout(5e3)
+    // this.timeout(60e3); // For debugging
+
+    before(() => {
+        config = mockConfigProvider()
+    })
 
     describe('start', () => {
         it('Should raise error if problems occur', (done) => {
             // Arrange
-            const handler = new ExpressRpcHandler(),
+            const handler = new ExpressRpcHandler(config),
                 app = express()
 
-            handler.name = NAME
-            handler.init()
+            handler.init({
+                handlerName: NAME,
+            })
 
             // Start this server to make a port conflict
             const server = app.listen(handler.port, () => {
@@ -47,9 +55,10 @@ describe('ExpressDirectRpcHandler', function () {
         let handler: ExpressRpcHandler
 
         beforeEach(() => {
-            handler = new ExpressRpcHandler()
-            handler.name = NAME
-            handler.init()
+            handler = new ExpressRpcHandler(config)
+            handler.init({
+                handlerName: NAME,
+            })
         })
 
         afterEach(async () => {

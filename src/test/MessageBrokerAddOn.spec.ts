@@ -1,137 +1,74 @@
 import * as chai from 'chai'
 import * as spies from 'chai-spies'
+import { mock, instance, when, verify } from 'ts-mockito'
+import { constants, IConfigurationProvider } from '@micro-fleet/common'
 
-import { IConfigurationProvider, Maybe } from '@micro-fleet/common'
-
-import { IMessageBrokerConnector, MessageBrokerConnectionOptions, MessageBrokerPublishOptions,
-    MessageHandleFunction, MessageBrokerProviderAddOn } from '../app'
+import { IMessageBrokerConnector, MessageBrokerProviderAddOn } from '../app'
+import { mockConfigProvider } from './shared/helper'
 
 
 chai.use(spies)
 const expect = chai.expect
+const { MessageBroker: S } = constants
 
 
-class MockConfigAddOn implements IConfigurationProvider {
-
-    public readonly name: string = 'MockConfigAddOn'
-    public configFilePath: string
-
-    get enableRemote(): boolean {
-        return true
-    }
-
-    public get(key: string): Maybe<number | boolean | string> {
-        return Maybe.Just('')
-    }
-
-    public deadLetter(): Promise<void> {
-        return Promise.resolve()
-    }
-
-    public fetch(): Promise<boolean> {
-        return Promise.resolve(true)
-    }
-
-    public init(): Promise<void> {
-        return Promise.resolve()
-    }
-
-    public dispose(): Promise<void> {
-        return Promise.resolve()
-    }
-
-    public onUpdate(listener: (delta: string[]) => void) {
-        // Empty
-    }
-}
-
-class MockMbConnector implements IMessageBrokerConnector {
-    public name = 'MockMbConnector'
-
-    public messageExpiredIn: number
-    public subscribedPatterns: string[]
-
-    public get queue(): string {
-        return ''
-    }
-
-    public connect(options: MessageBrokerConnectionOptions): Promise<void> {
-        return Promise.resolve()
-    }
-
-    public disconnect(): Promise<void> {
-        return Promise.resolve()
-    }
-
-    public deleteQueue(): Promise<void> {
-        return Promise.resolve()
-    }
-
-    public emptyQueue(): Promise<number> {
-        return Promise.resolve(0)
-    }
-
-    public listen(onMessage: MessageHandleFunction, noAck?: boolean): Promise<void> {
-        return Promise.resolve()
-    }
-
-    public stopListen(): Promise<void> {
-        return Promise.resolve()
-    }
-
-    public publish(topic: string, payload: any, options?: MessageBrokerPublishOptions): Promise<void> {
-        return Promise.resolve()
-    }
-
-    public subscribe(matchingPattern: string): Promise<void> {
-        return Promise.resolve()
-    }
-
-    public unsubscribe(consumerTag: string): Promise<void> {
-        return Promise.resolve()
-    }
-
-    public unsubscribeAll(): Promise<void> {
-        return Promise.resolve()
-    }
-
-    public onError(handler: (err: any) => void): void {
-        // Empty
-    }
-}
+let config: IConfigurationProvider,
+    connector: IMessageBrokerConnector
 
 function createConnector() {
-    return new MockMbConnector()
+    return connector
 }
 
 describe('MessageBrokerAddOn', () => {
+    beforeEach(() => {
+        config = mockConfigProvider({
+            [S.MSG_BROKER_USERNAME]: 'guest',
+            [S.MSG_BROKER_PASSWORD]: 'guest',
+            [S.MSG_BROKER_EXCHANGE]: 'amq.topic',
+        })
+
+        const MbConnectorClass = mock<IMessageBrokerConnector>()
+        connector = instance(MbConnectorClass)
+    })
+
     describe('init', () => {
-        it('should call connector.connect', async () => {
+        it('should retrieve connector options', async () => {
             // Arrange
-            const dbAddOn = new MessageBrokerProviderAddOn(createConnector, new MockConfigAddOn()),
-                connectSpy = chai.spy.on(dbAddOn['_msgBrokerCnn'], 'connect')
+            const addOn = new MessageBrokerProviderAddOn(createConnector, config)
 
             // Act
-            await dbAddOn.init()
+            await addOn.init()
 
             // Assert
-            expect(connectSpy).to.be.spy
-            expect(connectSpy).to.have.been.called.once
+            expect(addOn['_connectorOptions']).to.exist
+            expect(addOn['_connectorOptions'].username).to.equal('guest')
+            expect(addOn['_connectorOptions'].password).to.equal('guest')
+            expect(addOn['_connectorOptions'].exchange).to.equal('amq.topic')
         })
     }) // END describe 'init'
 
     describe('dispose', () => {
         it('should call connector.disconnect', async () => {
             // Arrange
-            const dbAddOn = new MessageBrokerProviderAddOn(createConnector, new MockConfigAddOn()),
-                disconnectSpy = chai.spy.on(dbAddOn['_msgBrokerCnn'], 'disconnect')
+            const ConnectorClassA = mock<IMessageBrokerConnector>()
+            when(ConnectorClassA.disconnect()).thenResolve()
+
+            const ConnectorClassB = mock<IMessageBrokerConnector>()
+            when(ConnectorClassB.disconnect()).thenResolve()
+            const addOn = new MessageBrokerProviderAddOn(createConnector, config)
+
+            addOn['_connectors'] = [
+                instance(ConnectorClassA),
+                instance(ConnectorClassB),
+            ]
 
             // Act
-            await dbAddOn.dispose()
+            await addOn.dispose()
 
             // Assert
-            expect(disconnectSpy).to.be.spy
-            expect(disconnectSpy).to.have.been.called.once
+            verify(ConnectorClassA.disconnect()).once()
+            verify(ConnectorClassB.disconnect()).once()
+            expect(addOn['_connectors']).to.be.empty
         })
     }) // END describe 'dispose'
 })

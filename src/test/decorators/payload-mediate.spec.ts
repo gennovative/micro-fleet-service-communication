@@ -5,89 +5,51 @@ import * as spies from 'chai-spies'
 chai.use(spies)
 const expect = chai.expect
 
-import { IConfigurationProvider, constants, Maybe,
-    DependencyContainer, serviceContext, Types as CmT, ValidationError,
+import { constants, Types as CmT,
+    DependencyContainer, serviceContext, ValidationError,
     } from '@micro-fleet/common'
 
-import { IMediateRpcHandler, IMediateRpcCaller, MessageBrokerRpcCaller,
-    TopicMessageBrokerConnector, MessageBrokerRpcHandler, DefaultMediateRpcHandlerAddOn,
-    RpcResponse,
-    } from '../../app'
+import { IMediateRpcHandler, IMediateRpcCaller,
+    DefaultMediateRpcHandlerAddOn, RpcResponse, IMessageBrokerConnector,
+} from '../../app'
 import * as rc from '../shared/payload-controller'
 import { SampleModel } from '../shared/SampleModel'
 import rabbitOpts from '../rabbit-options'
+import { mockConfigProvider, mockMediateRpcCaller, mockMediateRpcHandler } from '../shared/helper'
 
 
-const { RPC: RpcS, Service: SvcS } = constants
+const { RPC, Service: S } = constants
 
 const SERVICE_SLUG = 'test-service',
-    HANDLER_PORT = 30000,
-    CALLER_NAME = 'caller'
-
-class MockConfigProvider implements IConfigurationProvider {
-
-    public readonly name: string = 'MockConfigProvider'
-    public configFilePath: string
-
-    get enableRemote(): boolean {
-        return true
-    }
-
-    public init(): Promise<void> {
-        return Promise.resolve()
-    }
-
-    public deadLetter(): Promise<void> {
-        return Promise.resolve()
-    }
-
-    public dispose(): Promise<void> {
-        return Promise.resolve()
-    }
-
-    public onUpdate(listener: (changedKeys: string[]) => void) {
-        // Empty
-    }
-
-    public get(key: string): Maybe<number | boolean | string> {
-        switch (key) {
-            case RpcS.RPC_HANDLER_PORT: return Maybe.Just(HANDLER_PORT)
-            case SvcS.SERVICE_SLUG: return Maybe.Just(SERVICE_SLUG)
-            default: return Maybe.Nothing()
-        }
-    }
-
-    public async fetch(): Promise<boolean> {
-        return Promise.resolve(true)
-    }
-}
+    HANDLER_PORT = 30e3
 
 
 let depContainer: DependencyContainer,
-    handlerMbConn: TopicMessageBrokerConnector,
-    callerMbConn: TopicMessageBrokerConnector,
+    handlerMbConn: IMessageBrokerConnector,
+    callerMbConn: IMessageBrokerConnector,
     handler: IMediateRpcHandler,
     caller: IMediateRpcCaller,
     addon: DefaultMediateRpcHandlerAddOn
 
 describe('@payload() - mediate', function() {
-    // this.timeout(5000)
-    this.timeout(60000) // For debugging
+    // this.timeout(5e3)
+    this.timeout(60e3) // For debugging
 
-    beforeEach(() => {
+    beforeEach(async () => {
         depContainer = new DependencyContainer()
         serviceContext.setDependencyContainer(depContainer)
         depContainer.bindConstant(CmT.DEPENDENCY_CONTAINER, depContainer)
 
-        callerMbConn = new TopicMessageBrokerConnector()
-        handlerMbConn = new TopicMessageBrokerConnector()
+        const config = mockConfigProvider({
+            [S.SERVICE_SLUG]: SERVICE_SLUG,
+            [RPC.RPC_HANDLER_PORT]: HANDLER_PORT,
+        });
 
-        caller = new MessageBrokerRpcCaller(callerMbConn)
-        caller.name = CALLER_NAME
+        [caller, callerMbConn] = await mockMediateRpcCaller(config);
+        [handler, handlerMbConn] = await mockMediateRpcHandler(config, false)
 
-        handler = new MessageBrokerRpcHandler(handlerMbConn)
         addon = new DefaultMediateRpcHandlerAddOn(
-            new MockConfigProvider(),
+            config,
             depContainer,
             handler
         )
