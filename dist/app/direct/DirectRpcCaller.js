@@ -8,20 +8,15 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var __param = (this && this.__param) || function (paramIndex, decorator) {
-    return function (target, key) { decorator(target, key, paramIndex); }
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 /// <reference types="debug" />
 const debug = require('debug')('mcft:svccom:HttpRpcCaller');
 const request = require("request-promise-native");
 const common_1 = require("@micro-fleet/common");
 const rpc = require("../RpcCommon");
-const { Service: S, } = common_1.constants;
 let HttpRpcCaller = class HttpRpcCaller extends rpc.RpcCallerBase {
-    constructor(_config) {
+    constructor() {
         super();
-        this._config = _config;
         this._requestMaker = request;
     }
     get baseAddress() {
@@ -30,8 +25,8 @@ let HttpRpcCaller = class HttpRpcCaller extends rpc.RpcCallerBase {
     /**
      * @see IRpcCaller.init
      */
-    init(options = {}) {
-        this.$name = options.callerName || this._config.get(S.SERVICE_SLUG).value;
+    init(options) {
+        this.$name = options.callerName;
         this._baseAddress = options.baseAddress;
         return Promise.resolve();
     }
@@ -99,8 +94,7 @@ let HttpRpcCaller = class HttpRpcCaller extends rpc.RpcCallerBase {
 };
 HttpRpcCaller = __decorate([
     common_1.decorators.injectable(),
-    __param(0, common_1.decorators.inject(common_1.Types.CONFIG_PROVIDER)),
-    __metadata("design:paramtypes", [Object])
+    __metadata("design:paramtypes", [])
 ], HttpRpcCaller);
 exports.HttpRpcCaller = HttpRpcCaller;
 //# sourceMappingURL=DirectRpcCaller.js.map

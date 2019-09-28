@@ -69,7 +69,7 @@ describe('DirectRpcHandlerAddOnBase', () => {
             [S.SERVICE_SLUG]: SERVICE_SLUG,
             [RPC.RPC_HANDLER_PORT]: HANDLER_PORT,
         })
-        handler = new ExpressRpcHandler(config)
+        handler = new ExpressRpcHandler()
         addon = new CustomAddOn(config, handler)
     })
 

@@ -4,31 +4,31 @@ const debug: debug.IDebugger = require('debug')('mcft:svccom:ExpressRpcHandler')
 import * as http from 'http'
 
 import * as express from 'express'
-import { decorators as d, Types as cT, constants, Guard, CriticalException,
-    ValidationError, IConfigurationProvider} from '@micro-fleet/common'
+import { decorators as d, Guard, ValidationError} from '@micro-fleet/common'
 
 import * as rpc from '../RpcCommon'
 
-
-const {
-    Service: S,
-} = constants
 
 
 export type DirectRpcHandlerOptions = {
     /**
      * The name used in "from" property of sent messages.
      */
-    handlerName?: string,
-}
+    handlerName: string,
 
-export interface IDirectRpcHandler extends rpc.IRpcHandler {
     /**
      * Http ports to listen
      */
     port: number
+}
 
-    init(options?: DirectRpcHandlerOptions): Promise<void>
+export interface IDirectRpcHandler extends rpc.IRpcHandler {
+    /**
+     * Http ports to listen. Default as 30000
+     */
+    readonly port: number
+
+    init(options: DirectRpcHandlerOptions): Promise<void>
 
 }
 
@@ -52,10 +52,9 @@ export class ExpressRpcHandler
 
 
     constructor(
-        @d.inject(cT.CONFIG_PROVIDER) private _config: IConfigurationProvider,
+        // @d.inject(cT.CONFIG_PROVIDER) private _config: IConfigurationProvider,
     ) {
         super()
-        this._port = 30000
         this._isOpen = false
     }
 
@@ -64,19 +63,12 @@ export class ExpressRpcHandler
         return this._port
     }
 
-    public set port(val: number) {
-        if (val > 0 && val <= 65535) {
-            this._port = val
-            return
-        }
-        throw new CriticalException('INVALID_PORT_DIRECT_RPC_HANDLER')
-    }
-
     /**
      * @see IDirectRpcHandler.init
      */
-    public init(options: DirectRpcHandlerOptions = {}): Promise<void> {
-        this.$name = options.handlerName || this._config.get(S.SERVICE_SLUG).value
+    public init(options: DirectRpcHandlerOptions): Promise<void> {
+        this.$name = options.handlerName // || this._config.get(S.SERVICE_SLUG).value
+        this._port = options.port // || this._config.get(RPC.RPC_HANDLER_PORT).value
         Guard.assertIsFalsey(this._routers, 'This RPC Handler is already initialized!')
         Guard.assertIsTruthy(this.name, '`name` property must be set!')
 

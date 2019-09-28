@@ -1,8 +1,10 @@
-import { IConfigurationProvider, decorators as d,
+import { decorators as d, constants, IConfigurationProvider,
     Guard, IServiceAddOn} from '@micro-fleet/common'
 
 import { IMediateRpcHandler } from './MediateRpcHandler'
 
+
+const { Service: S } = constants
 
 /**
  * Base class for MediateRpcAddOn.
@@ -27,7 +29,9 @@ export abstract class MediateRpcHandlerAddOnBase implements IServiceAddOn {
      * @see IServiceAddOn.init
      */
     public async init(): Promise<void> {
-        await this._rpcHandler.init()
+        await this._rpcHandler.init({
+            handlerName: this._configProvider.get(S.SERVICE_SLUG).value,
+        })
         this._errorHandler && this._rpcHandler.onError(this._errorHandler)
         await this.handleRequests()
         await this._rpcHandler.start()

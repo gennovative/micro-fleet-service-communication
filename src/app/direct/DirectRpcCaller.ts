@@ -2,17 +2,11 @@
 const debug: debug.IDebugger = require('debug')('mcft:svccom:HttpRpcCaller')
 
 import * as request from 'request-promise-native'
-import { decorators as d, Types as cT, constants, Guard,
-    InternalErrorException, MinorException, IConfigurationProvider,
-} from '@micro-fleet/common'
+import { decorators as d, Guard, InternalErrorException, MinorException } from '@micro-fleet/common'
 
 import * as rpc from '../RpcCommon'
 import { StatusCodeError } from 'request-promise-native/errors'
 
-
-const {
-    Service: S,
-} = constants
 
 export type DirectRpcCallerOptions = {
     /**
@@ -36,7 +30,7 @@ export interface IDirectRpcCaller extends rpc.IRpcCaller {
      */
     readonly baseAddress: string
 
-    init(options?: DirectRpcCallerOptions): Promise<void>
+    init(options: DirectRpcCallerOptions): Promise<void>
 }
 
 @d.injectable()
@@ -47,9 +41,7 @@ export class HttpRpcCaller
     private _baseAddress: string
     private _requestMaker: (options: any) => Promise<any>
 
-    constructor(
-        @d.inject(cT.CONFIG_PROVIDER) private _config: IConfigurationProvider,
-    ) {
+    constructor() {
         super()
         this._requestMaker = <any>request
     }
@@ -62,8 +54,8 @@ export class HttpRpcCaller
     /**
      * @see IRpcCaller.init
      */
-    public init(options: DirectRpcCallerOptions = {}): Promise<void> {
-        this.$name = options.callerName || this._config.get(S.SERVICE_SLUG).value
+    public init(options: DirectRpcCallerOptions): Promise<void> {
+        this.$name = options.callerName
         this._baseAddress = options.baseAddress
         return Promise.resolve()
     }

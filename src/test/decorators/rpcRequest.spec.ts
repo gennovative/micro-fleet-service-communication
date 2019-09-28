@@ -5,45 +5,39 @@ import * as spies from 'chai-spies'
 chai.use(spies)
 const expect = chai.expect
 
-import { IConfigurationProvider, constants, DependencyContainer,
-    serviceContext, Types as CmT,
-} from '@micro-fleet/common'
+import { IConfigurationProvider, constants, DependencyContainer } from '@micro-fleet/common'
 
-import { RpcResponse,
-    IDirectRpcHandler, ExpressRpcHandler,
-    IDirectRpcCaller, HttpRpcCaller,
+import { RpcResponse, IDirectRpcCaller,
     DefaultDirectRpcHandlerAddOn, DefaultMediateRpcHandlerAddOn,
     IMediateRpcHandler, IMediateRpcCaller, IMessageBrokerConnector,
 } from '../../app'
 import * as rc from '../shared/rpcRequest-rawMessage-controller'
 import rabbitOpts from '../rabbit-options'
-import { mockConfigProvider, mockMediateRpcCaller, mockMediateRpcHandler } from '../shared/helper'
+import * as h from '../shared/helper'
 
 
 const { RPC: R, Service: S } = constants
+const {
+    SERVICE_SLUG,
+    CALLER_NAME,
+    HANDLER_PORT,
+} = h.constants
 
-const CONTROLLER_NAME = 'rpcRequest-rawMessage-controller',
-    SERVICE_SLUG = 'test-service',
-    HANDLER_PORT = 30e3,
-    HANDLER_ADDR = `localhost:${HANDLER_PORT}`,
-    CALLER_NAME = 'caller'
+const CONTROLLER_NAME = 'rpcRequest-rawMessage-controller'
 
 let config: IConfigurationProvider
 
 // tslint:disable: no-floating-promises
 
 describe('@rpcRequest()', function() {
-    this.timeout(5e3)
+    this.timeout(5000)
     // this.timeout(60e3) // For debugging
 
     let depContainer: DependencyContainer
 
     beforeEach(() => {
-        depContainer = new DependencyContainer()
-        serviceContext.setDependencyContainer(depContainer)
-        depContainer.bindConstant(CmT.DEPENDENCY_CONTAINER, depContainer)
-
-        config = mockConfigProvider({
+        depContainer = h.mockDependencyContainer()
+        config = h.mockConfigProvider({
             [S.SERVICE_SLUG]: SERVICE_SLUG,
             [R.RPC_HANDLER_PORT]: HANDLER_PORT,
         })
@@ -55,24 +49,13 @@ describe('@rpcRequest()', function() {
 
     describe('Direct', () => {
 
-        let handler: IDirectRpcHandler,
-        caller: IDirectRpcCaller,
+        let caller: IDirectRpcCaller,
         addon: DefaultDirectRpcHandlerAddOn
 
-        beforeEach(() => {
-            caller = new HttpRpcCaller(config)
-            caller.init({
-                callerName: CALLER_NAME,
-                baseAddress: HANDLER_ADDR,
-            })
+        beforeEach(async () => {
+            caller = await h.mockDirectRpcCaller();
 
-            handler = new ExpressRpcHandler(config)
-            handler.init()
-            addon = new DefaultDirectRpcHandlerAddOn(
-                config,
-                depContainer,
-                handler
-            )
+            [addon] = h.mockDefaultDirectRpcHandlerAddOn(config, depContainer)
             addon.controllerPath = path.join(
                 process.cwd(),
                 'dist', 'test', 'shared', CONTROLLER_NAME,
@@ -170,8 +153,8 @@ describe('@rpcRequest()', function() {
         addon: DefaultMediateRpcHandlerAddOn
 
         beforeEach(async () => {
-            [caller, callerMbConn] = await mockMediateRpcCaller(config);
-            [handler, handlerMbConn] = await mockMediateRpcHandler(config, false)
+            [caller, callerMbConn] = await h.mockMediateRpcCaller(config);
+            [handler, handlerMbConn] = await h.mockMediateRpcHandler(config, false)
 
             addon = new DefaultMediateRpcHandlerAddOn(
                 config,

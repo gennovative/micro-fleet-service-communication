@@ -18,11 +18,9 @@ const shortid = require("shortid");
 const common_1 = require("@micro-fleet/common");
 const Types_1 = require("../constants/Types");
 const rpc = require("../RpcCommon");
-const { Service: S, MessageBroker: MB, RPC, } = common_1.constants;
 let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerBase {
-    constructor(_config, _msgBrokerConnProvider) {
+    constructor(_msgBrokerConnProvider) {
         super();
-        this._config = _config;
         this._msgBrokerConnProvider = _msgBrokerConnProvider;
         common_1.Guard.assertArgDefined('_msgBrokerConnProvider', _msgBrokerConnProvider);
     }
@@ -38,22 +36,22 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
     /**
      * @see IMediateRpcCaller.init
      */
-    async init(options = {}) {
-        this.$name = options.callerName || this._config.get(S.SERVICE_SLUG).value;
+    async init(options) {
+        this.$name = options.callerName;
         if (options.connector) {
             this._msgBrokerConn = options.connector;
         }
         else {
             const name = options.connectorName || `Connector for RPC caller "${this.name}"`;
             this._msgBrokerConn = await this._msgBrokerConnProvider.create(name);
-            this._msgBrokerConn.messageExpiredIn = this._config
-                .get(MB.MSG_BROKER_MSG_EXPIRE, common_1.SettingItemDataType.Number)
-                .tryGetValue(30e3);
+            if (options.messageExpiredIn != null) {
+                this._msgBrokerConn.messageExpiredIn = options.messageExpiredIn;
+            }
             this._msgBrokerConn.onError(err => this.$emitError(err));
         }
-        this.$timeout = this._config
-            .get(RPC.RPC_CALLER_TIMEOUT, common_1.SettingItemDataType.Number)
-            .tryGetValue(30e3);
+        if (options.timeout != null) {
+            this.$timeout = options.timeout;
+        }
     }
     /**
      * @see IRpcCaller.dispose
@@ -143,9 +141,8 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
 };
 MessageBrokerRpcCaller = __decorate([
     common_1.decorators.injectable(),
-    __param(0, common_1.decorators.inject(common_1.Types.CONFIG_PROVIDER)),
-    __param(1, common_1.decorators.inject(Types_1.Types.MSG_BROKER_CONNECTOR_PROVIDER)),
-    __metadata("design:paramtypes", [Object, Object])
+    __param(0, common_1.decorators.inject(Types_1.Types.MSG_BROKER_CONNECTOR_PROVIDER)),
+    __metadata("design:paramtypes", [Object])
 ], MessageBrokerRpcCaller);
 exports.MessageBrokerRpcCaller = MessageBrokerRpcCaller;
 //# sourceMappingURL=MediateRpcCaller.js.map

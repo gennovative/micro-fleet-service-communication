@@ -5,29 +5,25 @@ import * as spies from 'chai-spies'
 chai.use(spies)
 const expect = chai.expect
 
-import { constants, Types as CmT,
-    DependencyContainer, serviceContext,
-    InternalErrorException, MinorException,
-    } from '@micro-fleet/common'
+import { constants, DependencyContainer, InternalErrorException,
+    MinorException,
+} from '@micro-fleet/common'
 
-import { IDirectRpcHandler, IDirectRpcCaller, ExpressRpcHandler, HttpRpcCaller,
-    DefaultDirectRpcHandlerAddOn, RpcResponse,
+import { IDirectRpcCaller, DefaultDirectRpcHandlerAddOn, RpcResponse,
     } from '../../app'
 
 import * as rc from '../shared/resolve-reject-controller'
-import { mockConfigProvider } from '../shared/helper'
+import * as h from '../shared/helper'
 
 
 const { RPC: R, Service: S } = constants
-
-const SERVICE_SLUG = 'test-service',
-    HANDLER_PORT = 30e3,
-    HANDLER_ADDR = `localhost:${HANDLER_PORT}`,
-    CALLER_NAME = 'caller'
+const {
+    SERVICE_SLUG,
+    HANDLER_PORT,
+} = h.constants
 
 
 let depContainer: DependencyContainer,
-    handler: IDirectRpcHandler,
     caller: IDirectRpcCaller,
     addon: DefaultDirectRpcHandlerAddOn
 
@@ -35,32 +31,18 @@ let depContainer: DependencyContainer,
 // tslint:disable: no-floating-promises
 
 describe('@rejectFn() - direct', function() {
-    this.timeout(5e3)
+    this.timeout(5000)
     // this.timeout(60e3) // For debugging
 
-    beforeEach(() => {
-        depContainer = new DependencyContainer()
-        serviceContext.setDependencyContainer(depContainer)
-        depContainer.bindConstant(CmT.DEPENDENCY_CONTAINER, depContainer)
-
-        const config = mockConfigProvider({
+    beforeEach(async () => {
+        const config = h.mockConfigProvider({
             [S.SERVICE_SLUG]: SERVICE_SLUG,
             [R.RPC_HANDLER_PORT]: HANDLER_PORT,
         })
+        depContainer = h.mockDependencyContainer()
+        caller = await h.mockDirectRpcCaller();
 
-        caller = new HttpRpcCaller(config)
-        caller.init({
-            callerName: CALLER_NAME,
-            baseAddress: HANDLER_ADDR,
-        })
-
-        handler = new ExpressRpcHandler(config)
-        handler.init()
-        addon = new DefaultDirectRpcHandlerAddOn(
-            config,
-            depContainer,
-            handler
-        )
+        [addon] = h.mockDefaultDirectRpcHandlerAddOn(config, depContainer)
         addon.controllerPath = path.join(process.cwd(), 'dist', 'test', 'shared', 'resolve-reject-controller')
     })
 

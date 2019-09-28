@@ -2,65 +2,48 @@ import * as path from 'path'
 
 import * as chai from 'chai'
 import * as spies from 'chai-spies'
-// import { StatusCodeError } from 'request-promise/errors'
 
-import { Types as CmT, constants, DependencyContainer, serviceContext,
-    MinorException, CriticalException,
-} from '@micro-fleet/common'
+import { constants, DependencyContainer, MinorException,
+    CriticalException } from '@micro-fleet/common'
 
-import { IDirectRpcHandler, IDirectRpcCaller, ExpressRpcHandler, HttpRpcCaller,
-    DefaultDirectRpcHandlerAddOn, RpcResponse, RpcError,
-    } from '../app'
+import { IDirectRpcCaller, DefaultDirectRpcHandlerAddOn,
+    RpcResponse, RpcError } from '../app'
 
 import * as dc from './shared/direct-controllers'
-import { sleep, mockConfigProvider } from './shared/helper'
+import * as h from './shared/helper'
 
 
 chai.use(spies)
 const expect = chai.expect
 const { RPC: R, Service: S } = constants
+const {
+    SERVICE_SLUG,
+    HANDLER_PORT,
+    CALLER_NAME,
+} = h.constants
 
-const SERVICE_SLUG = 'test-service',
-    HANDLER_PORT = 30e3,
-    HANDLER_ADDR = `localhost:${HANDLER_PORT}`,
-    CALLER_NAME = 'caller',
-    TEXT_REQUEST = '1346468764131687'
+const TEXT_REQUEST = '1346468764131687'
 
 
 let depContainer: DependencyContainer,
-    handler: IDirectRpcHandler,
     caller: IDirectRpcCaller,
     addon: DefaultDirectRpcHandlerAddOn
 
 // tslint:disable: no-floating-promises
 
 describe('DefaultDirectRpcHandlerAddOn', function() {
-    this.timeout(5e3)
-    // For debugging
-    // this.timeout(60e3)
+    this.timeout(5000)
+    // this.timeout(60e3) // For debugging
 
-    beforeEach(() => {
-        depContainer = new DependencyContainer()
-        serviceContext.setDependencyContainer(depContainer)
-        depContainer.bindConstant(CmT.DEPENDENCY_CONTAINER, depContainer)
-
-        const config = mockConfigProvider({
+    beforeEach(async () => {
+        const config = h.mockConfigProvider({
             [S.SERVICE_SLUG]: SERVICE_SLUG,
             [R.RPC_HANDLER_PORT]: HANDLER_PORT,
         })
+        depContainer = h.mockDependencyContainer()
+        caller = await h.mockDirectRpcCaller();
 
-        caller = new HttpRpcCaller(config)
-        caller.init({
-            callerName: CALLER_NAME,
-            baseAddress: HANDLER_ADDR,
-        })
-
-        handler = new ExpressRpcHandler(config)
-        addon = new DefaultDirectRpcHandlerAddOn(
-            config,
-            depContainer,
-            handler
-        )
+        [addon] = h.mockDefaultDirectRpcHandlerAddOn(config, depContainer)
         addon.controllerPath = path.join(process.cwd(), 'dist', 'test', 'shared', 'direct-controllers')
     })
 
@@ -274,7 +257,7 @@ describe('DefaultDirectRpcHandlerAddOn', function() {
                     expect(exception).to.exist
                     expect(exception).to.be.instanceOf(MinorException)
                     expect(exception.message).to.include('ECONNREFUSED')
-                    return sleep(1000)
+                    return h.sleep(1000)
                 })
                 .then(() => {
                     // Assert: "counter" not increased.

@@ -1,3 +1,5 @@
+import { EventEmitter } from 'events'
+
 import { expect } from 'chai'
 import { mock, instance, when, anything, anyFunction, reset } from 'ts-mockito'
 import { constants, MinorException, IConfigurationProvider } from '@micro-fleet/common'
@@ -10,8 +12,8 @@ import { MessageBrokerRpcCaller, BrokerMessage,
 } from '../app'
 
 import rabbitOpts from './rabbit-options'
-import { mockMediateRpcCaller, mockConfigProvider, mockMediateRpcHandler } from './shared/helper'
-import { EventEmitter } from 'events'
+import * as h from './shared/helper'
+
 
 const {
     Service: S,
@@ -19,10 +21,13 @@ const {
     RPC,
 } = constants
 
-const CALLER_MODULE = 'TestCaller',
-    HANDLER_MODULE = 'TestHandler',
-    SERVICE_SLUG = 'mock-service-slug',
-    CALLER_TIMEOUT = 3000, // Time to wait before cancel the request
+const {
+    SERVICE_SLUG,
+    CALLER_NAME,
+    HANDLER_NAME,
+} = h.constants
+
+const CALLER_TIMEOUT = 3000, // Time to wait before cancel the request
     HANDLER_DELAY = 3500, // Enough to make caller's request time out
     CALLER_QUEUE_TTL = 1000 // Time to live of messages in caller's queue.
 
@@ -34,13 +39,13 @@ let globalHandlerMbConn: IMessageBrokerConnector,
 
 // tslint:disable: no-floating-promises
 
-describe.only('MessageBrokerRpcCaller', function() {
+describe('MessageBrokerRpcCaller', function() {
     this.timeout(10e3)
 
     beforeEach(() => {
-        config = mockConfigProvider({
+        config = h.mockConfigProvider({
             [S.SERVICE_SLUG]: SERVICE_SLUG,
-            [MB.MSG_BROKER_MSG_EXPIRE]: 3e3,
+            [MB.MSG_BROKER_MSG_EXPIRE]: CALLER_QUEUE_TTL,
             [RPC.RPC_CALLER_TIMEOUT]: 3e3,
         })
     })
@@ -50,12 +55,12 @@ describe.only('MessageBrokerRpcCaller', function() {
             // Arrange
             const ConnProviderClass = mock<IMessageBrokerConnectorProvider>()
             const connector = new TopicMessageBrokerConnector(SERVICE_SLUG)
-            const caller = new MessageBrokerRpcCaller(config, instance(ConnProviderClass))
+            const caller = new MessageBrokerRpcCaller(instance(ConnProviderClass))
 
             // Act
             caller.init({
                 connector,
-                callerName: CALLER_MODULE,
+                callerName: CALLER_NAME,
             })
 
             // Assert
@@ -83,14 +88,14 @@ describe.only('MessageBrokerRpcCaller', function() {
             let MockConnProviderHandler
             let caller: IMediateRpcCaller
 
-            mockMediateRpcCaller(config, false)
+            h.mockMediateRpcCaller(config, false)
                 .then(result => {
                     caller = result[0]
                     MockConnProviderHandler = result[2]
                     reset(MockConnProviderHandler)
                     when(MockConnProviderHandler.create(anything()))
                         .thenResolve(stubConnector as any) // Cannot thenResolve(connector) because of ts-mockito's bug
-                    return caller.init()
+                    return caller.init({ callerName: CALLER_NAME })
                 })
                 .then(() => {
                     // Act
@@ -114,8 +119,8 @@ describe.only('MessageBrokerRpcCaller', function() {
         // this.timeout(30e3);
 
         beforeEach(async () => {
-            [globalCaller, globalCallerMbConn] = await mockMediateRpcCaller(config, false, CALLER_MODULE);
-            [, globalHandlerMbConn] = await mockMediateRpcHandler(config, false, HANDLER_MODULE)
+            [globalCaller, globalCallerMbConn] = await h.mockMediateRpcCaller(config, false);
+            [, globalHandlerMbConn] = await h.mockMediateRpcHandler(config, false)
 
             globalHandlerMbConn.onError((err) => {
                 console.error('Handler error:\n' + JSON.stringify(err))
@@ -129,10 +134,15 @@ describe.only('MessageBrokerRpcCaller', function() {
                 globalHandlerMbConn.connect(rabbitOpts.handler),
                 globalCallerMbConn.connect(rabbitOpts.caller),
             ])
+
+            await globalCaller.init({
+                connector: globalCallerMbConn,
+                callerName: CALLER_NAME,
+            })
         })
 
         afterEach(async function() {
-            this.timeout(5e3)
+            this.timeout(5000)
             await globalHandlerMbConn.stopListen()
             await Promise.all([
                 globalHandlerMbConn.deleteQueue(),
@@ -150,10 +160,7 @@ describe.only('MessageBrokerRpcCaller', function() {
                 TEXT = 'eeeechooooo'
 
             // This is the topic that caller should make
-            const topic = `request.${HANDLER_MODULE}.${ACTION}`
-            globalCaller.init({
-                connector: globalCallerMbConn,
-            })
+            const topic = `request.${HANDLER_NAME}.${ACTION}`
 
             globalHandlerMbConn.subscribe(topic)
                 .then(() => globalHandlerMbConn.listen((msg: BrokerMessage) => {
@@ -161,14 +168,14 @@ describe.only('MessageBrokerRpcCaller', function() {
 
                     // Assert
                     expect(request).to.be.not.null
-                    expect(request.from).to.equal(CALLER_MODULE)
-                    expect(request.to).to.equal(HANDLER_MODULE)
+                    expect(request.from).to.equal(CALLER_NAME)
+                    expect(request.to).to.equal(HANDLER_NAME)
                     expect(request.payload.text).to.equal(TEXT)
                     done()
                 }))
                 // Act
                 .then(() => globalCaller.call({
-                    moduleName: HANDLER_MODULE,
+                    moduleName: HANDLER_NAME,
                     actionName: ACTION,
                     params: { text: TEXT },
                 }))
@@ -179,16 +186,13 @@ describe.only('MessageBrokerRpcCaller', function() {
                 })
         })
 
-        it.only('Should publish then wait for response.', (done) => {
+        it('Should publish then wait for response.', (done) => {
             // Arrange
             const ACTION = 'echo',
                 TEXT = 'eeeechooooo'
 
             // This is the topic that caller should make
-            const topic = `request.${HANDLER_MODULE}.${ACTION}`
-            globalCaller.init({
-                connector: globalCallerMbConn,
-            })
+            const topic = `request.${HANDLER_NAME}.${ACTION}`
 
             globalHandlerMbConn.subscribe(topic)
                 .then(() => {
@@ -205,18 +209,19 @@ describe.only('MessageBrokerRpcCaller', function() {
                             }
                         globalHandlerMbConn.publish(props.replyTo, response, { correlationId: props.correlationId })
                     })
-                }).then(() => {
+                })
+                .then(() => {
                     // Act
                     return globalCaller.call({
-                        moduleName: HANDLER_MODULE,
+                        moduleName: HANDLER_NAME,
                         actionName: ACTION,
                     })
                 })
                 .then((res: RpcResponse) => {
                     // Assert
                     expect(res).to.be.not.null
-                    expect(res.from).to.equal(HANDLER_MODULE)
-                    expect(res.to).to.equal(CALLER_MODULE)
+                    expect(res.from).to.equal(HANDLER_NAME)
+                    expect(res.to).to.equal(CALLER_NAME)
                     expect(res.payload.text).to.equal(TEXT)
                     done()
                 })
@@ -232,7 +237,7 @@ describe.only('MessageBrokerRpcCaller', function() {
         //         ERROR_MSG = 'errrrorrrr'
 
         //     // This is the topic that caller should make
-        //     const topic = `request.${HANDLER_MODULE}.${ACTION}`
+        //     const topic = `request.${HANDLER_NAME}.${ACTION}`
         //     globalCaller.init({
             //     connector: globalCallerMbConn,
             // })
@@ -255,7 +260,7 @@ describe.only('MessageBrokerRpcCaller', function() {
         //             })
         //         }).then(() => {
         //             // Act
-        //             return globalCaller.call(HANDLER_MODULE, ACTION)
+        //             return globalCaller.call(HANDLER_NAME, ACTION)
         //         })
         //         .then((res: RpcResponse) => {
         //             // Assert
@@ -274,10 +279,7 @@ describe.only('MessageBrokerRpcCaller', function() {
             const ACTION = 'echo'
 
             // This is the topic that caller should make
-            const topic = `request.${HANDLER_MODULE}.${ACTION}`
-            globalCaller.init({
-                connector: globalCallerMbConn,
-            })
+            const topic = `request.${HANDLER_NAME}.${ACTION}`
 
             globalHandlerMbConn.subscribe(topic)
                 .then(() => {
@@ -290,7 +292,7 @@ describe.only('MessageBrokerRpcCaller', function() {
                 .then(() => {
                     // Act
                     return globalCaller.call({
-                        moduleName: HANDLER_MODULE,
+                        moduleName: HANDLER_NAME,
                         actionName: ACTION,
                     })
                 })
@@ -315,11 +317,8 @@ describe.only('MessageBrokerRpcCaller', function() {
             this.timeout(CALLER_TIMEOUT + HANDLER_DELAY + 3000)
 
             // This is the topic that caller should make
-            const topic = `request.${HANDLER_MODULE}.${ACTION}`
+            const topic = `request.${HANDLER_NAME}.${ACTION}`
             globalCallerMbConn.messageExpiredIn = CALLER_QUEUE_TTL
-            globalCaller.init({
-                connector: globalCallerMbConn,
-            })
 
             // Step 1: Caller sends a request, waits in CALLER_TIMEOUT millisecs,
             //         then stops waiting for response.
@@ -349,7 +348,7 @@ describe.only('MessageBrokerRpcCaller', function() {
                     // Act
                     // Step 1
                     return globalCaller.call({
-                        moduleName: HANDLER_MODULE,
+                        moduleName: HANDLER_NAME,
                         actionName: ACTION,
                     })
                 })

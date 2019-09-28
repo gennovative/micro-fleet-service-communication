@@ -1,9 +1,9 @@
-import { IConfigurationProvider, constants, decorators as d,
-    Guard, IServiceAddOn } from '@micro-fleet/common'
+import { decorators as d, IConfigurationProvider, constants,
+    Guard, IServiceAddOn, SettingItemDataType } from '@micro-fleet/common'
 
 import { IDirectRpcHandler } from './DirectRpcHandler'
 
-const { RPC: R } = constants
+const { RPC, Service: S } = constants
 
 
 /**
@@ -28,9 +28,12 @@ export abstract class DirectRpcHandlerAddOnBase implements IServiceAddOn {
      * @see IServiceAddOn.init
      */
     public init(): Promise<void> {
-        this._rpcHandler.port = this._configProvider.get(R.RPC_HANDLER_PORT).value as number
         this._errorHandler && this._rpcHandler.onError(this._errorHandler)
-        return this._rpcHandler.init()
+        const config = this._configProvider
+        return this._rpcHandler.init({
+                handlerName: config.get(S.SERVICE_SLUG).value,
+                port: config.get(RPC.RPC_HANDLER_PORT, SettingItemDataType.Number).value,
+            })
             .then(() => this.handleRequests())
             .then(() => this._rpcHandler.start())
     }

@@ -13,7 +13,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const common_1 = require("@micro-fleet/common");
-const { RPC: R } = common_1.constants;
+const { RPC, Service: S } = common_1.constants;
 /**
  * Base class for DirectRpcAddOn.
  */
@@ -28,9 +28,12 @@ let DirectRpcHandlerAddOnBase = class DirectRpcHandlerAddOnBase {
      * @see IServiceAddOn.init
      */
     init() {
-        this._rpcHandler.port = this._configProvider.get(R.RPC_HANDLER_PORT).value;
         this._errorHandler && this._rpcHandler.onError(this._errorHandler);
-        return this._rpcHandler.init()
+        const config = this._configProvider;
+        return this._rpcHandler.init({
+            handlerName: config.get(S.SERVICE_SLUG).value,
+            port: config.get(RPC.RPC_HANDLER_PORT, common_1.SettingItemDataType.Number).value,
+        })
             .then(() => this.handleRequests())
             .then(() => this._rpcHandler.start());
     }

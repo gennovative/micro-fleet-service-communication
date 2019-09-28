@@ -17,11 +17,9 @@ const debug = require('debug')('mcft:svccom:MessageBrokerRpcHandler');
 const common_1 = require("@micro-fleet/common");
 const Types_1 = require("../constants/Types");
 const rpc = require("../RpcCommon");
-const { Service: S, } = common_1.constants;
 let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandlerBase {
-    constructor(_config, _msgBrokerConnProvider) {
+    constructor(_msgBrokerConnProvider) {
         super();
-        this._config = _config;
         this._msgBrokerConnProvider = _msgBrokerConnProvider;
         common_1.Guard.assertArgDefined('_msgBrokerConnProvider', _msgBrokerConnProvider);
     }
@@ -37,8 +35,8 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
     /**
      * @see IMediateRpcHandler.init
      */
-    async init(options = {}) {
-        this.$name = options.handlerName || this._config.get(S.SERVICE_SLUG).value;
+    async init(options) {
+        this.$name = options.handlerName;
         if (options.connector) {
             this._msgBrokerConn = options.connector;
         }
@@ -156,9 +154,8 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
 };
 MessageBrokerRpcHandler = __decorate([
     common_1.decorators.injectable(),
-    __param(0, common_1.decorators.inject(common_1.Types.CONFIG_PROVIDER)),
-    __param(1, common_1.decorators.inject(Types_1.Types.MSG_BROKER_CONNECTOR_PROVIDER)),
-    __metadata("design:paramtypes", [Object, Object])
+    __param(0, common_1.decorators.inject(Types_1.Types.MSG_BROKER_CONNECTOR_PROVIDER)),
+    __metadata("design:paramtypes", [Object])
 ], MessageBrokerRpcHandler);
 exports.MessageBrokerRpcHandler = MessageBrokerRpcHandler;
 //# sourceMappingURL=MediateRpcHandler.js.map

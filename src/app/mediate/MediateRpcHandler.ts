@@ -1,7 +1,7 @@
 /// <reference types="debug" />
 const debug: debug.IDebugger = require('debug')('mcft:svccom:MessageBrokerRpcHandler')
 
-import { decorators as d, Types as cT, constants, Guard, ValidationError, IConfigurationProvider } from '@micro-fleet/common'
+import { decorators as d, Guard, ValidationError } from '@micro-fleet/common'
 
 import { Types as T } from '../constants/Types'
 import { IMessageBrokerConnector, BrokerMessage } from '../MessageBrokerConnector'
@@ -9,15 +9,11 @@ import { IMessageBrokerConnectorProvider } from '../MessageBrokerProviderAddOn'
 import * as rpc from '../RpcCommon'
 
 
-const {
-    Service: S,
-} = constants
-
 export type MediateRpcHandlerOptions = {
     /**
      * The name used in "from" property of sent messages.
      */
-    handlerName?: string,
+    handlerName: string,
 
     /**
      * Message broker connector instance to reuse.
@@ -42,7 +38,7 @@ export interface IMediateRpcHandler extends rpc.IRpcHandler {
     /**
      * Initializes this handler before use.
      */
-    init(options?: MediateRpcHandlerOptions): Promise<void>
+    init(options: MediateRpcHandlerOptions): Promise<void>
 }
 
 @d.injectable()
@@ -67,7 +63,6 @@ export class MessageBrokerRpcHandler
 
 
     constructor(
-        @d.inject(cT.CONFIG_PROVIDER) private _config: IConfigurationProvider,
         @d.inject(T.MSG_BROKER_CONNECTOR_PROVIDER) private _msgBrokerConnProvider: IMessageBrokerConnectorProvider,
     ) {
         super()
@@ -78,8 +73,8 @@ export class MessageBrokerRpcHandler
     /**
      * @see IMediateRpcHandler.init
      */
-    public async init(options: MediateRpcHandlerOptions = {}): Promise<void> {
-        this.$name = options.handlerName || this._config.get(S.SERVICE_SLUG).value
+    public async init(options: MediateRpcHandlerOptions): Promise<void> {
+        this.$name = options.handlerName
         if (options.connector) {
             this._msgBrokerConn = options.connector
         }

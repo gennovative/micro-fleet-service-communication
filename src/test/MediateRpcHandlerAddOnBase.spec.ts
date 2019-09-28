@@ -1,4 +1,4 @@
-import { mock, instance, verify, when } from 'ts-mockito'
+import { mock, instance, verify, when, anything } from 'ts-mockito'
 
 import { IConfigurationProvider, Types as ConT,
     decorators as d } from '@micro-fleet/common'
@@ -65,7 +65,7 @@ describe('MediateRpcHandlerAddOnBase', () => {
             await addon.init()
 
             // Assert
-            verify(MockMediateRpcHandler.init()).once()
+            verify(MockMediateRpcHandler.init(anything())).once()
             verify(MockMediateRpcHandler.start()).once()
         })
     }) // END describe 'init'

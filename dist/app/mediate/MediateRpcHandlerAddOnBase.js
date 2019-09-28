@@ -13,6 +13,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const common_1 = require("@micro-fleet/common");
+const { Service: S } = common_1.constants;
 /**
  * Base class for MediateRpcAddOn.
  */
@@ -27,7 +28,9 @@ let MediateRpcHandlerAddOnBase = class MediateRpcHandlerAddOnBase {
      * @see IServiceAddOn.init
      */
     async init() {
-        await this._rpcHandler.init();
+        await this._rpcHandler.init({
+            handlerName: this._configProvider.get(S.SERVICE_SLUG).value,
+        });
         this._errorHandler && this._rpcHandler.onError(this._errorHandler);
         await this.handleRequests();
         await this._rpcHandler.start();

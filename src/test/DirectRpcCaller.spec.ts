@@ -5,25 +5,27 @@ import * as express from 'express'
 import * as bodyParser from 'body-parser'
 import { MinorException } from '@micro-fleet/common'
 
-import { HttpRpcCaller, IDirectRpcCaller, RpcRequest, RpcResponse } from '../app'
-import { mockConfigProvider } from './shared/helper'
+import { IDirectRpcCaller, RpcRequest, RpcResponse } from '../app'
+import { mockDirectRpcCaller, constants } from './shared/helper'
 
 
-const HANDLER_ADDR = 'localhost:3000',
-    HANDLER_NAME = 'handler',
-    CALLER_NAME = 'caller',
-    TEXT_REQUEST = 'Test request',
+const TEXT_REQUEST = 'Test request',
     TEXT_RESPONSE = 'Test response',
     ACTION = 'getMessage'
 
+const {
+    CALLER_NAME,
+    HANDLER_ADDR,
+    HANDLER_NAME,
+} = constants
+
 describe('HttpRpcCaller', function() {
-    this.timeout(5e3)
+    this.timeout(5000)
 
     let caller: IDirectRpcCaller
 
-    beforeEach(() => {
-        const config = mockConfigProvider()
-        caller = new HttpRpcCaller(config)
+    beforeEach(async () => {
+        caller = await mockDirectRpcCaller()
     })
 
     describe('init', () => {

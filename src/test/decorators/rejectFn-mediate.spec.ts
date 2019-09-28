@@ -33,7 +33,7 @@ let depContainer: DependencyContainer,
 
 
 describe('@rejectFn() - mediate', function() {
-    this.timeout(5e3)
+    this.timeout(5000)
     // this.timeout(60e3) // For debugging
 
     beforeEach(async () => {

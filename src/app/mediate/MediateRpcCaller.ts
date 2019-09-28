@@ -2,8 +2,7 @@
 // const debug: debug.IDebugger = require('debug')('mcft:svccom:MessageBrokerRpcCaller')
 
 import * as shortid from 'shortid'
-import { decorators as d, Types as cT, constants, Guard, MinorException, InternalErrorException,
-    IConfigurationProvider, SettingItemDataType } from '@micro-fleet/common'
+import { decorators as d, Guard, MinorException, InternalErrorException } from '@micro-fleet/common'
 
 import { Types as T } from '../constants/Types'
 import { IMessageBrokerConnector, BrokerMessage } from '../MessageBrokerConnector'
@@ -11,17 +10,11 @@ import { IMessageBrokerConnectorProvider } from '../MessageBrokerProviderAddOn'
 import * as rpc from '../RpcCommon'
 
 
-const {
-    Service: S,
-    MessageBroker: MB,
-    RPC,
-} = constants
-
 export type MediateRpcCallerOptions = {
     /**
      * The name used in "from" property of sent messages.
      */
-    callerName?: string,
+    callerName: string,
 
     /**
      * Message broker connector instance to reuse.
@@ -35,6 +28,17 @@ export type MediateRpcCallerOptions = {
      * If neither `connector` nor `connectorName` is specified, a default name is used
      */
     connectorName?: string,
+
+    /**
+     * Time to live (in milliseconds) of the sent messages.
+     */
+    messageExpiredIn?: number
+
+    /**
+     * Number of milliseconds to wait for response before cancelling the request.
+     * Must be between (inclusive) 1000 and 60000 (Min: 1s, Max: 60s).
+     */
+    timeout?: number
 }
 
 export interface IMediateRpcCaller extends rpc.IRpcCaller {
@@ -46,7 +50,7 @@ export interface IMediateRpcCaller extends rpc.IRpcCaller {
     /**
      * Initializes this caller before use.
      */
-    init(options?: MediateRpcCallerOptions): Promise<void>
+    init(options: MediateRpcCallerOptions): Promise<void>
 }
 
 @d.injectable()
@@ -68,7 +72,6 @@ export class MessageBrokerRpcCaller
     }
 
     constructor(
-        @d.inject(cT.CONFIG_PROVIDER) private _config: IConfigurationProvider,
         @d.inject(T.MSG_BROKER_CONNECTOR_PROVIDER) private _msgBrokerConnProvider: IMessageBrokerConnectorProvider
     ) {
         super()
@@ -78,22 +81,23 @@ export class MessageBrokerRpcCaller
     /**
      * @see IMediateRpcCaller.init
      */
-    public async init(options: MediateRpcCallerOptions = {}): Promise<void> {
-        this.$name = options.callerName || this._config.get(S.SERVICE_SLUG).value
+    public async init(options: MediateRpcCallerOptions): Promise<void> {
+        this.$name = options.callerName
         if (options.connector) {
             this._msgBrokerConn = options.connector
         }
         else {
             const name = options.connectorName || `Connector for RPC caller "${this.name}"`
             this._msgBrokerConn = await this._msgBrokerConnProvider.create(name)
-            this._msgBrokerConn.messageExpiredIn = this._config
-                .get(MB.MSG_BROKER_MSG_EXPIRE, SettingItemDataType.Number)
-                .tryGetValue(30e3)
+            if (options.messageExpiredIn != null) {
+                this._msgBrokerConn.messageExpiredIn = options.messageExpiredIn
+            }
             this._msgBrokerConn.onError(err => this.$emitError(err))
         }
-        this.$timeout = this._config
-            .get(RPC.RPC_CALLER_TIMEOUT, SettingItemDataType.Number)
-            .tryGetValue(30e3)
+
+        if (options.timeout != null) {
+            this.$timeout = options.timeout
+        }
     }
 
     /**

@@ -8,9 +8,6 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var __param = (this && this.__param) || function (paramIndex, decorator) {
-    return function (target, key) { decorator(target, key, paramIndex); }
-};
 var ExpressRpcHandler_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 "use strict";
@@ -19,29 +16,22 @@ const debug = require('debug')('mcft:svccom:ExpressRpcHandler');
 const express = require("express");
 const common_1 = require("@micro-fleet/common");
 const rpc = require("../RpcCommon");
-const { Service: S, } = common_1.constants;
 let ExpressRpcHandler = ExpressRpcHandler_1 = class ExpressRpcHandler extends rpc.RpcHandlerBase {
-    constructor(_config) {
+    constructor(
+    // @d.inject(cT.CONFIG_PROVIDER) private _config: IConfigurationProvider,
+    ) {
         super();
-        this._config = _config;
-        this._port = 30000;
         this._isOpen = false;
     }
     get port() {
         return this._port;
     }
-    set port(val) {
-        if (val > 0 && val <= 65535) {
-            this._port = val;
-            return;
-        }
-        throw new common_1.CriticalException('INVALID_PORT_DIRECT_RPC_HANDLER');
-    }
     /**
      * @see IDirectRpcHandler.init
      */
-    init(options = {}) {
-        this.$name = options.handlerName || this._config.get(S.SERVICE_SLUG).value;
+    init(options) {
+        this.$name = options.handlerName; // || this._config.get(S.SERVICE_SLUG).value
+        this._port = options.port; // || this._config.get(RPC.RPC_HANDLER_PORT).value
         common_1.Guard.assertIsFalsey(this._routers, 'This RPC Handler is already initialized!');
         common_1.Guard.assertIsTruthy(this.name, '`name` property must be set!');
         // this._instanceUid = shortid.generate();
@@ -187,8 +177,7 @@ ExpressRpcHandler.URL_TESTER = (function () {
 })();
 ExpressRpcHandler = ExpressRpcHandler_1 = __decorate([
     common_1.decorators.injectable(),
-    __param(0, common_1.decorators.inject(common_1.Types.CONFIG_PROVIDER)),
-    __metadata("design:paramtypes", [Object])
+    __metadata("design:paramtypes", [])
 ], ExpressRpcHandler);
 exports.ExpressRpcHandler = ExpressRpcHandler;
 //# sourceMappingURL=DirectRpcHandler.js.map

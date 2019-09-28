@@ -2,11 +2,10 @@ import * as chai from 'chai'
 import * as spies from 'chai-spies'
 import * as express from 'express'
 import * as requestMaker from 'request-promise-native'
-import { MinorException, IConfigurationProvider } from '@micro-fleet/common'
+import { MinorException } from '@micro-fleet/common'
 
 import { ExpressRpcHandler, RpcRequest, RpcResponse,
     RpcHandlerFunction, RpcError} from '../app'
-import { mockConfigProvider } from './shared/helper'
 
 chai.use(spies)
 const expect = chai.expect
@@ -14,29 +13,31 @@ const expect = chai.expect
 
 const NAME = 'TestHandler'
 
-let config: IConfigurationProvider
-
 // tslint:disable: no-floating-promises
 
 describe('ExpressDirectRpcHandler', function () {
-    this.timeout(5e3)
+    this.timeout(5000)
     // this.timeout(60e3); // For debugging
 
-    before(() => {
-        config = mockConfigProvider()
+    let handler: ExpressRpcHandler
+
+    beforeEach(() => {
+        handler = new ExpressRpcHandler()
+        return handler.init({
+            handlerName: NAME,
+            port: 30e3,
+        })
+    })
+
+    afterEach(() => {
+        return handler.dispose()
     })
 
     describe('start', () => {
         it('Should raise error if problems occur', (done) => {
             // Arrange
-            const handler = new ExpressRpcHandler(config),
-                app = express()
-
-            handler.init({
-                handlerName: NAME,
-            })
-
             // Start this server to make a port conflict
+            const app = express()
             const server = app.listen(handler.port, () => {
 
                 handler.onError(err => {
@@ -52,18 +53,6 @@ describe('ExpressDirectRpcHandler', function () {
     })
 
     describe('handle', () => {
-        let handler: ExpressRpcHandler
-
-        beforeEach(() => {
-            handler = new ExpressRpcHandler(config)
-            handler.init({
-                handlerName: NAME,
-            })
-        })
-
-        afterEach(async () => {
-            await handler.dispose()
-        })
 
         it('Should add a router for each module name if not specify `rawDest`.', () => {
             // Arrange 1
@@ -129,7 +118,6 @@ describe('ExpressDirectRpcHandler', function () {
                 done()
             }
 
-
             // Act
             handler.handle({
                 moduleName,
@@ -173,7 +161,6 @@ describe('ExpressDirectRpcHandler', function () {
             }
 
             // Act
-            handler.port = port
             handler.handle({
                 moduleName,
                 actionName: createAction,

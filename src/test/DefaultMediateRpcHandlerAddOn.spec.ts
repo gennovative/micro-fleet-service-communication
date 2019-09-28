@@ -3,18 +3,17 @@ import * as path from 'path'
 import * as chai from 'chai'
 import * as spies from 'chai-spies'
 
-import { Types as CmT, IConfigurationProvider, constants,
-    DependencyContainer, serviceContext, MinorException, CriticalException,
+import { IConfigurationProvider, constants,
+    DependencyContainer, MinorException, CriticalException,
     } from '@micro-fleet/common'
 
 import { RpcResponse, IMediateRpcHandler, IMediateRpcCaller,
-    IMessageBrokerConnector, TopicMessageBrokerConnector,
-    DefaultMediateRpcHandlerAddOn, RpcError,
+    IMessageBrokerConnector, DefaultMediateRpcHandlerAddOn, RpcError,
 } from '../app'
 
 import rabbitOpts from './rabbit-options'
 import * as mc from './shared/mediate-controllers'
-import { sleep, mockConfigProvider, mockMediateRpcCaller, mockMediateRpcHandler } from './shared/helper'
+import * as h from './shared/helper'
 
 
 chai.use(spies)
@@ -24,10 +23,13 @@ const {
     RPC,
 } = constants
 
-const SERVICE_SLUG = 'test-service',
-    CALLER_NAME = 'caller',
-    HANDLER_NAME = 'handler',
-    TEXT_REQUEST = '1346468764131687'
+const {
+    SERVICE_SLUG,
+    CALLER_NAME,
+    CALLER_TIMEOUT,
+} = h.constants
+
+const TEXT_REQUEST = '1346468764131687'
 
 
 let depContainer: DependencyContainer,
@@ -41,22 +43,19 @@ let depContainer: DependencyContainer,
 // tslint:disable: no-floating-promises
 
 describe('DefaultMediateRpcHandlerAddOn', function() {
-    this.timeout(20000)
+    this.timeout(20e3)
     // For debugging
     // this.timeout(60e3)
 
     beforeEach(async () => {
-        depContainer = new DependencyContainer()
-        serviceContext.setDependencyContainer(depContainer)
-        depContainer.bindConstant(CmT.DEPENDENCY_CONTAINER, depContainer)
-
-        config = mockConfigProvider({
+        config = h.mockConfigProvider({
             [S.SERVICE_SLUG]: SERVICE_SLUG,
-            [RPC.RPC_CALLER_TIMEOUT]: 3000,
-        });
-        [caller, callerMbConn] = await mockMediateRpcCaller(config);
-        [handler, handlerMbConn] = await mockMediateRpcHandler(config, false)
-        handlerMbConn = new TopicMessageBrokerConnector(HANDLER_NAME)
+            [RPC.RPC_CALLER_TIMEOUT]: CALLER_TIMEOUT,
+        })
+        depContainer = h.mockDependencyContainer();
+
+        [caller, callerMbConn] = await h.mockMediateRpcCaller(config);
+        [handler, handlerMbConn] = await h.mockMediateRpcHandler(config, false)
 
         callerMbConn.onError((err) => {
             console.error('Caller error:\n', err)
@@ -276,7 +275,7 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
                             actionName: mc.ACT_GET_IT,
                         })
                     }
-                    return sleep(3000) // Need more delay time than DirectHandler
+                    return h.sleep(3000) // Need more delay time than DirectHandler
                 })
                 .then(() => {
                     console.log('We\'re gotta close now!')
@@ -344,7 +343,7 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
                         })
                     }
 
-                    caller['_timeout'] = 6000
+                    caller['$timeout'] = 6000
                     // Act 1
                     for (i = 1; i <= INIT_CALL_NUM; ++i) {
                         caller.call({
@@ -354,18 +353,17 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
                         .then((res: RpcResponse) => {
                             console.log(`Got the ${res.payload}-th response`)
                         })
+                        .catch(done)
                     }
-                    return sleep(2000) // Need more delay time than DirectHandler
+                    return h.sleep(2000) // Need more delay time than DirectHandler
                 })
                 .then(() => {
                     console.log('We\'re gotta close now!')
                     return addon.deadLetter()
                 })
                 .then(async () => {
-                    // Assert: Handler accepts requests
-                    console.log(`All ${INIT_CALL_NUM} requests accepted`)
-
                     // Act 2
+                    caller['$timeout'] = 1000
                     const tasks = []
                     for (; i <= INIT_CALL_NUM + MORE_CALL_NUM; ++i) {
                         tasks.push(
@@ -377,6 +375,7 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
                             .catch(err => {
                                 expect(err).to.exist
                                 expect(err.message).to.equal('Response waiting timeout')
+                                console.log(`Attempted 1 more requests but timed out`)
                             })
                         )
                     }
@@ -393,7 +392,7 @@ describe('DefaultMediateRpcHandlerAddOn', function() {
                 })
                 .finally(async () => {
                     resolvers.forEach(resolve => resolve())
-                    return sleep(3000)
+                    return h.sleep(3000)
                 })
                 .then(() => {
                     expect(resolveCounter).to.equal(INIT_CALL_NUM)
