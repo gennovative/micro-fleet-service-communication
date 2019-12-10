@@ -392,7 +392,7 @@ let TopicMessageBrokerConnector = TopicMessageBrokerConnector_1 = class TopicMes
             await channel.assertQueue(queue, {
                 exclusive: isTempQueue,
                 messageTtl: this.messageExpiredIn,
-                autoDelete: true,
+                durable: false,
             });
             await channel.bindQueue(queue, this._exchange, matchingPattern);
             this._queueBound = true;

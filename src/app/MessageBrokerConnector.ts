@@ -628,7 +628,10 @@ export class TopicMessageBrokerConnector implements IMessageBrokerConnector {
             await channel.assertQueue(queue, {
                 exclusive: isTempQueue,
                 messageTtl: this.messageExpiredIn,
-                autoDelete: true,
+                durable: false,
+                // autoDelete: true, // Don't set this to true. It will delete queue
+                                     // when there is no bound pattern, and will throw error
+                                    // when we then want to bind a pattern (Queue not found error).
             })
 
             await channel.bindQueue(queue, this._exchange, matchingPattern)
