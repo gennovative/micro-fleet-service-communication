@@ -964,7 +964,7 @@ declare module '@micro-fleet/service-communication/dist/app/mediate/MediateRpcHa
          * @see IRpcHandler.handle
          */
         handle({ moduleName, actionName, handler, rawDest }: rpc.RpcHandleOptions): Promise<void>;
-            }
+                                            }
 
 }
 declare module '@micro-fleet/service-communication/dist/app/mediate/MediateRpcHandlerAddOnBase' {
@@ -1138,11 +1138,10 @@ declare module '@micro-fleet/service-communication/dist/app/mediate/MediateRpcCa
 }
 declare module '@micro-fleet/service-communication/dist/app/register-addon' {
     import { IServiceAddOn } from '@micro-fleet/common';
-    import { MediateRpcHandlerAddOnBase } from '@micro-fleet/service-communication/dist/app/mediate/MediateRpcHandlerAddOnBase';
     export function registerMessageBrokerAddOn(): IServiceAddOn;
     export function registerDirectHandlerAddOn(): IServiceAddOn;
     export function registerDirectCaller(): void;
-    export function registerMediateHandlerAddOn(): MediateRpcHandlerAddOnBase;
+    export function registerMediateHandlerAddOn(): IServiceAddOn;
     export function registerMediateCaller(): void;
 
 }

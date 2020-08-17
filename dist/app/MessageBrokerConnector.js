@@ -10,7 +10,6 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 var TopicMessageBrokerConnector_1;
 Object.defineProperty(exports, "__esModule", { value: true });
-"use strict";
 const events_1 = require("events");
 const shortid = require("shortid");
 const amqp = require("amqplib");

@@ -132,8 +132,8 @@ export class MessageBrokerRpcCaller
             // A request only cares about a response with same `correlationId`.
             const correlationId = shortid.generate(),
                 replyTo = Boolean(rawDest)
-                    ? `response.${rawDest}@${correlationId}`
-                    : `response.${moduleName}.${actionName}@${correlationId}`,
+                    ? `response.${rawDest}.${correlationId}`
+                    : `response.${moduleName}.${actionName}.${correlationId}`,
                 conn = this._msgBrokerConn
 
             const stopWaiting = async () => {

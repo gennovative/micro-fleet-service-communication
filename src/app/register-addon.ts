@@ -52,7 +52,7 @@ export function registerDirectCaller(): void {
     }
 }
 
-export function registerMediateHandlerAddOn(): MediateRpcHandlerAddOnBase {
+export function registerMediateHandlerAddOn(): IServiceAddOn {
     const depCon: IDependencyContainer = serviceContext.dependencyContainer
     Guard.assertIsTruthy(
         depCon.isBound(T.BROKER_ADDON),
@@ -64,7 +64,7 @@ export function registerMediateHandlerAddOn(): MediateRpcHandlerAddOnBase {
     if (!depCon.isBound(T.MEDIATE_RPC_HANDLER_ADDON)) {
         depCon.bindConstructor(T.MEDIATE_RPC_HANDLER_ADDON, DefaultMediateRpcHandlerAddOn).asSingleton()
     }
-    return depCon.resolve<MediateRpcHandlerAddOnBase>(T.MEDIATE_RPC_HANDLER_ADDON)
+    return depCon.resolve<IServiceAddOn>(T.MEDIATE_RPC_HANDLER_ADDON)
 }
 
 export function registerMediateCaller(): void {

@@ -1,9 +1,9 @@
 {
     "name": "@micro-fleet/service-communication",
-    "version": "2.4.0-rc1",
+    "version": "2.4.0-rc2",
     "description": "Provides methods for microservices to communicate with each other.",
     "scripts": {
-        "build": "npm run compile && npm run test",
+        "build": "npm run compile",
         "clean": "rimraf dist coverage .nyc_output",
         "definition": "node ../../../scripts/definition.js",
         "dedup": "rimraf node_modules/**/node_modules/**/typings",

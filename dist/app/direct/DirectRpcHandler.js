@@ -10,7 +10,6 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 var ExpressRpcHandler_1;
 Object.defineProperty(exports, "__esModule", { value: true });
-"use strict";
 /// <reference types="debug" />
 const debug = require('debug')('mcft:svccom:ExpressRpcHandler');
 const express = require("express");

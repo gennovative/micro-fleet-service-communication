@@ -82,8 +82,8 @@ let MessageBrokerRpcCaller = class MessageBrokerRpcCaller extends rpc.RpcCallerB
             // There are many requests to same `requestTopic` and they listen to same `responseTopic`,
             // A request only cares about a response with same `correlationId`.
             const correlationId = shortid.generate(), replyTo = Boolean(rawDest)
-                ? `response.${rawDest}@${correlationId}`
-                : `response.${moduleName}.${actionName}@${correlationId}`, conn = this._msgBrokerConn;
+                ? `response.${rawDest}.${correlationId}`
+                : `response.${moduleName}.${actionName}.${correlationId}`, conn = this._msgBrokerConn;
             const stopWaiting = async () => {
                 await conn.unsubscribe(replyTo);
                 await conn.stopListen();

@@ -49,7 +49,7 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
         if (!conn.isActive) {
             await conn.connect();
         }
-        this._handlers = new Map();
+        this._handlers = [];
     }
     /**
      * @see IRpcHandler.start
@@ -92,15 +92,16 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
         const dest = Boolean(rawDest)
             ? rawDest
             : `request.${moduleName}.${actionName}`;
-        if (this._handlers.has(dest)) {
+        if (this._hasHandler(dest, true)) {
             debug(`MediateRpcHandler Warning: Override existing subscription key ${dest}`);
         }
-        this._handlers.set(dest, handler);
+        this._addHandler(dest, handler);
         return this._msgBrokerConn.subscribe(dest);
     }
     onMessage(msg, ack, nack) {
         const routingKey = msg.raw.fields.routingKey;
-        if (!this._handlers.has(routingKey)) {
+        const actionFnArr = this._getHandlers(routingKey);
+        if (!actionFnArr.length) {
             // Although we nack this message and re-queue it, it will come back
             // if it's not handled by any other service. And we jut keep nack-ing
             // it until the message expires.
@@ -117,15 +118,16 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
                 reason,
             });
             try {
-                const actionFn = this._handlers.get(routingKey);
-                // Execute controller's action
-                await actionFn({
+                const rejectIntended = wrappedReject(true);
+                // Execute controller's actions
+                // Take the earliest response
+                await Promise.race(actionFnArr.map(actionFn => actionFn({
                     payload: request.payload,
                     resolve,
-                    reject: wrappedReject(true),
+                    reject: rejectIntended,
                     rpcRequest: request,
                     rawMessage: msg,
-                });
+                })));
             }
             catch (err) { // Catch normal exceptions.
                 let isIntended = false;
@@ -154,6 +156,29 @@ let MessageBrokerRpcHandler = class MessageBrokerRpcHandler extends rpc.RpcHandl
         })
             // Catch error thrown by `createError()` or `publish()` in above catch
             .catch(this.$emitError.bind(this));
+    }
+    _hasHandler(routingKey, exact = false) {
+        return this._handlers.some(h => {
+            if (exact) {
+                return routingKey === h.routingKey;
+            }
+            return this._routingKeyToRegExp(h.routingKey).test(routingKey);
+        });
+    }
+    _getHandlers(routingKey) {
+        return this._handlers
+            .filter(h => this._routingKeyToRegExp(h.routingKey).test(routingKey))
+            .map(h => h.handler);
+    }
+    _addHandler(routingKey, handler) {
+        this._handlers.push({ routingKey, handler });
+    }
+    _routingKeyToRegExp(routingKey) {
+        const routeWildcard = routingKey
+            .replace(/\./g, '\\.')
+            .replace(/\*/g, '[^\\.]+')
+            .replace(/\#/g, '([^\\.]+\\.?)*');
+        return new RegExp(`^${routeWildcard}$`);
     }
 };
 MessageBrokerRpcHandler = __decorate([

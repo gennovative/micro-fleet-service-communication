@@ -47,7 +47,10 @@ export class MessageBrokerRpcHandler
     implements IMediateRpcHandler {
 
     private _msgBrokerConn: IMessageBrokerConnector
-    private _handlers: Map<string, rpc.RpcHandlerFunction>
+    private _handlers: Array<{
+        routingKey: string,
+        handler: rpc.RpcHandlerFunction,
+    }>
 
 
     /**
@@ -89,7 +92,7 @@ export class MessageBrokerRpcHandler
         if (!conn.isActive) {
             await conn.connect()
         }
-        this._handlers = new Map<string, rpc.RpcHandlerFunction>()
+        this._handlers = []
     }
 
     /**
@@ -137,17 +140,18 @@ export class MessageBrokerRpcHandler
         const dest = Boolean(rawDest)
             ? rawDest
             : `request.${moduleName}.${actionName}`
-        if (this._handlers.has(dest)) {
+        if (this._hasHandler(dest, true)) {
             debug(`MediateRpcHandler Warning: Override existing subscription key ${dest}`)
         }
-        this._handlers.set(dest, handler)
+        this._addHandler(dest, handler)
         return this._msgBrokerConn.subscribe(dest)
     }
 
 
     private onMessage(msg: BrokerMessage, ack: Function, nack: Function): void {
         const routingKey: string = msg.raw.fields.routingKey
-        if (!this._handlers.has(routingKey)) {
+        const actionFnArr = this._getHandlers(routingKey)
+        if (!actionFnArr.length) {
             // Although we nack this message and re-queue it, it will come back
             // if it's not handled by any other service. And we jut keep nack-ing
             // it until the message expires.
@@ -166,15 +170,18 @@ export class MessageBrokerRpcHandler
                 reason,
             })
             try {
-                const actionFn = this._handlers.get(routingKey)
-                // Execute controller's action
-                await actionFn({
-                    payload: request.payload,
-                    resolve,
-                    reject: wrappedReject(true),
-                    rpcRequest: request,
-                    rawMessage: msg,
-                })
+                const rejectIntended = wrappedReject(true)
+                // Execute controller's actions
+                // Take the earliest response
+                await Promise.race(actionFnArr.map(actionFn =>
+                    actionFn({
+                        payload: request.payload,
+                        resolve,
+                        reject: rejectIntended,
+                        rpcRequest: request,
+                        rawMessage: msg,
+                    }),
+                ))
             } catch (err) { // Catch normal exceptions.
                 let isIntended = false
                 if (err instanceof ValidationError) {
@@ -208,4 +215,32 @@ export class MessageBrokerRpcHandler
         .catch(this.$emitError.bind(this))
     }
 
+    private _hasHandler(routingKey: string, exact = false) {
+        return this._handlers.some(h => {
+            if (exact) {
+                return routingKey === h.routingKey
+            }
+            return this._routingKeyToRegExp(h.routingKey).test(routingKey)
+        })
+    }
+
+    private _getHandlers(routingKey: string): rpc.RpcHandlerFunction[] {
+        return this._handlers
+            .filter(h =>
+                this._routingKeyToRegExp(h.routingKey).test(routingKey),
+            )
+            .map(h => h.handler)
+    }
+
+    private _addHandler(routingKey: string, handler: rpc.RpcHandlerFunction) {
+        this._handlers.push({ routingKey, handler })
+    }
+
+    private _routingKeyToRegExp(routingKey: string): RegExp {
+        const routeWildcard = routingKey
+            .replace(/\./g, '\\.')
+            .replace(/\*/g, '[^\\.]+')
+            .replace(/\#/g, '([^\\.]+\\.?)*')
+        return new RegExp(`^${routeWildcard}$`)
+    }
 }
